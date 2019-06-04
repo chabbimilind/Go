@@ -12,10 +12,12 @@ package testdeps
 
 import (
 	"bufio"
+	"fmt"
 	"internal/testlog"
 	"io"
 	"regexp"
 	"runtime/pprof"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -44,6 +46,44 @@ func (TestDeps) StartCPUProfile(w io.Writer) error {
 
 func (TestDeps) StopCPUProfile() {
 	pprof.StopCPUProfile()
+}
+
+func (TestDeps) StartPMUProfile(w io.Writer, event string, period int64, preciseIP int8, isKernelIncluded bool, isHvIncluded bool) error {
+	eventConfig := pprof.PMUEventConfig{
+		Period:           period,
+		PreciseIP:        preciseIP,
+		IsKernelIncluded: isKernelIncluded,
+		IsHvIncluded:     isHvIncluded,
+	}
+	switch event {
+	case "cycles":
+		return pprof.StartPMUProfile(pprof.WithProfilingPMUCycles(w, &eventConfig))
+	case "instructions":
+		return pprof.StartPMUProfile(pprof.WithProfilingPMUInstructions(w, &eventConfig))
+	case "cacheReferences":
+		return pprof.StartPMUProfile(pprof.WithProfilingPMUCacheReferences(w, &eventConfig))
+	case "cacheMisses":
+		return pprof.StartPMUProfile(pprof.WithProfilingPMUCacheMisses(w, &eventConfig))
+	case "cacheLLReadAccesses":
+		return pprof.StartPMUProfile(pprof.WithProfilingPMUCacheLLReadAccesses(w, &eventConfig))
+	case "cacheLLReadMisses":
+		return pprof.StartPMUProfile(pprof.WithProfilingPMUCacheLLReadMisses(w, &eventConfig))
+	default:
+		// Is this a raw event?
+		if strings.HasPrefix(event, "r") {
+			if rawHexEvent, err := strconv.ParseInt(event[1:], 16, 64); err == nil {
+				eventConfig.RawEvent = rawHexEvent
+				return pprof.StartPMUProfile(pprof.WithProfilingPMURaw(w, &eventConfig))
+			}
+			return fmt.Errorf("Incorrect hex format for raw event")
+		} else {
+			return fmt.Errorf("Unknown or not yet implemented event")
+		}
+	}
+}
+
+func (TestDeps) StopPMUProfile() {
+	pprof.StopPMUProfile()
 }
 
 func (TestDeps) WriteProfileTo(name string, w io.Writer, debug int) error {
