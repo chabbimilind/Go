@@ -274,8 +274,8 @@ func setThreadCPUProfiler(hz int32) {
         r, err = fcntl(fd, /*F_SETFL*/ 0x4, r | 0x2000)
         r, err = fcntl(fd, /*F_SETSIG*/ 0xa, _SIGPROF)
     
-        // fOwnEx := fOwnerEx{/*F_OWNER_TID*/ 0, gettid()}
-        // r, err = fcntl(fd, /*F_SETOWN_EX*/ 0xf, &fOwnEx);
+        fOwnEx := fOwnerEx{/*F_OWNER_TID*/ 0, gettid()}
+        r, err = fcntl(fd, /*F_SETOWN_EX*/ 0xf, &fOwnEx);
         
         printstring("r, err ")
         printnl()
