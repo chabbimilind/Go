@@ -1409,3 +1409,12 @@ flush:
 	MOVL	12(SP), BP
 	MOVL	16(SP), SI
 	JMP	ret
+TEXT runtime·mb(SB),NOSPLIT,$0-0
+	MFENCE
+	RET
+TEXT runtime·rmb(SB),NOSPLIT,$0-0
+	LFENCE
+	RET
+TEXT runtime·wmb(SB),NOSPLIT,$0-0
+	SFENCE
+	RET

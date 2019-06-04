@@ -764,3 +764,12 @@ flush:
 	MOVW	92(R29), R25
 	MOVW	96(R29), R28
 	JMP	ret
+TEXT runtime·mb(SB),NOSPLIT,$0-0
+        SYNC
+        RET
+TEXT runtime·rmb(SB),NOSPLIT,$0-0
+        SYNC
+        RET
+TEXT runtime·wmb(SB),NOSPLIT,$0-0
+        SYNC
+        RET

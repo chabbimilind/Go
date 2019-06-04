@@ -1630,3 +1630,12 @@ TEXT runtime·debugCallPanicked(SB),NOSPLIT,$16-16
 	MOVQ	$2, AX
 	BYTE	$0xcc
 	RET
+TEXT runtime·mb(SB),NOSPLIT,$0-0
+	MFENCE
+	RET
+TEXT runtime·rmb(SB),NOSPLIT,$0-0
+	LFENCE
+	RET
+TEXT runtime·wmb(SB),NOSPLIT,$0-0
+	SFENCE
+	RET

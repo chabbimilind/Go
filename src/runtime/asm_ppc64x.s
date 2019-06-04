@@ -956,3 +956,12 @@ flush:
 	MOVD	(FIXED_FRAME+96)(R1), R14
 	MOVD	(FIXED_FRAME+104)(R1), R15
 	JMP	ret
+TEXT runtime·mb(SB),NOSPLIT,$0-0
+        SYNC
+        RET
+TEXT runtime·rmb(SB),NOSPLIT,$0-0
+        LWSYNC
+        RET
+TEXT runtime·wmb(SB),NOSPLIT,$0-0
+        LWSYNC
+        RET

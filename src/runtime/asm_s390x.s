@@ -863,3 +863,12 @@ flush:
 	MOVD	24(R15), R0      // restore R0
 	LMG	32(R15), R5, R12 // restore R5 - R12
 	JMP	ret
+TEXT runtime·mb(SB),NOSPLIT,$0-0
+        SYNC
+        RET
+TEXT runtime·rmb(SB),NOSPLIT,$0-0
+        SYNC
+        RET
+TEXT runtime·wmb(SB),NOSPLIT,$0-0
+        SYNC
+        RET

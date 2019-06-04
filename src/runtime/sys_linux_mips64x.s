@@ -31,6 +31,7 @@
 #define SYS_rt_sigreturn	5211
 #define SYS_rt_sigaction	5013
 #define SYS_rt_sigprocmask	5014
+#define SYS_ioctl		5015
 #define SYS_sigaltstack		5129
 #define SYS_madvise		5027
 #define SYS_mincore		5026
@@ -46,6 +47,8 @@
 #define SYS_clock_gettime	5222
 #define SYS_epoll_create1	5285
 #define SYS_brk			5012
+#define SYS_perf_event_open	5292
+
 
 TEXT runtime·exit(SB),NOSPLIT|NOFRAME,$0-4
 	MOVW	code+0(FP), R4
@@ -461,4 +464,86 @@ TEXT runtime·sbrk0(SB),NOSPLIT|NOFRAME,$0-8
 	MOVV	$SYS_brk, R2
 	SYSCALL
 	MOVV	R2, ret+0(FP)
+	RET
+
+// psu: not tested
+TEXT runtime·perfEventOpen(SB),NOSPLIT,$0-72
+	MOVV	attr+0(FP), R4
+	MOVV	pid+8(FP), R5
+	MOVV	cpu+16(FP), R6
+	MOVV	groupFd+24(FP), R7
+	MOVV	flags+32(FP), R8
+	MOVV	dummp+40(FP), R9
+	MOVV	$SYS_perf_event_open, R2
+	SYSCALL
+	BEQ	R7, ok
+	MOVV	$-1, R1
+	MOVV	R1, r+48(FP)
+	MOVV	R0, r2+56(FP)
+	MOVV	R2, err+64(FP)
+	RET
+ok:
+	MOVV	R2, r+48(FP)
+	MOVV	R3, r2+56(FP)
+	MOVV	R0, err+64(FP)
+	RET
+
+// psu: not tested
+TEXT runtime·ioctl(SB),NOSPLIT,$0-40
+	MOVV	fd+0(FP), R4
+	MOVV	req+8(FP), R5
+	MOVV	arg+16(FP), R6
+	MOVV	R0, R7
+	MOVV	R0, R8
+	MOVV	R0, R9
+	MOVV	$SYS_ioctl, R2
+	SYSCALL
+	BEQ	R7, ok
+	MOVV	$-1, R1
+	MOVV	R1, r+24(FP)
+	MOVV	R2, err+32(FP)
+	RET
+ok:
+	MOVV	R2, r+24(FP)
+	MOVV	R0, err+32(FP)
+	RET
+
+// psu: not tested
+TEXT runtime·fcntl(SB),NOSPLIT,$0-40
+	MOVV	fd+0(FP), R4
+	MOVV	cmd+8(FP), R5
+	MOVV	arg+16(FP), R6
+	MOVV	R0, R7
+	MOVV	R0, R8
+	MOVV	R0, R9
+	MOVV	$SYS_fcntl, R2
+	SYSCALL
+	BEQ	R7, ok
+	MOVV	$-1, R1
+	MOVV	R1, r+24(FP)
+	MOVV	R2, err+32(FP)
+	RET
+ok:
+	MOVV	R2, r+24(FP)
+	MOVV	R0, err+32(FP)
+	RET
+
+// psu: not tested
+TEXT runtime·fcntl2(SB),NOSPLIT,$0-40
+	MOVV	fd+0(FP), R4
+	MOVV	cmd+8(FP), R5
+	MOVV	arg+16(FP), R6
+	MOVV	R0, R7
+	MOVV	R0, R8
+	MOVV	R0, R9
+	MOVV	$SYS_fcntl, R2
+	SYSCALL
+	BEQ	R7, ok
+	MOVV	$-1, R1
+	MOVV	R1, r+24(FP)
+	MOVV	R2, err+32(FP)
+	RET
+ok:
+	MOVV	R2, r+24(FP)
+	MOVV	R0, err+32(FP)
 	RET

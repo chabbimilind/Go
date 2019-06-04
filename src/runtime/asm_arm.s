@@ -969,3 +969,14 @@ flush:
 	MOVM.IA.W	(R13), [R14]
 	MOVM.IA.W	(R13), [R2-R9,R12]
 	JMP	ret
+TEXT runtime·mb(SB),NOSPLIT,$0-0
+        DMB	MB_ST
+        RET
+TEXT runtime·rmb(SB),NOSPLIT,$0-0
+// Not fine tuned for reads
+        DMB	MB_ST
+        RET
+TEXT runtime·wmb(SB),NOSPLIT,$0-0
+// Not fine tuned for writes
+        DMB	MB_ST
+        RET

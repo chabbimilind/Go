@@ -1245,3 +1245,12 @@ flush:
 	MOVD	184(RSP), R25
 	MOVD	192(RSP), R26
 	JMP	ret
+TEXT runtime·mb(SB),NOSPLIT,$0-0
+	DMB	$0xe	// DMB ST
+	RET
+TEXT runtime·rmb(SB),NOSPLIT,$0-0
+	DMB	$0xe	// DMB ST
+	RET
+TEXT runtime·wmb(SB),NOSPLIT,$0-0
+	DMB     $0xe    // DMB ST
+	RET
