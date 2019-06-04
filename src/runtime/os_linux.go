@@ -357,6 +357,12 @@ func sigaltstack(new, old *stackt)
 func setitimer(mode int32, new, old *itimerval)
 
 //go:noescape
+func perfEventOpen(attr *PerfEventAttr, pid, cpu, groupFd, flags, dummy int64) (int64, int64, int64) 
+func ioctl(fd, req, arg int64) int64
+// func fcntl(fd, cmd, arg int64) (int64, int64)
+func fcntl(fd, cmd int64, arg interface{}) (int64, int64)
+
+//go:noescape
 func rtsigprocmask(how int32, new, old *sigset, size int32)
 
 //go:nosplit

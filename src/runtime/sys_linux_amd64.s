@@ -21,6 +21,7 @@
 #define SYS_rt_sigaction	13
 #define SYS_rt_sigprocmask	14
 #define SYS_rt_sigreturn	15
+#define SYS_ioctl       16
 #define SYS_sched_yield 	24
 #define SYS_mincore		27
 #define SYS_madvise		28
@@ -46,6 +47,7 @@
 #define SYS_faccessat		269
 #define SYS_epoll_pwait		281
 #define SYS_epoll_create1	291
+#define SYS_perfEventOpen 298
 
 TEXT runtime·exit(SB),NOSPLIT,$0-4
 	MOVL	code+0(FP), DI
@@ -164,6 +166,56 @@ TEXT runtime·setitimer(SB),NOSPLIT,$0-24
 	MOVQ	old+16(FP), DX
 	MOVL	$SYS_setittimer, AX
 	SYSCALL
+	RET
+
+// func perfEventOpen(attr *PerfEventAttr, pid, cpu, groupFd, flags, dummy int64) (r1, r2, err int64) 
+TEXT runtime·perfEventOpen(SB),NOSPLIT,$0
+	MOVQ	a1+0(FP), DI
+	MOVQ	a2+8(FP), SI
+	MOVQ	a3+16(FP), DX
+	MOVQ	a4+24(FP), R10
+	MOVQ	a5+32(FP), R8
+	MOVQ	a6+40(FP), R9
+	MOVQ	$SYS_perfEventOpen, AX	// syscall entry
+	SYSCALL
+	CMPQ	AX, $0xfffffffffffff001
+	JLS	ok
+	MOVQ	$-1, r1+48(FP)
+	MOVQ	$0, r2+56(FP)
+	NEGQ	AX
+	MOVQ	AX, err+64(FP)
+	RET
+ok:
+	MOVQ	AX, r1+48(FP)
+	MOVQ	DX, r2+56(FP)
+	MOVQ	$0, err+64(FP)
+	RET
+
+// func ioctl(fd int, req uint, arg uintptr) err int64
+TEXT runtime·ioctl(SB),NOSPLIT,$0
+	MOVQ	a1+0(FP), DI 
+	MOVQ	a2+8(FP), SI
+	MOVQ	a3+16(FP), DX
+    MOVQ	$SYS_ioctl, AX
+	SYSCALL
+	RET
+
+// func fcntl(fd, cmd, arg int64) (r, err int64)
+TEXT runtime·fcntl(SB),NOSPLIT,$0
+	MOVQ	a1+0(FP), DI 
+	MOVQ	a2+8(FP), SI
+	MOVQ	a3+16(FP), DX
+    MOVQ	$SYS_fcntl, AX
+	SYSCALL
+	CMPQ	AX, $0xfffffffffffff001
+	JLS	ok
+	MOVQ	$-1, r+24(FP)
+	NEGQ	AX
+	MOVQ	AX, err+32(FP)
+	RET
+ok:
+	MOVQ	AX, r1+24(FP)
+	MOVQ	$0, err+32(FP)
 	RET
 
 TEXT runtime·mincore(SB),NOSPLIT,$0-28

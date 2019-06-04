@@ -254,14 +254,38 @@ func setProcessCPUProfiler(hz int32) {
 // setThreadCPUProfiler makes any thread-specific changes required to
 // implement profiling at a rate of hz.
 func setThreadCPUProfiler(hz int32) {
-	var it itimerval
 	if hz == 0 {
+	    var it itimerval
 		setitimer(_ITIMER_PROF, &it, nil)
 	} else {
-		it.it_interval.tv_sec = 0
-		it.it_interval.set_usec(1000000 / hz)
-		it.it_value = it.it_interval
-		setitimer(_ITIMER_PROF, &it, nil)
+		// it.it_interval.tv_sec = 0
+		// it.it_interval.set_usec(1000000 / hz)
+		// it.it_value = it.it_interval
+		// setitimer(_ITIMER_PROF, &it, nil)
+        
+        var attr PerfEventAttr
+        attr.Type = PERF_TYPE_HARDWARE
+        attr.Size = uint32(unsafe.Sizeof(attr))
+        attr.Config = PERF_COUNT_HW_CPU_CYCLES
+        attr.Sample  =  10000000
+        
+        fd, _, err := perfEventOpen(&attr, 0, -1, -1, 0, /* dummy*/ 0)
+        r, err := fcntl(fd, /*F_GETFL*/ 0x3, 0)
+        r, err = fcntl(fd, /*F_SETFL*/ 0x4, r | 0x2000)
+        r, err = fcntl(fd, /*F_SETSIG*/ 0xa, _SIGPROF)
+    
+        // fOwnEx := fOwnerEx{/*F_OWNER_TID*/ 0, gettid()}
+        // r, err = fcntl(fd, /*F_SETOWN_EX*/ 0xf, &fOwnEx);
+        
+        printstring("r, err ")
+        printnl()
+        printint(int64(r))
+        printstring(" ")
+        printint(int64(err))
+        printnl()
+
+        // ioctl(fd, /*PERF_EVENT_IOC_RESET*/ 0x2403, 0);
+        // ioctl(fd, /*PERF_EVENT_IOC_ENABLE*/ 0x2400, 0);
 	}
 	_g_ := getg()
 	_g_.m.profilehz = hz
