@@ -278,10 +278,7 @@ func setThreadCPUProfiler(hz int32) {
         fcntl2(fd, /*F_SETOWN_EX*/ 0xf, &fOwnEx);
         
         /*
-        printstring("r, err ")
         printint(int64(r))
-        printnl()
-        printint(int64(err))
         printnl()
         */
 

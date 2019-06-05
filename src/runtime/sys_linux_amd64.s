@@ -201,7 +201,7 @@ TEXT runtime·ioctl(SB),NOSPLIT,$0
     MOVQ    AX, ret+24(FP)
 	RET
 
-// func fcntl(fd, cmd int64, arg interface{}) (r int64, err int64)
+// func fcntl(fd, cmd arg int64) (r int64, err int64)
 TEXT runtime·fcntl(SB),NOSPLIT,$0
 	MOVQ	fd+0(FP), DI 
 	MOVQ	cmd+8(FP), SI
