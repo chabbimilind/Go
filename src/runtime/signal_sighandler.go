@@ -34,8 +34,10 @@ func sighandler(sig uint32, info *siginfo, ctxt unsafe.Pointer, gp *g) {
 	_g_ := getg()
 	c := &sigctxt{info, ctxt}
 
-	if sig == _SIGPROF {
-		sigprof(c.sigpc(), c.sigsp(), c.siglr(), gp, _g_.m)
+    if sig == _SIGPROF {
+        // printint(int64(info.si_signo))
+        // printnl()	
+        sigprof(c.sigpc(), c.sigsp(), c.siglr(), gp, _g_.m)
 		return
 	}
 

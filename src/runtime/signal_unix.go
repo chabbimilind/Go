@@ -267,22 +267,23 @@ func setThreadCPUProfiler(hz int32) {
         attr.Type = PERF_TYPE_HARDWARE
         attr.Size = uint32(unsafe.Sizeof(attr))
         attr.Config = PERF_COUNT_HW_CPU_CYCLES
-        attr.Sample  =  10000000
+        attr.Sample = uint64(hz)
+        fd, _, _ := perfEventOpen(&attr, 0, -1, -1, 0, /* dummy*/ 0)
         
-        fd, _, err := perfEventOpen(&attr, 0, -1, -1, 0, /* dummy*/ 0)
-        r, err := fcntl(fd, /*F_GETFL*/ 0x3, 0)
-        r, err = fcntl(fd, /*F_SETFL*/ 0x4, r | 0x2000)
-        r, err = fcntl(fd, /*F_SETSIG*/ 0xa, _SIGPROF)
-    
-        fOwnEx := fOwnerEx{/*F_OWNER_TID*/ 0, gettid()}
-        r, err = fcntl(fd, /*F_SETOWN_EX*/ 0xf, &fOwnEx);
+        r, _ := fcntl(fd, /*F_GETFL*/ 0x3, 0)
+        fcntl(fd, /*F_SETFL*/ 0x4, r | /*O_ASYNC*/ 0x2000)
+        fcntl(fd, /*F_SETSIG*/ 0xa, _SIGPROF)
         
+        fOwnEx := fOwnerEx{/*F_OWNER_TID*/ 0, int32(gettid())}
+        fcntl2(fd, /*F_SETOWN_EX*/ 0xf, &fOwnEx);
+        
+        /*
         printstring("r, err ")
-        printnl()
         printint(int64(r))
-        printstring(" ")
+        printnl()
         printint(int64(err))
         printnl()
+        */
 
         // ioctl(fd, /*PERF_EVENT_IOC_RESET*/ 0x2403, 0);
         // ioctl(fd, /*PERF_EVENT_IOC_ENABLE*/ 0x2400, 0);

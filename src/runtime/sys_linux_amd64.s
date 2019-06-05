@@ -168,43 +168,44 @@ TEXT runtime·setitimer(SB),NOSPLIT,$0-24
 	SYSCALL
 	RET
 
-// func perfEventOpen(attr *PerfEventAttr, pid, cpu, groupFd, flags, dummy int64) (r1, r2, err int64) 
+// func perfEventOpen(attr *PerfEventAttr, pid, cpu, groupFd, flags, dummy int64) (r, r2, err int64) 
 TEXT runtime·perfEventOpen(SB),NOSPLIT,$0
-	MOVQ	a1+0(FP), DI
-	MOVQ	a2+8(FP), SI
-	MOVQ	a3+16(FP), DX
-	MOVQ	a4+24(FP), R10
-	MOVQ	a5+32(FP), R8
-	MOVQ	a6+40(FP), R9
+	MOVQ	attr+0(FP), DI
+	MOVQ	pid+8(FP), SI
+	MOVQ	cpu+16(FP), DX
+	MOVQ	groupFd+24(FP), R10
+	MOVQ	flags+32(FP), R8
+	MOVQ	dummy+40(FP), R9
 	MOVQ	$SYS_perfEventOpen, AX	// syscall entry
 	SYSCALL
 	CMPQ	AX, $0xfffffffffffff001
 	JLS	ok
-	MOVQ	$-1, r1+48(FP)
+	MOVQ	$-1, r+48(FP)
 	MOVQ	$0, r2+56(FP)
 	NEGQ	AX
 	MOVQ	AX, err+64(FP)
 	RET
 ok:
-	MOVQ	AX, r1+48(FP)
+	MOVQ	AX, r+48(FP)
 	MOVQ	DX, r2+56(FP)
 	MOVQ	$0, err+64(FP)
 	RET
 
-// func ioctl(fd int, req uint, arg uintptr) err int64
+// func ioctl(fd, req, arg int64) int64 
 TEXT runtime·ioctl(SB),NOSPLIT,$0
-	MOVQ	a1+0(FP), DI 
-	MOVQ	a2+8(FP), SI
-	MOVQ	a3+16(FP), DX
+	MOVQ	fd+0(FP), DI 
+	MOVQ	req+8(FP), SI
+	MOVQ	arg+16(FP), DX
     MOVQ	$SYS_ioctl, AX
 	SYSCALL
+    MOVQ    AX, ret+24(FP)
 	RET
 
-// func fcntl(fd, cmd, arg int64) (r, err int64)
+// func fcntl(fd, cmd int64, arg interface{}) (r int64, err int64)
 TEXT runtime·fcntl(SB),NOSPLIT,$0
-	MOVQ	a1+0(FP), DI 
-	MOVQ	a2+8(FP), SI
-	MOVQ	a3+16(FP), DX
+	MOVQ	fd+0(FP), DI 
+	MOVQ	cmd+8(FP), SI
+	MOVQ	arg+16(FP), DX
     MOVQ	$SYS_fcntl, AX
 	SYSCALL
 	CMPQ	AX, $0xfffffffffffff001
@@ -214,7 +215,24 @@ TEXT runtime·fcntl(SB),NOSPLIT,$0
 	MOVQ	AX, err+32(FP)
 	RET
 ok:
-	MOVQ	AX, r1+24(FP)
+	MOVQ	AX, r+24(FP)
+	MOVQ	$0, err+32(FP)
+	RET
+
+TEXT runtime·fcntl2(SB),NOSPLIT,$0
+	MOVQ	fd+0(FP), DI 
+	MOVQ	cmd+8(FP), SI
+	MOVQ	arg+16(FP), DX
+    MOVQ	$SYS_fcntl, AX
+	SYSCALL
+	CMPQ	AX, $0xfffffffffffff001
+	JLS	ok
+	MOVQ	$-1, r+24(FP)
+	NEGQ	AX
+	MOVQ	AX, err+32(FP)
+	RET
+ok:
+	MOVQ	AX, r+24(FP)
 	MOVQ	$0, err+32(FP)
 	RET
 

@@ -262,27 +262,6 @@ type sockaddr_un struct {
 	path   [108]byte
 }
 
-type PerfEventAttr struct {
-    Type               uint32
-    Size               uint32
-    Config             uint64
-    Sample             uint64
-    Sample_type        uint64
-    Read_format        uint64
-    Bits               uint64
-    Wakeup             uint32
-    Bp_type            uint32
-    Ext1               uint64
-    Ext2               uint64
-    Branch_sample_type uint64
-    Sample_regs_user   uint64
-    Sample_stack_user  uint32
-    Clockid            int32
-    Sample_regs_intr   uint64
-    Aux_watermark      uint32
-    _                  uint32
-}
-
 const (
 	PERF_TYPE_HARDWARE   = 0x0
 	PERF_TYPE_SOFTWARE   = 0x1
@@ -396,7 +375,29 @@ const (
 	PERF_FLAG_FD_CLOEXEC  = 0x8
 )
 
+type PerfEventAttr struct {
+    Type               uint32
+    Size               uint32
+    Config             uint64
+    Sample             uint64
+    Sample_type        uint64
+    Read_format        uint64
+    Bits               uint64
+    Wakeup             uint32
+    Bp_type            uint32
+    Ext1               uint64
+    Ext2               uint64
+    Branch_sample_type uint64
+    Sample_regs_user   uint64
+    Sample_stack_user  uint32
+    Clockid            int32
+    Sample_regs_intr   uint64
+    Aux_watermark      uint32
+    _                  uint32
+}
+
 type fOwnerEx struct {
-    category int
-    pid uint32
+    Type int32
+    Pid int32
+
 }
