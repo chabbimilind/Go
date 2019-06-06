@@ -126,7 +126,9 @@ type siginfo struct {
 	si_errno int32
 	si_code  int32
 	// below here is a union; si_addr is the only field we use
-	si_addr uint64
+	si_addr  uint64
+    si_fd    int64 // missed out by Golang's developers
+
 }
 
 type itimerval struct {
@@ -373,7 +375,21 @@ const (
 	PERF_FLAG_FD_OUTPUT   = 0x2
 	PERF_FLAG_PID_CGROUP  = 0x4
 	PERF_FLAG_FD_CLOEXEC  = 0x8
+
+    PERF_EVENT_IOC_DISABLE               = 0x2401
+    PERF_EVENT_IOC_ENABLE                = 0x2400
+    PERF_EVENT_IOC_ID                    = 0x80082407
+    PERF_EVENT_IOC_MODIFY_ATTRIBUTES     = 0x4008240b
+    PERF_EVENT_IOC_PAUSE_OUTPUT          = 0x40042409
+    PERF_EVENT_IOC_PERIOD                = 0x40082404
+    PERF_EVENT_IOC_QUERY_BPF             = 0xc008240a
+    PERF_EVENT_IOC_REFRESH               = 0x2402
+    PERF_EVENT_IOC_RESET                 = 0x2403
+    PERF_EVENT_IOC_SET_BPF               = 0x40042408
+    PERF_EVENT_IOC_SET_FILTER            = 0x40082406
+    PERF_EVENT_IOC_SET_OUTPUT            = 0x2405
 )
+
 
 type PerfEventAttr struct {
     Type               uint32

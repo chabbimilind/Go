@@ -35,10 +35,13 @@ func sighandler(sig uint32, info *siginfo, ctxt unsafe.Pointer, gp *g) {
 	c := &sigctxt{info, ctxt}
 
     if sig == _SIGPROF {
-        // printint(int64(info.si_signo))
-        // printnl()	
+        fd := info.si_fd
+        // printint(fd)
+        // printnl()
+        ioctl(fd, PERF_EVENT_IOC_DISABLE, 0)
         sigprof(c.sigpc(), c.sigsp(), c.siglr(), gp, _g_.m)
-		return
+		ioctl(fd, PERF_EVENT_IOC_ENABLE, 0)
+        return
 	}
 
 	if sig == _SIGTRAP && testSigtrap != nil && testSigtrap(info, (*sigctxt)(noescape(unsafe.Pointer(c))), gp) {

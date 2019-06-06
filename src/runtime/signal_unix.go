@@ -267,7 +267,9 @@ func setThreadCPUProfiler(hz int32) {
         attr.Type = PERF_TYPE_HARDWARE
         attr.Size = uint32(unsafe.Sizeof(attr))
         attr.Config = PERF_COUNT_HW_CPU_CYCLES
-        attr.Sample = uint64(hz)
+        // attr.Sample = uint64(hz)
+        attr.Sample = 1000000
+        
         fd, _, _ := perfEventOpen(&attr, 0, -1, -1, 0, /* dummy*/ 0)
         
         r, _ := fcntl(fd, /*F_GETFL*/ 0x3, 0)
@@ -281,9 +283,6 @@ func setThreadCPUProfiler(hz int32) {
         printint(int64(r))
         printnl()
         */
-
-        // ioctl(fd, /*PERF_EVENT_IOC_RESET*/ 0x2403, 0);
-        // ioctl(fd, /*PERF_EVENT_IOC_ENABLE*/ 0x2400, 0);
 	}
 	_g_ := getg()
 	_g_.m.profilehz = hz
