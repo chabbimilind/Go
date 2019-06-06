@@ -127,7 +127,9 @@ type siginfo struct {
 	si_code  int32
 	// below here is a union; si_addr is the only field we use
 	si_addr  uint64
-    si_fd    int64 // missed out by Golang's developers
+    
+    // psu: an unreliable workaround and need to figure out a better solution
+    si_fd    int64 
 
 }
 
