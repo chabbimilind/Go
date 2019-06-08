@@ -254,21 +254,13 @@ func setProcessCPUProfiler(hz int32) {
 // setThreadCPUProfiler makes any thread-specific changes required to
 // implement profiling at a rate of hz.
 func setThreadCPUProfiler(hz int32) {
-	if hz == 0 {
-	    var it itimerval
-		setitimer(_ITIMER_PROF, &it, nil)
-	} else {
-		// it.it_interval.tv_sec = 0
-		// it.it_interval.set_usec(1000000 / hz)
-		// it.it_value = it.it_interval
-		// setitimer(_ITIMER_PROF, &it, nil)
-        
+	if hz != 0 {
         var attr PerfEventAttr
         attr.Type = PERF_TYPE_HARDWARE
         attr.Size = uint32(unsafe.Sizeof(attr))
         attr.Config = PERF_COUNT_HW_CPU_CYCLES
-        // attr.Sample = uint64(hz)
-        attr.Sample = 1000000
+        attr.Sample = 3e9 / uint64(hz) // match itimer's sampling rate
+        // attr.Sample = 1e6 
         
         fd, _, _ := perfEventOpen(&attr, 0, -1, -1, 0, /* dummy*/ 0)
         
@@ -279,10 +271,7 @@ func setThreadCPUProfiler(hz int32) {
         fOwnEx := fOwnerEx{/*F_OWNER_TID*/ 0, int32(gettid())}
         fcntl2(fd, /*F_SETOWN_EX*/ 0xf, &fOwnEx);
         
-        /*
-        printint(int64(r))
-        printnl()
-        */
+        // print(r, "\n")
 	}
 	_g_ := getg()
 	_g_.m.profilehz = hz

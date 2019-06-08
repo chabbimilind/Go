@@ -36,8 +36,7 @@ func sighandler(sig uint32, info *siginfo, ctxt unsafe.Pointer, gp *g) {
 
     if sig == _SIGPROF {
         fd := info.si_fd
-        // printint(fd)
-        // printnl()
+        // print(fd, "\n")
         ioctl(fd, PERF_EVENT_IOC_DISABLE, 0)
         sigprof(c.sigpc(), c.sigsp(), c.siglr(), gp, _g_.m)
 		ioctl(fd, PERF_EVENT_IOC_ENABLE, 0)
