@@ -2134,7 +2134,7 @@ func gcstopm() {
 // acquiring a P in several places.
 //
 //go:yeswritebarrierrec
-func execute(gp *g, inheritTime bool) { // psu: is it always invoked later than setcpupmuprofile()
+func execute(gp *g, inheritTime bool) { // psu: Is it always invoked later than setcpupmuprofile()?
 	_g_ := getg()
 
 	casgstatus(gp, _Grunnable, _Grunning)
