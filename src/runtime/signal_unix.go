@@ -149,11 +149,11 @@ func sigenable(sig uint32) {
 		return
 	}
 
-	// SIGPROF is handled specially for profiling.
-	if sig == _SIGPROF {
+	// SIGPROF and _SIGRTMIN + 3 are handled specially for profiling.
+	if sig == _SIGPROF  || sig == _SIGRTMIN + 3 {
 		return
 	}
-
+	
 	t := &sigtable[sig]
 	if t.flags&_SigNotify != 0 {
 		ensureSigM()
@@ -174,8 +174,8 @@ func sigdisable(sig uint32) {
 		return
 	}
 
-	// SIGPROF is handled specially for profiling.
-	if sig == _SIGPROF {
+	// SIGPROF and _SIGRTMIN + 3 are handled specially for profiling.
+	if sig == _SIGPROF  || sig == _SIGRTMIN + 3 {
 		return
 	}
 
@@ -203,8 +203,8 @@ func sigignore(sig uint32) {
 		return
 	}
 
-	// SIGPROF is handled specially for profiling.
-	if sig == _SIGPROF {
+	// SIGPROF and _SIGRTMIN + 3 are handled specially for profiling.
+	if sig == _SIGPROF  || sig == _SIGRTMIN + 3 {
 		return
 	}
 
@@ -251,30 +251,64 @@ func setProcessCPUProfiler(hz int32) {
 	}
 }
 
+func setProcessCPUPMUProfiler(hz int32) {
+    if hz != 0 {
+        // Enable the Go signal handler if not enabled.
+        if atomic.Cas(&handlingSig[_SIGRTMIN + 3], 0, 1) {
+            atomic.Storeuintptr(&fwdSig[_SIGRTMIN + 3], getsig(_SIGRTMIN + 3))
+            setsig(_SIGRTMIN + 3, funcPC(sighandler))
+        }
+    } else {
+        // If the Go signal handler should be disabled by default,
+        // disable it if it is enabled.
+        if !sigInstallGoHandler(_SIGRTMIN + 3) {
+            if atomic.Cas(&handlingSig[_SIGRTMIN + 3], 1, 0) {
+                setsig(_SIGRTMIN + 3, atomic.Loaduintptr(&fwdSig[_SIGRTMIN + 3]))
+            }
+        }
+    }
+}
+
 // setThreadCPUProfiler makes any thread-specific changes required to
 // implement profiling at a rate of hz.
 func setThreadCPUProfiler(hz int32) {
-	if hz != 0 {
+    var it itimerval
+    if hz == 0 {
+        setitimer(_ITIMER_PROF, &it, nil)
+    } else {
+        it.it_interval.tv_sec = 0
+        it.it_interval.set_usec(1000000 / hz)
+        it.it_value = it.it_interval
+        setitimer(_ITIMER_PROF, &it, nil)
+    }
+    _g_ := getg()
+    _g_.m.profilehz = hz
+}
+
+func setThreadCPUPMUProfiler(event int32, hz int32) {
+    // if hz == 0 {
+        // Todo: close the perf event
+
+    // } else {
+    if hz != 0 {
         var attr PerfEventAttr
         attr.Type = PERF_TYPE_HARDWARE
         attr.Size = uint32(unsafe.Sizeof(attr))
-        attr.Config = PERF_COUNT_HW_CPU_CYCLES
+        attr.Config = /*PERF_COUNT_HW_CPU_CYCLES*/ uint64(event)
         attr.Sample = 3e9 / uint64(hz) // match itimer's sampling rate
-        // attr.Sample = 1e6 
+        // attr.Sample = uint64(hz)
         
         fd, _, _ := perfEventOpen(&attr, 0, -1, -1, 0, /* dummy*/ 0)
         
         r, _ := fcntl(fd, /*F_GETFL*/ 0x3, 0)
         fcntl(fd, /*F_SETFL*/ 0x4, r | /*O_ASYNC*/ 0x2000)
-        fcntl(fd, /*F_SETSIG*/ 0xa, _SIGPROF)
+        fcntl(fd, /*F_SETSIG*/ 0xa, _SIGRTMIN + 3)
         
         fOwnEx := fOwnerEx{/*F_OWNER_TID*/ 0, int32(gettid())}
         fcntl2(fd, /*F_SETOWN_EX*/ 0xf, &fOwnEx);
-        
-        // print(r, "\n")
-	}
-	_g_ := getg()
-	_g_.m.profilehz = hz
+    }
+    _g_ := getg()
+    _g_.m.profilehz = hz
 }
 
 func sigpipe() {
@@ -302,7 +336,7 @@ func sigtrampgo(sig uint32, info *siginfo, ctx unsafe.Pointer) {
 	g := getg()
 	if g == nil {
 		c := &sigctxt{info, ctx}
-		if sig == _SIGPROF {
+		if sig == _SIGPROF || sig == _SIGRTMIN + 3 {
 			sigprofNonGoPC(c.sigpc())
 			return
 		}
@@ -459,7 +493,7 @@ func dieFromSignal(sig uint32) {
 // thread, and the Go program does not want to handle it (that is, the
 // program has not called os/signal.Notify for the signal).
 func raisebadsignal(sig uint32, c *sigctxt) {
-	if sig == _SIGPROF {
+	if sig == _SIGPROF  || sig == _SIGRTMIN + 3 {
 		// Ignore profiling signals that arrive on non-Go threads.
 		return
 	}

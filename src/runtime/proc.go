@@ -2134,7 +2134,7 @@ func gcstopm() {
 // acquiring a P in several places.
 //
 //go:yeswritebarrierrec
-func execute(gp *g, inheritTime bool) {
+func execute(gp *g, inheritTime bool) { // psu: is it always invoked later than setcpupmuprofile()
 	_g_ := getg()
 
 	casgstatus(gp, _Grunnable, _Grunning)
@@ -2149,8 +2149,14 @@ func execute(gp *g, inheritTime bool) {
 
 	// Check whether the profiler needs to be turned on or off.
 	hz := sched.profilehz
+    event := sched.event
+    isPMUEnabled := sched.isPMUEnabled
 	if _g_.m.profilehz != hz {
-		setThreadCPUProfiler(hz)
+        if isPMUEnabled { 
+		    setThreadCPUPMUProfiler(event, hz)
+        } else {
+		    setThreadCPUProfiler(hz)
+        }
 	}
 
 	if trace.enabled {
@@ -3887,6 +3893,7 @@ func setcpuprofilerate(hz int32) {
 	atomic.Store(&prof.signalLock, 0)
 
 	lock(&sched.lock)
+    sched.isPMUEnabled = false
 	sched.profilehz = hz
 	unlock(&sched.lock)
 
@@ -3896,6 +3903,43 @@ func setcpuprofilerate(hz int32) {
 
 	_g_.m.locks--
 }
+
+func setcpupmuprofile(event int32, hz int32) {
+    // Force sane arguments.
+    if hz < 0 {
+        hz = 0
+    }
+    // Disable preemption, otherwise we can be rescheduled to another thread
+    // that has profiling enabled.
+    _g_ := getg()
+    _g_.m.locks++
+
+    // Stop profiler on this thread so that it is safe to lock prof.
+    // if a profiling signal came in while we had prof locked,
+    // it would deadlock.
+    setThreadCPUPMUProfiler(event, 0)
+
+    for !atomic.Cas(&prof.signalLock, 0, 1) {
+        osyield()
+    }
+    if prof.hz != hz {
+        setProcessCPUPMUProfiler(hz)
+        prof.hz = hz
+    }
+    atomic.Store(&prof.signalLock, 0)
+
+    lock(&sched.lock)
+    sched.profilehz = hz
+    sched.isPMUEnabled = true
+    sched.event = event
+    unlock(&sched.lock)
+
+    if hz != 0 {
+        setThreadCPUPMUProfiler(event, hz)
+    }
+
+    _g_.m.locks--
+ }
 
 // init initializes pp, which may be a freshly allocated p or a
 // previously destroyed p, and transitions it to status _Pgcstop.

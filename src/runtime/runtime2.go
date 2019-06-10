@@ -473,7 +473,7 @@ type m struct {
 	locks         int32
 	dying         int32
 	profilehz     int32
-	spinning      bool // m is out of work and is actively looking for work
+    spinning      bool // m is out of work and is actively looking for work
 	blocked       bool // m is blocked on a note
 	newSigstack   bool // minit on C thread called sigaltstack
 	printlock     int8
@@ -673,7 +673,9 @@ type schedt struct {
 	safePointWait int32
 	safePointNote note
 
-	profilehz int32 // cpu profiling rate
+    profilehz   int32 // cpu profiling rate
+	isPMUEnabled bool
+    event       int32
 
 	procresizetime int64 // nanotime() of last change to gomaxprocs
 	totaltime      int64 // ∫gomaxprocs dt up to procresizetime

@@ -81,6 +81,35 @@ func SetCPUProfileRate(hz int) {
 	unlock(&cpuprof.lock)
 }
 
+func SetCPUPMUProfile(event int32, hz int) {
+    if hz < 0 {
+        hz = 0
+    }
+    if hz > 1000000 {
+        hz = 1000000
+    }
+    lock(&cpuprof.lock)
+    if hz > 0 {
+        if cpuprof.on || cpuprof.log != nil {
+            print("runtime: cannot set cpu profile rate until previous profile has finished.\n")
+            unlock(&cpuprof.lock)
+            return
+        }
+
+        cpuprof.on = true
+        cpuprof.log = newProfBuf(1, 1<<17, 1<<14)
+        hdr := [1]uint64{uint64(hz)}
+        cpuprof.log.write(nil, nanotime(), hdr[:], nil)
+        setcpupmuprofile(event, int32(hz))
+    } else if cpuprof.on {
+        setcpupmuprofile(event, 0)
+        cpuprof.on = false
+        cpuprof.addExtra()
+        cpuprof.log.close()
+    }
+    unlock(&cpuprof.lock)
+}
+
 // add adds the stack trace to the profile.
 // It is called from signal handlers and other limited environments
 // and cannot allocate memory or acquire locks that might be

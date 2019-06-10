@@ -57,6 +57,7 @@ const (
 	_SIGIO     = 0x1d
 	_SIGPWR    = 0x1e
 	_SIGSYS    = 0x1f
+    _SIGRTMIN  = 0x22
 
 	_FPE_INTDIV = 0x1
 	_FPE_INTOVF = 0x2

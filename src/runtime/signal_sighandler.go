@@ -34,12 +34,16 @@ func sighandler(sig uint32, info *siginfo, ctxt unsafe.Pointer, gp *g) {
 	_g_ := getg()
 	c := &sigctxt{info, ctxt}
 
-    if sig == _SIGPROF {
+    if sig == _SIGRTMIN + 3 {
         fd := info.si_fd
-        // print(fd, "\n")
         ioctl(fd, PERF_EVENT_IOC_DISABLE, 0)
         sigprof(c.sigpc(), c.sigsp(), c.siglr(), gp, _g_.m)
 		ioctl(fd, PERF_EVENT_IOC_ENABLE, 0)
+        return
+	}
+    
+    if sig == _SIGPROF {
+        sigprof(c.sigpc(), c.sigsp(), c.siglr(), gp, _g_.m)
         return
 	}
 
