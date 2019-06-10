@@ -4,6 +4,7 @@ package main
 
 import (
     "fmt"
+    "flag"
     "log"
     "os"
     "runtime/pprof"
@@ -158,7 +159,15 @@ func fun10(wg *sync.WaitGroup) {
     fmt.Println(sum)
 }
 
+var args = flag.String("p", "", "itimer() is used by default")
+
 func main() {
+   flag.Parse()
+
+   if *args != "" {
+       pprof.EnablePMU(*args)
+   }
+
     cpuf, err := os.Create("test3_profile")
     if err != nil {
         log.Fatal(err)
