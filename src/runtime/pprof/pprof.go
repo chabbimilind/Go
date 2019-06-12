@@ -729,34 +729,6 @@ var cpu struct {
 	done      chan bool
 }
 
-var pmuConfig struct {
-    isEnabled bool
-    event int32
-    period int32
-}
-
-func EnablePMU(str string) {
-    strs := strings.Split(str, "@")
-    
-    if len(strs) != 2 {
-        return
-    }
-    event, err := strconv.ParseInt(strs[0], 10, 32) 
-    if err != nil {
-        return
-    }
-    period, err := strconv.ParseInt(strs[1], 10, 32) 
-    if err != nil {
-        return
-    }
-    if event < 0 || period < 0 {
-        return
-    } 
-    
-    pmuConfig.isEnabled = true
-    pmuConfig.event = int32(event)
-}   
-
 var isPMUEnabled bool
 
 // StartCPUProfile enables CPU profiling for the current process.
