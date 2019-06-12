@@ -473,6 +473,7 @@ type m struct {
 	locks         int32
 	dying         int32
 	profilehz     int32
+    eventFd       int32
     spinning      bool // m is out of work and is actively looking for work
 	blocked       bool // m is blocked on a note
 	newSigstack   bool // minit on C thread called sigaltstack

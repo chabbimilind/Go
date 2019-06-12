@@ -286,29 +286,30 @@ func setThreadCPUProfiler(hz int32) {
 }
 
 func setThreadCPUPMUProfiler(event int32, hz int32) {
-    // if hz == 0 {
-        // Todo: close the perf event
-
-    // } else {
-    if hz != 0 {
+    _g_ := getg()
+    _g_.m.profilehz = hz
+    
+    if hz == 0 { // Go routine is finished
+        fd := _g_.m.eventFd
+        ioctl(int64(fd), PERF_EVENT_IOC_DISABLE, 0)
+        closefd(fd)
+    } else {
         var attr PerfEventAttr
         attr.Type = PERF_TYPE_HARDWARE
         attr.Size = uint32(unsafe.Sizeof(attr))
         attr.Config = /*PERF_COUNT_HW_CPU_CYCLES*/ uint64(event)
         attr.Sample = 3e9 / uint64(hz) // match itimer's sampling rate
-        // attr.Sample = uint64(hz)
         
         fd, _, _ := perfEventOpen(&attr, 0, -1, -1, 0, /* dummy*/ 0)
-        
+        _g_.m.eventFd = int32(fd)
+
         r, _ := fcntl(fd, /*F_GETFL*/ 0x3, 0)
         fcntl(fd, /*F_SETFL*/ 0x4, r | /*O_ASYNC*/ 0x2000)
         fcntl(fd, /*F_SETSIG*/ 0xa, _SIGRTMIN + 3)
         
         fOwnEx := fOwnerEx{/*F_OWNER_TID*/ 0, int32(gettid())}
-        fcntl2(fd, /*F_SETOWN_EX*/ 0xf, &fOwnEx);
+        fcntl2(fd, /*F_SETOWN_EX*/ 0xf, &fOwnEx)
     }
-    _g_ := getg()
-    _g_.m.profilehz = hz
 }
 
 func sigpipe() {
