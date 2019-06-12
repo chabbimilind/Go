@@ -285,7 +285,7 @@ func setThreadCPUProfiler(hz int32) {
     _g_.m.profilehz = hz
 }
 
-func setThreadCPUPMUProfiler(event int32, hz int32) {
+func setThreadCPUPMUProfiler(hz int32) {
     _g_ := getg()
     _g_.m.profilehz = hz
     
@@ -297,7 +297,7 @@ func setThreadCPUPMUProfiler(event int32, hz int32) {
         var attr PerfEventAttr
         attr.Type = PERF_TYPE_HARDWARE
         attr.Size = uint32(unsafe.Sizeof(attr))
-        attr.Config = /*PERF_COUNT_HW_CPU_CYCLES*/ uint64(event)
+        attr.Config = PERF_COUNT_HW_CPU_CYCLES
         attr.Sample = 3e9 / uint64(hz) // match itimer's sampling rate
         
         fd, _, _ := perfEventOpen(&attr, 0, -1, -1, 0, /* dummy*/ 0)

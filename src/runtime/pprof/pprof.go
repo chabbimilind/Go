@@ -73,10 +73,12 @@
 package pprof
 
 import (
-	"bufio"
+	"os"
+    "bufio"
 	"bytes"
 	"fmt"
 	"io"
+    "strconv"
 	"runtime"
 	"sort"
 	"strings"
@@ -727,6 +729,36 @@ var cpu struct {
 	done      chan bool
 }
 
+var pmuConfig struct {
+    isEnabled bool
+    event int32
+    period int32
+}
+
+func EnablePMU(str string) {
+    strs := strings.Split(str, "@")
+    
+    if len(strs) != 2 {
+        return
+    }
+    event, err := strconv.ParseInt(strs[0], 10, 32) 
+    if err != nil {
+        return
+    }
+    period, err := strconv.ParseInt(strs[1], 10, 32) 
+    if err != nil {
+        return
+    }
+    if event < 0 || period < 0 {
+        return
+    } 
+    
+    pmuConfig.isEnabled = true
+    pmuConfig.event = int32(event)
+}   
+
+var isPMUEnabled bool
+
 // StartCPUProfile enables CPU profiling for the current process.
 // While profiling, the profile will be buffered and written to w.
 // StartCPUProfile returns an error if profiling is already enabled.
@@ -760,8 +792,17 @@ func StartCPUProfile(w io.Writer) error {
 		return fmt.Errorf("cpu profiling already in use")
 	}
 	cpu.profiling = true
-	runtime.SetCPUProfileRate(hz)
-	go profileWriter(w)
+    
+    interval, err := strconv.Atoi(os.Getenv("PMU_SAPLE_INTERVAL"))
+    if err == nil && interval > 0 {
+        isPMUEnabled = true
+        runtime.SetCPUPMUProfile(hz)
+    } else {
+        isPMUEnabled = false
+        runtime.SetCPUProfileRate(hz)
+    }
+	
+    go profileWriter(w)
 	return nil
 }
 
@@ -805,7 +846,12 @@ func StopCPUProfile() {
 		return
 	}
 	cpu.profiling = false
-	runtime.SetCPUProfileRate(0)
+   
+    if isPMUEnabled {
+        runtime.SetCPUPMUProfile(0)
+    } else {
+	    runtime.SetCPUProfileRate(0)
+    }
 	<-cpu.done
 }
 

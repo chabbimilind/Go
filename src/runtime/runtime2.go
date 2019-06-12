@@ -676,7 +676,6 @@ type schedt struct {
 
     profilehz   int32 // cpu profiling rate
 	isPMUEnabled bool
-    event       int32
 
 	procresizetime int64 // nanotime() of last change to gomaxprocs
 	totaltime      int64 // ∫gomaxprocs dt up to procresizetime

@@ -81,7 +81,7 @@ func SetCPUProfileRate(hz int) {
 	unlock(&cpuprof.lock)
 }
 
-func SetCPUPMUProfile(event int32, hz int) {
+func SetCPUPMUProfile(hz int) {
     if hz < 0 {
         hz = 0
     }
@@ -100,9 +100,9 @@ func SetCPUPMUProfile(event int32, hz int) {
         cpuprof.log = newProfBuf(1, 1<<17, 1<<14)
         hdr := [1]uint64{uint64(hz)}
         cpuprof.log.write(nil, nanotime(), hdr[:], nil)
-        setcpupmuprofile(event, int32(hz))
+        setcpupmuprofile(int32(hz))
     } else if cpuprof.on {
-        setcpupmuprofile(event, 0)
+        setcpupmuprofile(0)
         cpuprof.on = false
         cpuprof.addExtra()
         cpuprof.log.close()

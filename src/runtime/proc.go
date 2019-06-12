@@ -2149,11 +2149,10 @@ func execute(gp *g, inheritTime bool) { // psu: Is it always invoked later than 
 
 	// Check whether the profiler needs to be turned on or off.
 	hz := sched.profilehz
-    event := sched.event
     isPMUEnabled := sched.isPMUEnabled
 	if _g_.m.profilehz != hz {
         if isPMUEnabled { 
-		    setThreadCPUPMUProfiler(event, hz)
+		    setThreadCPUPMUProfiler(hz)
         } else {
 		    setThreadCPUProfiler(hz)
         }
@@ -3904,7 +3903,7 @@ func setcpuprofilerate(hz int32) {
 	_g_.m.locks--
 }
 
-func setcpupmuprofile(event int32, hz int32) {
+func setcpupmuprofile(hz int32) {
     // Force sane arguments.
     if hz < 0 {
         hz = 0
@@ -3917,7 +3916,7 @@ func setcpupmuprofile(event int32, hz int32) {
     // Stop profiler on this thread so that it is safe to lock prof.
     // if a profiling signal came in while we had prof locked,
     // it would deadlock.
-    setThreadCPUPMUProfiler(event, 0)
+    setThreadCPUPMUProfiler(0)
 
     for !atomic.Cas(&prof.signalLock, 0, 1) {
         osyield()
@@ -3931,11 +3930,10 @@ func setcpupmuprofile(event int32, hz int32) {
     lock(&sched.lock)
     sched.profilehz = hz
     sched.isPMUEnabled = true
-    sched.event = event
     unlock(&sched.lock)
 
     if hz != 0 {
-        setThreadCPUPMUProfiler(event, hz)
+        setThreadCPUPMUProfiler(hz)
     }
 
     _g_.m.locks--
