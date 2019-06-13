@@ -82,7 +82,8 @@ func SetCPUProfileRate(hz int) {
 }
 
 func SetCPUPMUProfile(interval int) {
-    if interval > 0 && interval < 300 { // Clamp hz to something reasonable.
+    // Clamp interval to something reasonable.
+    if interval > 0 && interval < 300 {
         interval = 300
     }
     
@@ -96,7 +97,6 @@ func SetCPUPMUProfile(interval int) {
 
         cpuprof.on = true
         cpuprof.log = newProfBuf(1, 1<<17, 1<<14)
-        // hdr := [1]uint64{uint64(hz)}
         hdr := [1]uint64{uint64(interval)}
         cpuprof.log.write(nil, nanotime(), hdr[:], nil)
         setcpupmuprofile(int32(interval))

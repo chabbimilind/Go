@@ -3921,14 +3921,14 @@ func setcpupmuprofile(interval int32) {
     for !atomic.Cas(&prof.signalLock, 0, 1) {
         osyield()
     }
-    if prof.hz != interval {
+    if prof.hz != interval { // Todo: declare a new field in prof, say prof.interval, and replace prof.hz with prof.interval
         setProcessCPUPMUProfiler(interval)
         prof.hz = interval
     }
     atomic.Store(&prof.signalLock, 0)
 
     lock(&sched.lock)
-    sched.profilehz = interval
+    sched.profilehz = interval // Todo: declare a new field in sched, say sched.profileInterval, and replace sched.profilehz with sched.profileInterval
     sched.isPMUEnabled = true
     unlock(&sched.lock)
 
