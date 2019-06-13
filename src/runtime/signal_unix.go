@@ -251,8 +251,8 @@ func setProcessCPUProfiler(hz int32) {
 	}
 }
 
-func setProcessCPUPMUProfiler(hz int32) {
-    if hz != 0 {
+func setProcessCPUPMUProfiler(interval int32) {
+    if interval != 0 {
         // Enable the Go signal handler if not enabled.
         if atomic.Cas(&handlingSig[_SIGRTMIN + 3], 0, 1) {
             atomic.Storeuintptr(&fwdSig[_SIGRTMIN + 3], getsig(_SIGRTMIN + 3))
@@ -285,11 +285,11 @@ func setThreadCPUProfiler(hz int32) {
     _g_.m.profilehz = hz
 }
 
-func setThreadCPUPMUProfiler(hz int32) {
+func setThreadCPUPMUProfiler(interval int32) {
     _g_ := getg()
-    _g_.m.profilehz = hz
+    _g_.m.profilehz = interval
     
-    if hz == 0 { // Go routine is finished
+    if interval == 0 { // Go routine is finished
         fd := _g_.m.eventFd
         ioctl(int64(fd), PERF_EVENT_IOC_DISABLE, 0)
         closefd(fd)
@@ -298,7 +298,7 @@ func setThreadCPUPMUProfiler(hz int32) {
         attr.Type = PERF_TYPE_HARDWARE
         attr.Size = uint32(unsafe.Sizeof(attr))
         attr.Config = PERF_COUNT_HW_CPU_CYCLES
-        attr.Sample = 3e9 / uint64(hz) // match itimer's sampling rate
+        attr.Sample = uint64(interval)
         
         fd, _, _ := perfEventOpen(&attr, 0, -1, -1, 0, /* dummy*/ 0)
         _g_.m.eventFd = int32(fd)

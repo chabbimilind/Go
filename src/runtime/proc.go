@@ -3903,10 +3903,10 @@ func setcpuprofilerate(hz int32) {
 	_g_.m.locks--
 }
 
-func setcpupmuprofile(hz int32) {
+func setcpupmuprofile(interval int32) {
     // Force sane arguments.
-    if hz < 0 {
-        hz = 0
+    if interval > 0 && interval < 300 {
+        interval = 300
     }
     // Disable preemption, otherwise we can be rescheduled to another thread
     // that has profiling enabled.
@@ -3921,19 +3921,19 @@ func setcpupmuprofile(hz int32) {
     for !atomic.Cas(&prof.signalLock, 0, 1) {
         osyield()
     }
-    if prof.hz != hz {
-        setProcessCPUPMUProfiler(hz)
-        prof.hz = hz
+    if prof.hz != interval {
+        setProcessCPUPMUProfiler(interval)
+        prof.hz = interval
     }
     atomic.Store(&prof.signalLock, 0)
 
     lock(&sched.lock)
-    sched.profilehz = hz
+    sched.profilehz = interval
     sched.isPMUEnabled = true
     unlock(&sched.lock)
 
-    if hz != 0 {
-        setThreadCPUPMUProfiler(hz)
+    if interval != 0 {
+        setThreadCPUPMUProfiler(interval)
     }
 
     _g_.m.locks--

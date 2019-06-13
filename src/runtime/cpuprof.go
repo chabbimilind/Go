@@ -81,15 +81,13 @@ func SetCPUProfileRate(hz int) {
 	unlock(&cpuprof.lock)
 }
 
-func SetCPUPMUProfile(hz int) {
-    if hz < 0 {
-        hz = 0
+func SetCPUPMUProfile(interval int) {
+    if interval > 0 && interval < 300 { // Clamp hz to something reasonable.
+        interval = 300
     }
-    if hz > 1000000 {
-        hz = 1000000
-    }
+    
     lock(&cpuprof.lock)
-    if hz > 0 {
+    if interval > 0 {
         if cpuprof.on || cpuprof.log != nil {
             print("runtime: cannot set cpu profile rate until previous profile has finished.\n")
             unlock(&cpuprof.lock)
@@ -98,9 +96,10 @@ func SetCPUPMUProfile(hz int) {
 
         cpuprof.on = true
         cpuprof.log = newProfBuf(1, 1<<17, 1<<14)
-        hdr := [1]uint64{uint64(hz)}
+        // hdr := [1]uint64{uint64(hz)}
+        hdr := [1]uint64{uint64(interval)}
         cpuprof.log.write(nil, nanotime(), hdr[:], nil)
-        setcpupmuprofile(int32(hz))
+        setcpupmuprofile(int32(interval))
     } else if cpuprof.on {
         setcpupmuprofile(0)
         cpuprof.on = false

@@ -729,7 +729,7 @@ var cpu struct {
 	done      chan bool
 }
 
-var isPMUEnabled bool
+var sampleInterval int
 
 // StartCPUProfile enables CPU profiling for the current process.
 // While profiling, the profile will be buffered and written to w.
@@ -765,14 +765,20 @@ func StartCPUProfile(w io.Writer) error {
 	}
 	cpu.profiling = true
     
-    interval, err := strconv.Atoi(os.Getenv("PMU_SAPLE_INTERVAL"))
-    if err == nil && interval > 0 {
-        isPMUEnabled = true
-        runtime.SetCPUPMUProfile(hz)
-    } else {
-        isPMUEnabled = false
+    if sampleInterval == 0 { // first time StartCPUProfile() is invoked
+        interval, err := strconv.Atoi(os.Getenv("PMU_SAMPLE_INTERVAL"))
+        if err == nil && interval > 0 {
+            sampleInterval = interval
+            runtime.SetCPUPMUProfile(sampleInterval)
+        } else {
+            sampleInterval = -1
+            runtime.SetCPUProfileRate(hz)
+        }
+    } else if sampleInterval < 0 {
         runtime.SetCPUProfileRate(hz)
-    }
+    } else {
+       runtime.SetCPUPMUProfile(sampleInterval)
+    } 
 	
     go profileWriter(w)
 	return nil
@@ -819,7 +825,7 @@ func StopCPUProfile() {
 	}
 	cpu.profiling = false
    
-    if isPMUEnabled {
+    if sampleInterval > 0 {
         runtime.SetCPUPMUProfile(0)
     } else {
 	    runtime.SetCPUProfileRate(0)
