@@ -73,12 +73,11 @@
 package pprof
 
 import (
-	"os"
     "bufio"
 	"bytes"
-	"fmt"
+	"errors"
+    "fmt"
 	"io"
-    "strconv"
 	"runtime"
 	"sort"
 	"strings"
@@ -727,9 +726,15 @@ var cpu struct {
 	sync.Mutex
 	profiling bool
 	done      chan bool
-}
 
-var sampleInterval int
+    // config state implemented by StartCPUProfile, customized by any
+	// ProfilingOptions passed to it.
+	profileHz int
+	
+    // PMU profiling config
+    pmuProfileHz int
+    pmuProfilePeriod int
+}
 
 // StartCPUProfile enables CPU profiling for the current process.
 // While profiling, the profile will be buffered and written to w.
@@ -742,7 +747,7 @@ var sampleInterval int
 // not to the one used by Go. To make it work, call os/signal.Notify
 // for syscall.SIGPROF, but note that doing so may break any profiling
 // being done by the main program.
-func StartCPUProfile(w io.Writer) error {
+func StartCPUProfile(w io.Writer, opts ...ProfilingOption) error {
 	// The runtime routines allow a variable profiling rate,
 	// but in practice operating systems cannot trigger signals
 	// at more than about 500 Hz, and our processing of the
@@ -752,7 +757,9 @@ func StartCPUProfile(w io.Writer) error {
 	// system, and a nice round number to make it easy to
 	// convert sample counts to seconds. Instead of requiring
 	// each client to specify the frequency, we hard code it.
-	const hz = 100
+    if len(opts) == 0 {
+	    opts = []ProfilingOption{WithProfilingRate(100)}
+    }
 
 	cpu.Lock()
 	defer cpu.Unlock()
@@ -764,25 +771,75 @@ func StartCPUProfile(w io.Writer) error {
 		return fmt.Errorf("cpu profiling already in use")
 	}
 	cpu.profiling = true
-    
-    if sampleInterval == 0 { // first time StartCPUProfile() is invoked
-        interval, err := strconv.Atoi(os.Getenv("PMU_SAMPLE_INTERVAL"))
-        if err == nil && interval > 0 {
-            sampleInterval = interval
-            runtime.SetCPUPMUProfile(sampleInterval)
-        } else {
-            sampleInterval = -1
-            runtime.SetCPUProfileRate(hz)
-        }
-    } else if sampleInterval < 0 {
-        runtime.SetCPUProfileRate(hz)
-    } else {
-       runtime.SetCPUPMUProfile(sampleInterval)
-    } 
-	
+
+  	for _, opt := range opts {
+	    if err := opt.apply(); err != nil {
+			return err
+		}
+	}
+
+	if cpu.profileHz != 0 {
+		runtime.SetCPUProfileRate(cpu.profileHz)
+	}
+
+    if cpu.pmuProfilePeriod != 0 {
+		runtime.SetPMUProfilePeriod(cpu.pmuProfilePeriod)
+    }
+   
+    /* 
+    if cpu.pmuProfileHz != 0 {
+		runtime.SetPMUProfileRate(cpu.pmuProfileHz)
+    }
+	*/
+
     go profileWriter(w)
 	return nil
 }
+
+func WithProfilingRate(hz int) ProfilingOption {
+	return profilingOptionFunc(func() error {
+		cpu.profileHz = hz
+		return nil
+	})
+}
+
+func WithProfilingCycleRate(hz int) ProfilingOption {
+	return profilingOptionFunc(func() error {
+		cpu.profileHz = 0 // NOTE it disable any prior WithProfilingRate
+
+		if runtime.GOOS != "linux" || runtime.GOARCH != "amd64" /* TODO GOOS is not linux amd64 */ {
+			return errors.New("not implemneted")
+		}
+        cpu.pmuProfileHz = hz
+
+		return nil
+	})
+}
+
+func WithProfilingCyclePeriod(period int) ProfilingOption {
+	return profilingOptionFunc(func() error {
+		cpu.profileHz = 0 // NOTE it disable any prior WithProfilingRate
+
+		if runtime.GOOS != "linux" || runtime.GOARCH != "amd64" /* TODO GOOS is not linux amd64 */ {
+			return errors.New("not implemneted")
+		}
+        cpu.pmuProfilePeriod = period
+
+		return nil
+	})
+}
+
+// func WithProfilingCacheMisses(/* TODO */) ProfilingOption
+
+// func WithPMUFancy(w io.Writer) ProfilingOption
+
+type ProfilingOption interface {
+	apply() error
+}
+
+type profilingOptionFunc func() error
+
+func (pof profilingOptionFunc) apply() error { return pof() }
 
 // readProfile, provided by the runtime, returns the next chunk of
 // binary CPU profiling stack trace data, blocking until data is available.
@@ -825,12 +882,19 @@ func StopCPUProfile() {
 	}
 	cpu.profiling = false
    
-    if sampleInterval > 0 {
-        runtime.SetCPUPMUProfile(0)
-    } else {
-	    runtime.SetCPUProfileRate(0)
-    }
-	<-cpu.done
+	if cpu.profileHz != 0 {
+		runtime.SetCPUProfileRate(0)
+	}
+
+    if cpu.pmuProfilePeriod != 0 {
+		runtime.SetPMUProfilePeriod(0)
+	}
+    /*
+    if cpu.pmuProfileHz != 0 {
+		runtime.SetPMUProfileRate(0)
+	}
+    */
+    <-cpu.done
 }
 
 // countBlock returns the number of records in the blocking profile.

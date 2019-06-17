@@ -2134,7 +2134,7 @@ func gcstopm() {
 // acquiring a P in several places.
 //
 //go:yeswritebarrierrec
-func execute(gp *g, inheritTime bool) { // psu: Is it always invoked later than setcpupmuprofile()?
+func execute(gp *g, inheritTime bool) { // psu: Is it always invoked later than setpmuprofileperiod()?
 	_g_ := getg()
 
 	casgstatus(gp, _Grunnable, _Grunning)
@@ -2152,7 +2152,7 @@ func execute(gp *g, inheritTime bool) { // psu: Is it always invoked later than 
     isPMUEnabled := sched.isPMUEnabled
 	if _g_.m.profilehz != hz {
         if isPMUEnabled { 
-		    setThreadCPUPMUProfiler(hz)
+		    setThreadPMUProfiler(hz)
         } else {
 		    setThreadCPUProfiler(hz)
         }
@@ -3903,11 +3903,12 @@ func setcpuprofilerate(hz int32) {
 	_g_.m.locks--
 }
 
-func setcpupmuprofile(interval int32) {
+func setpmuprofileperiod(period int32) {
     // Force sane arguments.
-    if interval > 0 && interval < 300 {
-        interval = 300
+    if period < 0 {
+        period = 0
     }
+
     // Disable preemption, otherwise we can be rescheduled to another thread
     // that has profiling enabled.
     _g_ := getg()
@@ -3916,24 +3917,24 @@ func setcpupmuprofile(interval int32) {
     // Stop profiler on this thread so that it is safe to lock prof.
     // if a profiling signal came in while we had prof locked,
     // it would deadlock.
-    setThreadCPUPMUProfiler(0)
+    setThreadPMUProfiler(0)
 
     for !atomic.Cas(&prof.signalLock, 0, 1) {
         osyield()
     }
-    if prof.hz != interval { // Todo: declare a new field in prof, say prof.interval, and replace prof.hz with prof.interval
-        setProcessCPUPMUProfiler(interval)
-        prof.hz = interval
+    if prof.hz != period { // Todo: declare a new field in prof, say prof.period, and replace prof.hz with prof.period
+        setProcessPMUProfiler(period)
+        prof.hz = period
     }
     atomic.Store(&prof.signalLock, 0)
 
     lock(&sched.lock)
-    sched.profilehz = interval // Todo: declare a new field in sched, say sched.profileInterval, and replace sched.profilehz with sched.profileInterval
+    sched.profilehz = period // Todo: declare a new field in sched, say sched.profilePeriod, and replace sched.profilehz with sched.profilePeriod
     sched.isPMUEnabled = true
     unlock(&sched.lock)
 
-    if interval != 0 {
-        setThreadCPUPMUProfiler(interval)
+    if period != 0 {
+        setThreadPMUProfiler(period)
     }
 
     _g_.m.locks--
