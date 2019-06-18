@@ -361,7 +361,7 @@ func perfEventOpen(attr *PerfEventAttr, pid, cpu, groupFd, flags, dummy int64) (
 
 func ioctl(fd int32, req, arg int64) int64
 
-// func fcntl(fd, cmd int64, arg interface{}) (r int32, err int64)
+// func fcntl(fd, cmd int64, arg interface{}) (r int64, err int64)
 func fcntl(fd int32, cmd, arg int64) (r int64, err int64)
 
 //go:noescape
