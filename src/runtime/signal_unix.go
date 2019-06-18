@@ -287,7 +287,7 @@ func setThreadCPUProfiler(hz int32) {
 
 func setThreadPMUProfiler(period int32) {
     _g_ := getg()
-    _g_.m.profilehz = period // Todo: declare a new field in m, say m.profilePeriod, and replace m.profilehz with m.profilePeriod
+    _g_.m.profilePeriod = period 
     
     if period == 0 { // Go routine is finished
         fd := _g_.m.eventFd

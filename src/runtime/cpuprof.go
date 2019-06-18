@@ -121,7 +121,7 @@ func (p *cpuProfile) add(gp *g, stk []uintptr) {
 		osyield()
 	}
 
-	if prof.hz != 0 { // implies cpuprof.log != nil
+	if prof.hz != 0 || prof.period != 0 { // implies cpuprof.log != nil
 		if p.numExtra > 0 || p.lostExtra > 0 {
 			p.addExtra()
 		}

@@ -2134,7 +2134,7 @@ func gcstopm() {
 // acquiring a P in several places.
 //
 //go:yeswritebarrierrec
-func execute(gp *g, inheritTime bool) { // psu: Is it always invoked later than setpmuprofileperiod()?
+func execute(gp *g, inheritTime bool) { 
 	_g_ := getg()
 
 	casgstatus(gp, _Grunnable, _Grunning)
@@ -2149,14 +2149,14 @@ func execute(gp *g, inheritTime bool) { // psu: Is it always invoked later than 
 
 	// Check whether the profiler needs to be turned on or off.
 	hz := sched.profilehz
-    isPMUEnabled := sched.isPMUEnabled
+    period := sched.profilePeriod
+
 	if _g_.m.profilehz != hz {
-        if isPMUEnabled { 
-		    setThreadPMUProfiler(hz)
-        } else {
-		    setThreadCPUProfiler(hz)
-        }
-	}
+        setThreadCPUProfiler(hz)
+    }
+    if  _g_.m.profilePeriod != period {
+        setThreadPMUProfiler(period)
+    }
 
 	if trace.enabled {
 		// GoSysExit has to happen when we have a P, but before GoStart.
@@ -3623,6 +3623,7 @@ func mcount() int32 {
 var prof struct {
 	signalLock uint32
 	hz         int32
+    period     int32
 }
 
 func _System()                    { _System() }
@@ -3639,10 +3640,9 @@ var lostAtomic64Count uint64
 // Called by the signal handler, may run during STW.
 //go:nowritebarrierrec
 func sigprof(pc, sp, lr uintptr, gp *g, mp *m) {
-	if prof.hz == 0 {
+	if prof.hz == 0 && prof.period == 0 { // psu: is it safe to do so?
 		return
 	}
-
 	// On mips{,le}, 64bit atomics are emulated with spinlocks, in
 	// runtime/internal/atomic. If SIGPROF arrives while the program is inside
 	// the critical section, it creates a deadlock (when writing the sample).
@@ -3791,7 +3791,7 @@ func sigprof(pc, sp, lr uintptr, gp *g, mp *m) {
 		}
 	}
 
-	if prof.hz != 0 {
+	if prof.hz != 0 || prof.period != 0 {
 		if (GOARCH == "mips" || GOARCH == "mipsle" || GOARCH == "arm") && lostAtomic64Count > 0 {
 			cpuprof.addLostAtomic64(lostAtomic64Count)
 			lostAtomic64Count = 0
@@ -3814,7 +3814,7 @@ var sigprofCallersUse uint32
 //go:nosplit
 //go:nowritebarrierrec
 func sigprofNonGo() {
-	if prof.hz != 0 {
+	if prof.hz != 0 || prof.period != 0 {
 		n := 0
 		for n < len(sigprofCallers) && sigprofCallers[n] != 0 {
 			n++
@@ -3831,7 +3831,7 @@ func sigprofNonGo() {
 //go:nosplit
 //go:nowritebarrierrec
 func sigprofNonGoPC(pc uintptr) {
-	if prof.hz != 0 {
+	if prof.hz != 0 || prof.period != 0 {
 		stk := []uintptr{
 			pc,
 			funcPC(_ExternalCode) + sys.PCQuantum,
@@ -3892,7 +3892,6 @@ func setcpuprofilerate(hz int32) {
 	atomic.Store(&prof.signalLock, 0)
 
 	lock(&sched.lock)
-    sched.isPMUEnabled = false
 	sched.profilehz = hz
 	unlock(&sched.lock)
 
@@ -3922,15 +3921,14 @@ func setpmuprofileperiod(period int32) {
     for !atomic.Cas(&prof.signalLock, 0, 1) {
         osyield()
     }
-    if prof.hz != period { // Todo: declare a new field in prof, say prof.period, and replace prof.hz with prof.period
+    if prof.period != period { 
         setProcessPMUProfiler(period)
-        prof.hz = period
+        prof.period = period
     }
     atomic.Store(&prof.signalLock, 0)
 
     lock(&sched.lock)
-    sched.profilehz = period // Todo: declare a new field in sched, say sched.profilePeriod, and replace sched.profilehz with sched.profilePeriod
-    sched.isPMUEnabled = true
+    sched.profilePeriod = period 
     unlock(&sched.lock)
 
     if period != 0 {
