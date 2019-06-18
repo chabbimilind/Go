@@ -130,7 +130,8 @@ type siginfo struct {
 	si_addr  uint64
     
     // psu: an unreliable workaround and need to figure out a better solution
-    si_fd    int64 
+    // si_fd    int64 
+    si_fd    int32 
 
 }
 

@@ -291,7 +291,7 @@ func setThreadPMUProfiler(period int32) {
     
     if period == 0 { // Go routine is finished
         fd := _g_.m.eventFd
-        ioctl(int64(fd), PERF_EVENT_IOC_DISABLE, 0)
+        // ioctl(fd, PERF_EVENT_IOC_DISABLE, 0)
         closefd(fd)
     } else {
         var attr PerfEventAttr
@@ -301,8 +301,8 @@ func setThreadPMUProfiler(period int32) {
         attr.Sample = uint64(period)
         
         fd, _, _ := perfEventOpen(&attr, 0, -1, -1, 0, /* dummy*/ 0)
-        _g_.m.eventFd = int32(fd)
-
+        _g_.m.eventFd = fd
+        
         r, _ := fcntl(fd, /*F_GETFL*/ 0x3, 0)
         fcntl(fd, /*F_SETFL*/ 0x4, r | /*O_ASYNC*/ 0x2000)
         fcntl(fd, /*F_SETSIG*/ 0xa, _SIGRTMIN + 3)

@@ -168,7 +168,7 @@ TEXT runtime·setitimer(SB),NOSPLIT,$0-24
 	SYSCALL
 	RET
 
-// func perfEventOpen(attr *PerfEventAttr, pid, cpu, groupFd, flags, dummy int64) (r, r2, err int64) 
+// func perfEventOpen(attr *PerfEventAttr, pid, cpu, groupFd, flags, dummy int64) (r int32, r2, err int64) 
 TEXT runtime·perfEventOpen(SB),NOSPLIT,$0
 	MOVQ	attr+0(FP), DI
 	MOVQ	pid+8(FP), SI
@@ -180,20 +180,20 @@ TEXT runtime·perfEventOpen(SB),NOSPLIT,$0
 	SYSCALL
 	CMPQ	AX, $0xfffffffffffff001
 	JLS	ok
-	MOVQ	$-1, r+48(FP)
+	MOVL	$-1, r+48(FP)
 	MOVQ	$0, r2+56(FP)
 	NEGQ	AX
 	MOVQ	AX, err+64(FP)
 	RET
 ok:
-	MOVQ	AX, r+48(FP)
+	MOVL	AX, r+48(FP)
 	MOVQ	DX, r2+56(FP)
 	MOVQ	$0, err+64(FP)
 	RET
 
-// func ioctl(fd, req, arg int64) int64 
+// func ioctl(fd int32, req, arg int64) int64
 TEXT runtime·ioctl(SB),NOSPLIT,$0
-	MOVQ	fd+0(FP), DI 
+	MOVL	fd+0(FP), DI 
 	MOVQ	req+8(FP), SI
 	MOVQ	arg+16(FP), DX
     MOVQ	$SYS_ioctl, AX
@@ -201,9 +201,9 @@ TEXT runtime·ioctl(SB),NOSPLIT,$0
     MOVQ    AX, ret+24(FP)
 	RET
 
-// func fcntl(fd, cmd arg int64) (r int64, err int64)
+// func fcntl(fd int32, cmd arg int64) (r int64, err int64)
 TEXT runtime·fcntl(SB),NOSPLIT,$0
-	MOVQ	fd+0(FP), DI 
+	MOVL	fd+0(FP), DI 
 	MOVQ	cmd+8(FP), SI
 	MOVQ	arg+16(FP), DX
     MOVQ	$SYS_fcntl, AX
@@ -220,7 +220,7 @@ ok:
 	RET
 
 TEXT runtime·fcntl2(SB),NOSPLIT,$0
-	MOVQ	fd+0(FP), DI 
+	MOVL	fd+0(FP), DI 
 	MOVQ	cmd+8(FP), SI
 	MOVQ	arg+16(FP), DX
     MOVQ	$SYS_fcntl, AX

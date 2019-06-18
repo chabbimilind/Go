@@ -821,7 +821,7 @@ func WithProfilingCyclePeriod(period int) ProfilingOption {
 		cpu.profileHz = 0 // NOTE it disable any prior WithProfilingRate
 
 		if runtime.GOOS != "linux" || runtime.GOARCH != "amd64" /* TODO GOOS is not linux amd64 */ {
-			return errors.New("not implemneted")
+            return errors.New("not implemented")
 		}
         cpu.pmuProfilePeriod = period
 
