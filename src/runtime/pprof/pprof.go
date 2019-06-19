@@ -777,6 +777,10 @@ func StartCPUProfile(w io.Writer, opts ...ProfilingOption) error {
 			return err
 		}
 	}
+    
+    if cpu.profileHz != 0 && cpu.pmuProfilePeriod != 0 {
+		return fmt.Errorf("itimer- and PMU-based profilings cannot work simultaneouly")
+    }
 
 	if cpu.profileHz != 0 {
 		runtime.SetCPUProfileRate(cpu.profileHz)
@@ -785,7 +789,7 @@ func StartCPUProfile(w io.Writer, opts ...ProfilingOption) error {
     if cpu.pmuProfilePeriod != 0 {
 		runtime.SetPMUProfilePeriod(cpu.pmuProfilePeriod)
     }
-   
+    
     /* 
     if cpu.pmuProfileHz != 0 {
 		runtime.SetPMUProfileRate(cpu.pmuProfileHz)
@@ -808,7 +812,7 @@ func WithProfilingCycleRate(hz int) ProfilingOption {
 		cpu.profileHz = 0 // NOTE it disable any prior WithProfilingRate
 
 		if runtime.GOOS != "linux" || runtime.GOARCH != "amd64" /* TODO GOOS is not linux amd64 */ {
-			return errors.New("not implemneted")
+			return errors.New("not implemented")
 		}
         cpu.pmuProfileHz = hz
 
@@ -851,22 +855,39 @@ func readProfile() (data []uint64, tags []unsafe.Pointer, eof bool)
 func profileWriter(w io.Writer) {
 	b := newProfileBuilder(w)
 	var err error
-	for {
-		time.Sleep(100 * time.Millisecond)
-		data, tags, eof := readProfile()
-		if e := b.addCPUData(data, tags); e != nil && err == nil {
-			err = e
-		}
-		if eof {
-			break
-		}
-	}
-	if err != nil {
-		// The runtime should never produce an invalid or truncated profile.
-		// It drops records that can't fit into its log buffers.
-		panic("runtime/pprof: converting profile: " + err.Error())
-	}
-	b.build()
+    if cpu.profileHz != 0 {
+	    for {
+		    time.Sleep(100 * time.Millisecond)
+		    data, tags, eof := readProfile()
+		    if e := b.addCPUData(data, tags); e != nil && err == nil {
+			    err = e
+		    }
+		    if eof {
+			    break
+		    }
+	    }
+        if err != nil {
+            // The runtime should never produce an invalid or truncated profile.
+		    // It drops records that can't fit into its log buffers.
+		    panic("runtime/pprof: converting profile: " + err.Error())
+	    }
+	    b.build()
+    } else { // i.e., cpu.pmuProfilePeriod != 0
+	    for {
+		    time.Sleep(100 * time.Millisecond)
+		    data, tags, eof := readProfile()
+		    if e := b.addPMUData(data, tags); e != nil && err == nil {
+			    err = e
+		    }
+		    if eof {
+			    break
+		    }
+	    }
+        if err != nil {
+		    panic("runtime/pprof: converting profile: " + err.Error())
+	    }
+	    b.pmuBuild()
+    }
 	cpu.done <- true
 }
 
