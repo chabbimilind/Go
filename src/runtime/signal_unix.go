@@ -285,21 +285,41 @@ func setThreadCPUProfiler(hz int32) {
     _g_.m.profilehz = hz
 }
 
-func setThreadPMUProfiler(period int32) {
+func getPreciseIP() int32 {
+    if ip, ok := atoi32(gogetenv("PMU_PRECISE_IP")); ok {
+        if ip < 0 {
+            ip = 0
+        } else if ip > 3 {
+            ip = 3
+        }
+        return ip
+    }
+    return 0 // PMU_PRECISE_IP is not set
+}
+
+var  preciseIP int32 = -1
+
+func setThreadPMUProfiler(event int32, period int32) {
     _g_ := getg()
-    _g_.m.profilePeriod = period 
+    _g_.m.profilePeriod = period
     
     if period == 0 { // Go routine is finished
         fd := _g_.m.eventFd
-        // ioctl(fd, PERF_EVENT_IOC_DISABLE, 0)
         closefd(fd)
     } else {
+        if preciseIP == -1 {
+            preciseIP = getPreciseIP() // never equals to -1 again
+        }
+        
         var attr PerfEventAttr
         attr.Type = PERF_TYPE_HARDWARE
         attr.Size = uint32(unsafe.Sizeof(attr))
-        attr.Config = PERF_COUNT_HW_CPU_CYCLES
+        attr.Config = uint64(event)
         attr.Sample = uint64(period)
-        
+        attr.Bits = uint64(preciseIP) << 15 // precise ip
+        attr.Bits += 0b100000 // don't count kernel  
+        attr.Bits += 0b1000000 // don't count hypervisor
+
         fd, _, _ := perfEventOpen(&attr, 0, -1, -1, 0, /* dummy*/ 0)
         _g_.m.eventFd = fd
         

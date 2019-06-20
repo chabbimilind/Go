@@ -385,6 +385,7 @@ func (b *profileBuilder) addPMUData(data []uint64, tags []unsafe.Pointer) error 
 			return fmt.Errorf("malformed profile")
 		}
 		b.isPMUEnabled = true
+        b.period = int64(data[2])
 		data = data[3:]
 	}
 
@@ -477,19 +478,18 @@ func (b *profileBuilder) build() {
 	b.zw.Close()
 }
 
-func (b *profileBuilder) pmuBuild() {
-     b.end = time.Now()
-
+func (b *profileBuilder) pmuBuild(event string) {
 	b.pb.int64Opt(tagProfile_TimeNanos, b.start.UnixNano())
     b.pbValueType(tagProfile_SampleType, "samples", "count")
-    b.pbValueType(tagProfile_SampleType, "cpu cycles", "count")
-    // b.pb.int64Opt(tagProfile_DurationNanos, b.end.Sub(b.start).Nanoseconds())
+    b.pbValueType(tagProfile_SampleType, event, "count")
+    b.pbValueType(tagProfile_PeriodType, event, "count")
+	b.pb.int64Opt(tagProfile_Period, b.period)
 	
     values := []int64{0, 0}
 	var locs []uint64
 	for e := b.m.all; e != nil; e = e.nextAll {
 		values[0] = e.count
-		values[1] = e.count * 100
+		values[1] = e.count * b.period
 
 		var labels func()
 		if e.tag != nil {

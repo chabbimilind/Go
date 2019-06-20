@@ -733,7 +733,8 @@ var cpu struct {
 	
     // PMU profiling config
     pmuProfileHz int
-    pmuProfilePeriod int
+    pmuProfileCyclePeriod int
+    pmuProfileCacheMissPeriod int
 }
 
 // StartCPUProfile enables CPU profiling for the current process.
@@ -778,21 +779,29 @@ func StartCPUProfile(w io.Writer, opts ...ProfilingOption) error {
 		}
 	}
     
-    if cpu.profileHz != 0 && cpu.pmuProfilePeriod != 0 {
-		return fmt.Errorf("itimer- and PMU-based profilings cannot work simultaneouly")
+    if cpu.profileHz != 0 && (cpu.pmuProfileCyclePeriod != 0 || cpu.pmuProfileCacheMissPeriod != 0) {
+		return fmt.Errorf("itimer- and PMU-based profilings cannot be enabled simultaneously\n")
+    }
+    
+    if cpu.pmuProfileCyclePeriod != 0 && cpu.pmuProfileCacheMissPeriod != 0 {
+		return fmt.Errorf("Only a single PMU event can be enabled simultaneously!\n")
     }
 
 	if cpu.profileHz != 0 {
 		runtime.SetCPUProfileRate(cpu.profileHz)
 	}
 
-    if cpu.pmuProfilePeriod != 0 {
-		runtime.SetPMUProfilePeriod(cpu.pmuProfilePeriod)
+    if cpu.pmuProfileCyclePeriod != 0 {
+		runtime.SetPMUProfilePeriod(PERF_COUNT_HW_CPU_CYCLES, cpu.pmuProfileCyclePeriod)
+    }
+    
+    if cpu.pmuProfileCacheMissPeriod != 0 {
+		runtime.SetPMUProfilePeriod(PERF_COUNT_HW_CACHE_MISSES, cpu.pmuProfileCacheMissPeriod)
     }
     
     /* 
     if cpu.pmuProfileHz != 0 {
-		runtime.SetPMUProfileRate(cpu.pmuProfileHz)
+		runtime.SetPMUProfileRate(PERF_COUNT_HW_CPU_CYCLES, cpu.pmuProfileCycleHz)
     }
 	*/
 
@@ -827,13 +836,24 @@ func WithProfilingCyclePeriod(period int) ProfilingOption {
 		if runtime.GOOS != "linux" || runtime.GOARCH != "amd64" /* TODO GOOS is not linux amd64 */ {
             return errors.New("not implemented")
 		}
-        cpu.pmuProfilePeriod = period
+        cpu.pmuProfileCyclePeriod = period
 
 		return nil
 	})
 }
 
-// func WithProfilingCacheMisses(/* TODO */) ProfilingOption
+func WithProfilingCacheMissPeriod(period int) ProfilingOption {
+	return profilingOptionFunc(func() error {
+		cpu.profileHz = 0 // NOTE it disable any prior WithProfilingRate
+
+		if runtime.GOOS != "linux" || runtime.GOARCH != "amd64" /* TODO GOOS is not linux amd64 */ {
+            return errors.New("not implemented")
+		}
+        cpu.pmuProfileCacheMissPeriod = period
+
+		return nil
+	})
+}
 
 // func WithPMUFancy(w io.Writer) ProfilingOption
 
@@ -872,7 +892,7 @@ func profileWriter(w io.Writer) {
 		    panic("runtime/pprof: converting profile: " + err.Error())
 	    }
 	    b.build()
-    } else { // i.e., cpu.pmuProfilePeriod != 0
+    } else { // cpu.pmuProfileCyclePeriod != 0 or cpu.pmuProfileCacheMissPeriod != 0 
 	    for {
 		    time.Sleep(100 * time.Millisecond)
 		    data, tags, eof := readProfile()
@@ -886,7 +906,12 @@ func profileWriter(w io.Writer) {
         if err != nil {
 		    panic("runtime/pprof: converting profile: " + err.Error())
 	    }
-	    b.pmuBuild()
+        if  cpu.pmuProfileCyclePeriod != 0 {
+	        b.pmuBuild("cycles")
+        }
+        if  cpu.pmuProfileCacheMissPeriod != 0 {
+	        b.pmuBuild("cache misses")
+        }
     }
 	cpu.done <- true
 }
@@ -907,8 +932,12 @@ func StopCPUProfile() {
 		runtime.SetCPUProfileRate(0)
 	}
 
-    if cpu.pmuProfilePeriod != 0 {
-		runtime.SetPMUProfilePeriod(0)
+    if cpu.pmuProfileCyclePeriod != 0 {
+		runtime.SetPMUProfilePeriod(PERF_COUNT_HW_CPU_CYCLES, 0)
+	}
+    
+    if cpu.pmuProfileCacheMissPeriod != 0 {
+		runtime.SetPMUProfilePeriod(PERF_COUNT_HW_CACHE_MISSES, 0)
 	}
     /*
     if cpu.pmuProfileHz != 0 {

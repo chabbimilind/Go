@@ -2150,12 +2150,17 @@ func execute(gp *g, inheritTime bool) {
 	// Check whether the profiler needs to be turned on or off.
 	hz := sched.profilehz
     period := sched.profilePeriod
+    event := sched.profileEvent
 
-	if _g_.m.profilehz != hz {
+    if _g_.m.profilehz != hz && _g_.m.profilePeriod != period  {
+       print("should never reach here!\n")
+    }
+	
+    if _g_.m.profilehz != hz {
         setThreadCPUProfiler(hz)
     }
     if  _g_.m.profilePeriod != period {
-        setThreadPMUProfiler(period)
+        setThreadPMUProfiler(event, period)
     }
 
 	if trace.enabled {
@@ -3902,7 +3907,7 @@ func setcpuprofilerate(hz int32) {
 	_g_.m.locks--
 }
 
-func setpmuprofileperiod(period int32) {
+func setpmuprofileperiod(event int32, period int32) {
     // Force sane arguments.
     if period < 0 {
         period = 0
@@ -3916,23 +3921,24 @@ func setpmuprofileperiod(period int32) {
     // Stop profiler on this thread so that it is safe to lock prof.
     // if a profiling signal came in while we had prof locked,
     // it would deadlock.
-    setThreadPMUProfiler(0)
+    setThreadPMUProfiler(event, 0)
 
     for !atomic.Cas(&prof.signalLock, 0, 1) {
         osyield()
     }
-    if prof.period != period { 
+    if prof.period != period {
         setProcessPMUProfiler(period)
         prof.period = period
     }
     atomic.Store(&prof.signalLock, 0)
 
     lock(&sched.lock)
-    sched.profilePeriod = period 
+    sched.profilePeriod = period
+    sched.profileEvent = event
     unlock(&sched.lock)
 
     if period != 0 {
-        setThreadPMUProfiler(period)
+        setThreadPMUProfiler(event, period)
     }
 
     _g_.m.locks--
