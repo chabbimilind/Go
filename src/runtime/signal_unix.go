@@ -299,12 +299,15 @@ func getPreciseIP() int32 {
 
 var  preciseIP int32 = -1
 
-func setThreadPMUProfiler(event int32, period int32) {
+func setThreadPMUProfiler(eventId int32, period int32) {
     _g_ := getg()
-    _g_.m.profilePeriod = period
+    _g_.m.profilePMUPeriod[eventId] = period
+    if _g_.m.eventMap == nil {
+        _g_.m.eventMap = make(map[int32]int32)
+    }
     
     if period == 0 { // Go routine is finished
-        fd := _g_.m.eventFd
+        fd := _g_.m.eventFd[eventId]
         closefd(fd)
     } else {
         if preciseIP == -1 {
@@ -314,15 +317,15 @@ func setThreadPMUProfiler(event int32, period int32) {
         var attr PerfEventAttr
         attr.Type = PERF_TYPE_HARDWARE
         attr.Size = uint32(unsafe.Sizeof(attr))
-        attr.Config = uint64(event)
+        attr.Config = uint64(eventId)
         attr.Sample = uint64(period)
         attr.Bits = uint64(preciseIP) << 15 // precise ip
         attr.Bits += 0b100000 // don't count kernel  
         attr.Bits += 0b1000000 // don't count hypervisor
 
         fd, _, _ := perfEventOpen(&attr, 0, -1, -1, 0, /* dummy*/ 0)
-        _g_.m.eventFd = fd
-        
+        _g_.m.eventFd[eventId] = fd
+        _g_.m.eventMap[fd] = eventId
         r, _ := fcntl(fd, /*F_GETFL*/ 0x3, 0)
         fcntl(fd, /*F_SETFL*/ 0x4, r | /*O_ASYNC*/ 0x2000)
         fcntl(fd, /*F_SETSIG*/ 0xa, _SIGRTMIN + 3)
@@ -357,8 +360,12 @@ func sigtrampgo(sig uint32, info *siginfo, ctx unsafe.Pointer) {
 	g := getg()
 	if g == nil {
 		c := &sigctxt{info, ctx}
-		if sig == _SIGPROF || sig == _SIGRTMIN + 3 {
+		if sig == _SIGPROF {
 			sigprofNonGoPC(c.sigpc())
+			return
+		} else if sig == _SIGRTMIN + 3 {
+			// sigpmuNonGoPC(c.sigpc())
+            println("how do I know which pmu event delivers this signal")
 			return
 		}
 		c.fixsigcode(sig)

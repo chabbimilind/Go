@@ -726,15 +726,16 @@ var cpu struct {
 	sync.Mutex
 	profiling bool
 	done      chan bool
+    profileHz int
+}
 
-    // config state implemented by StartCPUProfile, customized by any
-	// ProfilingOptions passed to it.
-	profileHz int
-	
-    // PMU profiling config
-    pmuProfileHz int
-    pmuProfileCyclePeriod int
-    pmuProfileCacheMissPeriod int
+var pmu struct {
+	sync.Mutex
+	profiling bool
+	done      chan bool
+    profileCyclePeriod int
+    profileCacheMissPeriod int
+    profileCacheRefPeriod int
 }
 
 // StartCPUProfile enables CPU profiling for the current process.
@@ -748,114 +749,113 @@ var cpu struct {
 // not to the one used by Go. To make it work, call os/signal.Notify
 // for syscall.SIGPROF, but note that doing so may break any profiling
 // being done by the main program.
-func StartCPUProfile(w io.Writer, opts ...ProfilingOption) error {
-	// The runtime routines allow a variable profiling rate,
-	// but in practice operating systems cannot trigger signals
-	// at more than about 500 Hz, and our processing of the
-	// signal is not cheap (mostly getting the stack trace).
-	// 100 Hz is a reasonable choice: it is frequent enough to
-	// produce useful data, rare enough not to bog down the
-	// system, and a nice round number to make it easy to
-	// convert sample counts to seconds. Instead of requiring
-	// each client to specify the frequency, we hard code it.
-    if len(opts) == 0 {
-	    opts = []ProfilingOption{WithProfilingRate(100)}
+func StartCPUProfile(w io.Writer, hz ...int) error {
+    // The runtime routines allow a variable profiling rate,
+    // but in practice operating systems cannot trigger signals
+    // at more than about 500 Hz, and our processing of the
+    // signal is not cheap (mostly getting the stack trace).
+    // 100 Hz is a reasonable choice: it is frequent enough to
+    // produce useful data, rare enough not to bog down the
+    // system, and a nice round number to make it easy to
+    // convert sample counts to seconds. Instead of requiring
+    // each client to specify the frequency, we hard code it.
+    if len(hz) == 0 {
+        cpu.profileHz = 100
+    } else {
+        cpu.profileHz = hz[0]
     }
 
-	cpu.Lock()
-	defer cpu.Unlock()
-	if cpu.done == nil {
-		cpu.done = make(chan bool)
+    cpu.Lock()
+    defer cpu.Unlock()
+    if cpu.done == nil {
+        cpu.done = make(chan bool)
+    }
+    // Double-check.
+    if cpu.profiling {
+        return fmt.Errorf("cpu profiling already in use")
+    }
+    cpu.profiling = true
+    runtime.SetCPUProfileRate(cpu.profileHz)
+    go profileWriter(w)
+    return nil
+}
+
+
+func StartPMUProfile(opts ...ProfilingOption) error {
+	pmu.Lock()
+	defer pmu.Unlock()
+	if pmu.done == nil {
+        pmu.done = make(chan bool, len(opts))
 	}
 	// Double-check.
-	if cpu.profiling {
-		return fmt.Errorf("cpu profiling already in use")
+	if pmu.profiling {
+		return fmt.Errorf("pmu profiling already in use")
 	}
-	cpu.profiling = true
-
-  	for _, opt := range opts {
+	pmu.profiling = true
+  	
+    for _, opt := range opts {
 	    if err := opt.apply(); err != nil {
 			return err
 		}
 	}
-    
-    if cpu.profileHz != 0 && (cpu.pmuProfileCyclePeriod != 0 || cpu.pmuProfileCacheMissPeriod != 0) {
-		return fmt.Errorf("itimer- and PMU-based profilings cannot be enabled simultaneously\n")
-    }
-    
-    if cpu.pmuProfileCyclePeriod != 0 && cpu.pmuProfileCacheMissPeriod != 0 {
-		return fmt.Errorf("Only a single PMU event can be enabled simultaneously!\n")
-    }
-
-	if cpu.profileHz != 0 {
-		runtime.SetCPUProfileRate(cpu.profileHz)
-	}
-
-    if cpu.pmuProfileCyclePeriod != 0 {
-		runtime.SetPMUProfilePeriod(PERF_COUNT_HW_CPU_CYCLES, cpu.pmuProfileCyclePeriod)
-    }
-    
-    if cpu.pmuProfileCacheMissPeriod != 0 {
-		runtime.SetPMUProfilePeriod(PERF_COUNT_HW_CACHE_MISSES, cpu.pmuProfileCacheMissPeriod)
-    }
-    
-    /* 
-    if cpu.pmuProfileHz != 0 {
-		runtime.SetPMUProfileRate(PERF_COUNT_HW_CPU_CYCLES, cpu.pmuProfileCycleHz)
-    }
-	*/
-
-    go profileWriter(w)
 	return nil
 }
 
-func WithProfilingRate(hz int) ProfilingOption {
+func WithProfilingRate(w io.Writer, hz int) ProfilingOption {
 	return profilingOptionFunc(func() error {
-		cpu.profileHz = hz
+        if hz != 0 {
+            cpu.profileHz = hz
+		    runtime.SetCPUProfileRate(cpu.profileHz)
+            go profileWriter(w)
+        }
 		return nil
 	})
 }
 
-func WithProfilingCycleRate(hz int) ProfilingOption {
+func WithProfilingCyclePeriod(w io.Writer, period int) ProfilingOption {
 	return profilingOptionFunc(func() error {
-		cpu.profileHz = 0 // NOTE it disable any prior WithProfilingRate
-
-		if runtime.GOOS != "linux" || runtime.GOARCH != "amd64" /* TODO GOOS is not linux amd64 */ {
-			return errors.New("not implemented")
-		}
-        cpu.pmuProfileHz = hz
-
-		return nil
-	})
-}
-
-func WithProfilingCyclePeriod(period int) ProfilingOption {
-	return profilingOptionFunc(func() error {
-		cpu.profileHz = 0 // NOTE it disable any prior WithProfilingRate
-
 		if runtime.GOOS != "linux" || runtime.GOARCH != "amd64" /* TODO GOOS is not linux amd64 */ {
             return errors.New("not implemented")
 		}
-        cpu.pmuProfileCyclePeriod = period
-
+        if period <= 0 {
+            return errors.New("period should be > 0")
+        }
+        pmu.profileCyclePeriod = period
+		runtime.SetPMUProfilePeriod(PERF_COUNT_HW_CPU_CYCLES, pmu.profileCyclePeriod)
+        go pmuProfileWriter(w, PERF_COUNT_HW_CPU_CYCLES, "cycles")
 		return nil
 	})
 }
 
-func WithProfilingCacheMissPeriod(period int) ProfilingOption {
+func WithProfilingCacheMissPeriod(w io.Writer, period int) ProfilingOption {
 	return profilingOptionFunc(func() error {
-		cpu.profileHz = 0 // NOTE it disable any prior WithProfilingRate
-
 		if runtime.GOOS != "linux" || runtime.GOARCH != "amd64" /* TODO GOOS is not linux amd64 */ {
             return errors.New("not implemented")
 		}
-        cpu.pmuProfileCacheMissPeriod = period
-
+        if period <= 0 {
+            return errors.New("period should be > 0")
+        }
+        pmu.profileCacheMissPeriod = period
+		runtime.SetPMUProfilePeriod(PERF_COUNT_HW_CACHE_MISSES, pmu.profileCacheMissPeriod)
+        go pmuProfileWriter(w, PERF_COUNT_HW_CACHE_MISSES, "cache misses")
 		return nil
 	})
 }
 
-// func WithPMUFancy(w io.Writer) ProfilingOption
+func WithProfilingCacheRefPeriod(w io.Writer, period int) ProfilingOption {
+	return profilingOptionFunc(func() error {
+		if runtime.GOOS != "linux" || runtime.GOARCH != "amd64" /* TODO GOOS is not linux amd64 */ {
+            return errors.New("not implemented")
+		}
+        if period <= 0 {
+            return errors.New("period should be > 0")
+        }
+        pmu.profileCacheRefPeriod = period
+		runtime.SetPMUProfilePeriod(PERF_COUNT_HW_CACHE_REFERENCES, pmu.profileCacheRefPeriod)
+        go pmuProfileWriter(w, PERF_COUNT_HW_CACHE_REFERENCES, "cache references")
+		return nil
+	})
+}
 
 type ProfilingOption interface {
 	apply() error
@@ -875,76 +875,90 @@ func readProfile() (data []uint64, tags []unsafe.Pointer, eof bool)
 func profileWriter(w io.Writer) {
 	b := newProfileBuilder(w)
 	var err error
-    if cpu.profileHz != 0 {
-	    for {
-		    time.Sleep(100 * time.Millisecond)
-		    data, tags, eof := readProfile()
-		    if e := b.addCPUData(data, tags); e != nil && err == nil {
-			    err = e
-		    }
-		    if eof {
-			    break
-		    }
+	for {
+	    time.Sleep(100 * time.Millisecond)
+	    data, tags, eof := readProfile()
+	    if e := b.addCPUData(data, tags); e != nil && err == nil {
+		    err = e
 	    }
-        if err != nil {
-            // The runtime should never produce an invalid or truncated profile.
-		    // It drops records that can't fit into its log buffers.
-		    panic("runtime/pprof: converting profile: " + err.Error())
+	    if eof {
+		    break
 	    }
-	    b.build()
-    } else { // cpu.pmuProfileCyclePeriod != 0 or cpu.pmuProfileCacheMissPeriod != 0 
-	    for {
-		    time.Sleep(100 * time.Millisecond)
-		    data, tags, eof := readProfile()
-		    if e := b.addPMUData(data, tags); e != nil && err == nil {
-			    err = e
-		    }
-		    if eof {
-			    break
-		    }
-	    }
-        if err != nil {
-		    panic("runtime/pprof: converting profile: " + err.Error())
-	    }
-        if  cpu.pmuProfileCyclePeriod != 0 {
-	        b.pmuBuild("cycles")
-        }
-        if  cpu.pmuProfileCacheMissPeriod != 0 {
-	        b.pmuBuild("cache misses")
-        }
-    }
+	}
+    if err != nil {
+        // The runtime should never produce an invalid or truncated profile.
+	    // It drops records that can't fit into its log buffers.
+	    panic("runtime/pprof: converting profile: " + err.Error())
+	}
+	b.build()
 	cpu.done <- true
+}
+
+func readPMUProfile(eventId int) (data []uint64, tags []unsafe.Pointer, eof bool)
+
+func pmuProfileWriter(w io.Writer, eventId int, eventName string) {
+	b := newProfileBuilder(w)
+	var err error
+	for {
+	    time.Sleep(10 * time.Millisecond)
+	    data, tags, eof := readPMUProfile(eventId)
+	    // if len(data) != 0 {
+        //    fmt.Println(eventId, " ", len(data))
+        // }
+        if e := b.addPMUData(data, tags); e != nil && err == nil {
+		    err = e
+	    }
+	    if eof {
+		    break
+	    }
+	}
+    if err != nil {
+	    panic("runtime/pprof: converting profile: " + err.Error())
+	}
+	b.pmuBuild(eventName)
+    pmu.done <- true
 }
 
 // StopCPUProfile stops the current CPU profile, if any.
 // StopCPUProfile only returns after all the writes for the
 // profile have completed.
 func StopCPUProfile() {
-	cpu.Lock()
-	defer cpu.Unlock()
+    cpu.Lock()
+    defer cpu.Unlock()
 
-	if !cpu.profiling {
+    if !cpu.profiling {
+        return
+    }
+    cpu.profiling = false
+    runtime.SetCPUProfileRate(0)
+    <-cpu.done
+}
+
+
+func StopPMUProfile() {
+	pmu.Lock()
+	defer pmu.Unlock()
+
+	if !pmu.profiling {
 		return
 	}
-	cpu.profiling = false
+    pmu.profiling = false
    
-	if cpu.profileHz != 0 {
-		runtime.SetCPUProfileRate(0)
-	}
-
-    if cpu.pmuProfileCyclePeriod != 0 {
+    if pmu.profileCyclePeriod != 0 {
 		runtime.SetPMUProfilePeriod(PERF_COUNT_HW_CPU_CYCLES, 0)
 	}
-    
-    if cpu.pmuProfileCacheMissPeriod != 0 {
+    if pmu.profileCacheMissPeriod != 0 {
 		runtime.SetPMUProfilePeriod(PERF_COUNT_HW_CACHE_MISSES, 0)
 	}
-    /*
-    if cpu.pmuProfileHz != 0 {
-		runtime.SetPMUProfileRate(0)
+    if pmu.profileCacheRefPeriod != 0 {
+		runtime.SetPMUProfilePeriod(PERF_COUNT_HW_CACHE_REFERENCES, 0)
 	}
-    */
-    <-cpu.done
+    
+    for i := 0; i < cap(pmu.done); i++ {
+        <-pmu.done
+    } 
+
+
 }
 
 // countBlock returns the number of records in the blocking profile.

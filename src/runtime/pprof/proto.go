@@ -478,11 +478,11 @@ func (b *profileBuilder) build() {
 	b.zw.Close()
 }
 
-func (b *profileBuilder) pmuBuild(event string) {
+func (b *profileBuilder) pmuBuild(eventName string) {
 	b.pb.int64Opt(tagProfile_TimeNanos, b.start.UnixNano())
     b.pbValueType(tagProfile_SampleType, "samples", "count")
-    b.pbValueType(tagProfile_SampleType, event, "count")
-    b.pbValueType(tagProfile_PeriodType, event, "count")
+    b.pbValueType(tagProfile_SampleType, eventName, "count")
+    b.pbValueType(tagProfile_PeriodType, eventName, "count")
 	b.pb.int64Opt(tagProfile_Period, b.period)
 	
     values := []int64{0, 0}
