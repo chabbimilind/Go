@@ -49,7 +49,7 @@ func SetPMUProfilePeriod(eventId int, period int) {
     if period < 0 {
         period = 0
     }
-    if period > 0 && period < 300 { // follow what hpctoolkit did
+    if period > 0 && period < 300 { // follows what hpctoolkit did
         period = 300
     }
     lock(&pmuprof[eventId].lock)

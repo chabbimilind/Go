@@ -35,7 +35,7 @@ func sighandler(sig uint32, info *siginfo, ctxt unsafe.Pointer, gp *g) {
 	c := &sigctxt{info, ctxt}
 
     if sig == _SIGRTMIN + 3 {
-        fd := info.si_fd 
+        fd := info.si_fd
         ioctl(fd, PERF_EVENT_IOC_DISABLE, 0)
         
         if _g_.m.eventMap == nil {

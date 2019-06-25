@@ -473,10 +473,9 @@ type m struct {
 	locks         int32
 	dying         int32
 	profilehz     int32
-    // profilePeriod int32
-    eventFd       [10]int32
-	profilePMUPeriod [10]int32 // event Id -> period
-    eventMap        map[int32]int32 // fd->event Id
+    eventFd       [maxPMUProfStack]int32
+	profilePMUPeriod [maxPMUProfStack]int32 // event Id -> period
+    eventMap      map[int32]int32 // fd->event Id
     spinning      bool // m is out of work and is actively looking for work
 	blocked       bool // m is blocked on a note
 	newSigstack   bool // minit on C thread called sigaltstack
@@ -679,9 +678,7 @@ type schedt struct {
 	safePointNote note
 
     profilehz      int32 // cpu profiling rate
-    // profilePeriod  int32
-    // profileEvent   int32
-	profilePMUPeriod [10]int32 // event Id -> period
+	profilePMUPeriod [maxPMUProfStack]int32 // event Id -> period
     procresizetime int64 // nanotime() of last change to gomaxprocs
 	totaltime      int64 // ∫gomaxprocs dt up to procresizetime
 }
