@@ -308,7 +308,10 @@ func setThreadPMUProfiler(eventId int32, period int32) {
     
     if period == 0 { // Go routine is finished
         fd := _g_.m.eventFd[eventId]
-        closefd(fd)
+        if _, ok := _g_.m.eventMap[fd]; ok {
+            delete(_g_.m.eventMap, fd) // delete it from the map
+            closefd(fd)
+        }
     } else {
         if preciseIP == -1 {
             preciseIP = getPreciseIP() // never equals to -1 again

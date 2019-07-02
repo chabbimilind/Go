@@ -2159,7 +2159,7 @@ func execute(gp *g, inheritTime bool) {
         setThreadCPUProfiler(hz)
     }
     
-    for eventId := 0; eventId < 10; eventId++ {
+    for eventId := 0; eventId < maxPMUEvents; eventId++ {
         if  _g_.m.profilePMUPeriod[eventId] != period[eventId] {
             setThreadPMUProfiler(int32(eventId), period[eventId])
         }

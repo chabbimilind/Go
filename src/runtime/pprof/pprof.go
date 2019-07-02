@@ -734,6 +734,7 @@ var pmu struct {
 	profiling bool
 	done      chan bool
     profileCyclePeriod int
+    profileInstPeriod int
     profileCacheMissPeriod int
     profileCacheRefPeriod int
 }
@@ -827,6 +828,21 @@ func WithProfilingCyclePeriod(w io.Writer, period int) ProfilingOption {
 	})
 }
 
+func WithProfilingInstPeriod(w io.Writer, period int) ProfilingOption {
+	return profilingOptionFunc(func() error {
+		if runtime.GOOS != "linux" || runtime.GOARCH != "amd64" /* TODO GOOS is not linux amd64 */ {
+            return errors.New("not implemented")
+		}
+        if period <= 0 {
+            return errors.New("period should be > 0")
+        }
+        pmu.profileInstPeriod = period
+		runtime.SetPMUProfilePeriod(PERF_COUNT_HW_INSTRUCTIONS, pmu.profileInstPeriod)
+        go pmuProfileWriter(w, PERF_COUNT_HW_INSTRUCTIONS, "instructions")
+		return nil
+	})
+}
+
 func WithProfilingCacheMissPeriod(w io.Writer, period int) ProfilingOption {
 	return profilingOptionFunc(func() error {
 		if runtime.GOOS != "linux" || runtime.GOARCH != "amd64" /* TODO GOOS is not linux amd64 */ {
@@ -900,11 +916,8 @@ func pmuProfileWriter(w io.Writer, eventId int, eventName string) {
 	b := newProfileBuilder(w)
 	var err error
 	for {
-	    time.Sleep(10 * time.Millisecond)
+	    time.Sleep(100 * time.Millisecond)
 	    data, tags, eof := readPMUProfile(eventId)
-	    // if len(data) != 0 {
-        //    fmt.Println(eventId, " ", len(data))
-        // }
         if e := b.addPMUData(data, tags); e != nil && err == nil {
 		    err = e
 	    }
@@ -947,6 +960,9 @@ func StopPMUProfile() {
     if pmu.profileCyclePeriod != 0 {
 		runtime.SetPMUProfilePeriod(PERF_COUNT_HW_CPU_CYCLES, 0)
 	}
+    if pmu.profileInstPeriod != 0 {
+		runtime.SetPMUProfilePeriod(PERF_COUNT_HW_INSTRUCTIONS, 0)
+	}
     if pmu.profileCacheMissPeriod != 0 {
 		runtime.SetPMUProfilePeriod(PERF_COUNT_HW_CACHE_MISSES, 0)
 	}
@@ -957,8 +973,6 @@ func StopPMUProfile() {
     for i := 0; i < cap(pmu.done); i++ {
         <-pmu.done
     } 
-
-
 }
 
 // countBlock returns the number of records in the blocking profile.
