@@ -160,7 +160,7 @@ func run() error {
 	}
     defer cycle.Close()
     
-    if err := pprof.StartPMUProfile(pprof.WithProfilingCyclePeriod(cycle, 20000000)); err != nil {
+    if err := pprof.StartPMUProfile(pprof.WithProfilingCycle(cycle, 20000000)); err != nil {
         return err
 	}
 	defer pprof.StopPMUProfile()

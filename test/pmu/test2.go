@@ -166,11 +166,11 @@ func run() error {
 	}
     defer cycle.Close()
     
-    inst, err := os.Create("inst_profile")
+    instr, err := os.Create("instr_profile")
 	if err != nil {
 	 return err
 	}
-    defer inst.Close()
+    defer instr.Close()
     
     cacheRef, err := os.Create("cacheRef_profile")
 	if err != nil {
@@ -189,7 +189,7 @@ func run() error {
 	}
 	defer pprof.StopCPUProfile()
 
-    if err := pprof.StartPMUProfile(pprof.WithProfilingCyclePeriod(cycle, 20000000), pprof.WithProfilingInstPeriod(inst, 20000000), pprof.WithProfilingCacheRefPeriod(cacheRef, 1000), pprof.WithProfilingCacheMissPeriod(cacheMiss, 1)); err != nil {
+    if err := pprof.StartPMUProfile(pprof.WithProfilingCycle(cycle, 20000000), pprof.WithProfilingInstr(instr, 20000000), pprof.WithProfilingCacheRef(cacheRef, 1000), pprof.WithProfilingCacheMiss(cacheMiss, 1)); err != nil {
         return err
 	}
 	defer pprof.StopPMUProfile()
