@@ -818,8 +818,6 @@ func getPreciseIP(preciseIP int8) uint8 {
     return uint8(preciseIP)
 }
 
-// type PMUEvent runtime.PMUEvent
-
 func WithProfilingCycle(w io.Writer, period int64, preciseIP ...int8) ProfilingOption {
 	return profilingOptionFunc(func() error {
 		if runtime.GOOS != "linux" || runtime.GOARCH != "amd64" /* TODO GOOS is not linux amd64 */ {
@@ -836,8 +834,8 @@ func WithProfilingCycle(w io.Writer, period int64, preciseIP ...int8) ProfilingO
         }
         
         var cycle runtime.PMUEvent
-        cycle.Cat = PERF_TYPE_HARDWARE
-        cycle.Code = PERF_COUNT_HW_CPU_CYCLES
+        cycle.Cat = runtime.PERF_TYPE_HARDWARE
+        cycle.Code = runtime.PERF_COUNT_HW_CPU_CYCLES
         cycle.Period = uint64(period)
         if len(preciseIP) != 0 {
             cycle.PreciseIP = getPreciseIP(preciseIP[0])
@@ -865,8 +863,8 @@ func WithProfilingInstr(w io.Writer, period int64, preciseIP ...int8) ProfilingO
         }
         
         var instr runtime.PMUEvent
-        instr.Cat = PERF_TYPE_HARDWARE
-        instr.Code = PERF_COUNT_HW_INSTRUCTIONS
+        instr.Cat = runtime.PERF_TYPE_HARDWARE
+        instr.Code = runtime.PERF_COUNT_HW_INSTRUCTIONS
         instr.Period = uint64(period)
         if len(preciseIP) != 0 {
             instr.PreciseIP = getPreciseIP(preciseIP[0])
@@ -894,8 +892,8 @@ func WithProfilingCacheRef(w io.Writer, period int64, preciseIP ...int8) Profili
         }
         
         var cacheRef runtime.PMUEvent
-        cacheRef.Cat = PERF_TYPE_HARDWARE
-        cacheRef.Code = PERF_COUNT_HW_CACHE_REFERENCES
+        cacheRef.Cat = runtime.PERF_TYPE_HARDWARE
+        cacheRef.Code = runtime.PERF_COUNT_HW_CACHE_REFERENCES
         cacheRef.Period = uint64(period)
         if len(preciseIP) != 0 {
             cacheRef.PreciseIP = getPreciseIP(preciseIP[0])
@@ -923,8 +921,8 @@ func WithProfilingCacheMiss(w io.Writer, period int64, preciseIP ...int8) Profil
         }
         
         var cacheMiss runtime.PMUEvent
-        cacheMiss.Cat = PERF_TYPE_HARDWARE
-        cacheMiss.Code = PERF_COUNT_HW_CACHE_MISSES
+        cacheMiss.Cat = runtime.PERF_TYPE_HARDWARE
+        cacheMiss.Code = runtime.PERF_COUNT_HW_CACHE_MISSES
         cacheMiss.Period = uint64(period)
         if len(preciseIP) != 0 {
             cacheMiss.PreciseIP = getPreciseIP(preciseIP[0])
