@@ -798,17 +798,6 @@ func StartPMUProfile(opts ...ProfilingOption) error {
 	return nil
 }
 
-func WithProfilingRate(w io.Writer, hz int) ProfilingOption {
-	return profilingOptionFunc(func() error {
-        if hz != 0 {
-            cpu.profileHz = hz
-		    runtime.SetCPUProfileRate(cpu.profileHz)
-            go profileWriter(w)
-        }
-		return nil
-	})
-}
-
 func getPreciseIP(preciseIP int8) uint8 {
     if preciseIP < 0 {
         preciseIP = 0
