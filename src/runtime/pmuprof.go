@@ -44,16 +44,10 @@ type pmuProfile struct {
 
 var pmuprof [maxPMUEvents]pmuProfile // event -> cpuProfile
 
-func SetPMUProfilePeriod(eventId int, period int) {
-    // Clamp period to something reasonable.
-    if period < 0 {
-        period = 0
-    }
-    if period > 0 && period < 300 { // follows what hpctoolkit did
-        period = 300
-    }
+func SetPMUProfile(eventId int, event *PMUEvent) {
+    
     lock(&pmuprof[eventId].lock)
-    if period > 0 {
+    if event != nil {
         if pmuprof[eventId].on || pmuprof[eventId].log != nil {
             print("runtime: cannot set pmu profile rate until previous profile has finished.\n")
             unlock(&pmuprof[eventId].lock)
@@ -62,11 +56,11 @@ func SetPMUProfilePeriod(eventId int, period int) {
 
         pmuprof[eventId].on = true
         pmuprof[eventId].log = newProfBuf(1, 1<<17, 1<<14)
-        hdr := [1]uint64{uint64(period)}
+        hdr := [1]uint64{event.Period}
         pmuprof[eventId].log.write(nil, nanotime(), hdr[:], nil)
-        setpmuprofileperiod(int32(eventId), int32(period))
+        setpmuprofile(int32(eventId), event)
     } else if pmuprof[eventId].on {
-        setpmuprofileperiod(int32(eventId), 0)
+        setpmuprofile(int32(eventId), nil)
         pmuprof[eventId].on = false
         pmuprof[eventId].addExtra(eventId)
         pmuprof[eventId].log.close()
@@ -81,12 +75,12 @@ func SetPMUProfilePeriod(eventId int, period int) {
 // of stack.
 //go:nowritebarrierrec
 func (p *pmuProfile) add(gp *g, stk []uintptr, eventId int) {
-	// Simple cas-lock to coordinate with setpmuprofilerate.
+	// Simple cas-lock to coordinate with setpmuprofile.
 	for !atomic.Cas(&profs[eventId].signalLock, 0, 1) {
 		osyield()
 	}
 
-	if profs[eventId].period != 0 { // implies pmuprof[eventId].log != nil
+	if profs[eventId].event != nil { // implies pmuprof[eventId].log != nil
 		if p.numExtra > 0 || p.lostExtra > 0 {
 			p.addExtra(eventId)
 		}

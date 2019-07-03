@@ -38,13 +38,13 @@ func sighandler(sig uint32, info *siginfo, ctxt unsafe.Pointer, gp *g) {
         fd := info.si_fd
         ioctl(fd, PERF_EVENT_IOC_DISABLE, 0)
         
-        if _g_.m.eventMap == nil {
+        if _g_.m.fdToEventIdMap == nil {
             println("should not reach here")
 		    ioctl(fd, PERF_EVENT_IOC_ENABLE, 0)
             return
         }
         
-        eventId := _g_.m.eventMap[fd]
+        eventId := _g_.m.fdToEventIdMap[fd]
         sigpmu(c.sigpc(), c.sigsp(), c.siglr(), gp, _g_.m, int(eventId))
 		ioctl(fd, PERF_EVENT_IOC_ENABLE, 0)
         return

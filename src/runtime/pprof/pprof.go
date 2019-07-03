@@ -733,10 +733,6 @@ var pmu struct {
 	sync.Mutex
 	profiling bool
 	done      chan bool
-    profileCyclePeriod int
-    profileInstPeriod int
-    profileCacheMissPeriod int
-    profileCacheRefPeriod int
 }
 
 // StartCPUProfile enables CPU profiling for the current process.
@@ -813,7 +809,18 @@ func WithProfilingRate(w io.Writer, hz int) ProfilingOption {
 	})
 }
 
-func WithProfilingCyclePeriod(w io.Writer, period int) ProfilingOption {
+func getPreciseIP(preciseIP int8) uint8 {
+    if preciseIP < 0 {
+        preciseIP = 0
+    } else if preciseIP > 3 {
+        preciseIP = 3
+    }
+    return uint8(preciseIP)
+}
+
+// type PMUEvent runtime.PMUEvent
+
+func WithProfilingCycle(w io.Writer, period int64, preciseIP ...int8) ProfilingOption {
 	return profilingOptionFunc(func() error {
 		if runtime.GOOS != "linux" || runtime.GOARCH != "amd64" /* TODO GOOS is not linux amd64 */ {
             return errors.New("not implemented")
@@ -821,14 +828,28 @@ func WithProfilingCyclePeriod(w io.Writer, period int) ProfilingOption {
         if period <= 0 {
             return errors.New("period should be > 0")
         }
-        pmu.profileCyclePeriod = period
-		runtime.SetPMUProfilePeriod(PERF_COUNT_HW_CPU_CYCLES, pmu.profileCyclePeriod)
-        go pmuProfileWriter(w, PERF_COUNT_HW_CPU_CYCLES, "cycles")
+        
+        // Clamp period to something reasonable
+        // Refer to hpctoolkit
+        if period < 300 {
+            period = 300
+        }
+        
+        var cycle runtime.PMUEvent
+        cycle.Cat = PERF_TYPE_HARDWARE
+        cycle.Code = PERF_COUNT_HW_CPU_CYCLES
+        cycle.Period = uint64(period)
+        if len(preciseIP) != 0 {
+            cycle.PreciseIP = getPreciseIP(preciseIP[0])
+        }
+
+		runtime.SetPMUProfile(/*event ID*/ 0, &cycle)
+        go pmuProfileWriter(w, /*event ID*/ 0, "cycles")
 		return nil
 	})
 }
 
-func WithProfilingInstPeriod(w io.Writer, period int) ProfilingOption {
+func WithProfilingInstr(w io.Writer, period int64, preciseIP ...int8) ProfilingOption {
 	return profilingOptionFunc(func() error {
 		if runtime.GOOS != "linux" || runtime.GOARCH != "amd64" /* TODO GOOS is not linux amd64 */ {
             return errors.New("not implemented")
@@ -836,14 +857,28 @@ func WithProfilingInstPeriod(w io.Writer, period int) ProfilingOption {
         if period <= 0 {
             return errors.New("period should be > 0")
         }
-        pmu.profileInstPeriod = period
-		runtime.SetPMUProfilePeriod(PERF_COUNT_HW_INSTRUCTIONS, pmu.profileInstPeriod)
-        go pmuProfileWriter(w, PERF_COUNT_HW_INSTRUCTIONS, "instructions")
+        
+        // Clamp period to something reasonable
+        // Refer to hpctoolkit
+        if period < 300 {
+            period = 300
+        }
+        
+        var instr runtime.PMUEvent
+        instr.Cat = PERF_TYPE_HARDWARE
+        instr.Code = PERF_COUNT_HW_INSTRUCTIONS
+        instr.Period = uint64(period)
+        if len(preciseIP) != 0 {
+            instr.PreciseIP = getPreciseIP(preciseIP[0])
+        }
+
+		runtime.SetPMUProfile(/*event ID*/ 1, &instr)
+        go pmuProfileWriter(w, /*event ID*/ 1, "instructions")
 		return nil
 	})
 }
 
-func WithProfilingCacheMissPeriod(w io.Writer, period int) ProfilingOption {
+func WithProfilingCacheRef(w io.Writer, period int64, preciseIP ...int8) ProfilingOption {
 	return profilingOptionFunc(func() error {
 		if runtime.GOOS != "linux" || runtime.GOARCH != "amd64" /* TODO GOOS is not linux amd64 */ {
             return errors.New("not implemented")
@@ -851,14 +886,28 @@ func WithProfilingCacheMissPeriod(w io.Writer, period int) ProfilingOption {
         if period <= 0 {
             return errors.New("period should be > 0")
         }
-        pmu.profileCacheMissPeriod = period
-		runtime.SetPMUProfilePeriod(PERF_COUNT_HW_CACHE_MISSES, pmu.profileCacheMissPeriod)
-        go pmuProfileWriter(w, PERF_COUNT_HW_CACHE_MISSES, "cache misses")
+        
+        // Clamp period to something reasonable
+        // Refer to hpctoolkit
+        if period < 300 {
+            period = 300
+        }
+        
+        var cacheRef runtime.PMUEvent
+        cacheRef.Cat = PERF_TYPE_HARDWARE
+        cacheRef.Code = PERF_COUNT_HW_CACHE_REFERENCES
+        cacheRef.Period = uint64(period)
+        if len(preciseIP) != 0 {
+            cacheRef.PreciseIP = getPreciseIP(preciseIP[0])
+        }
+
+		runtime.SetPMUProfile(/*event ID*/ 2, &cacheRef)
+        go pmuProfileWriter(w, /*event ID*/ 2, "cache references")
 		return nil
 	})
 }
 
-func WithProfilingCacheRefPeriod(w io.Writer, period int) ProfilingOption {
+func WithProfilingCacheMiss(w io.Writer, period int64, preciseIP ...int8) ProfilingOption {
 	return profilingOptionFunc(func() error {
 		if runtime.GOOS != "linux" || runtime.GOARCH != "amd64" /* TODO GOOS is not linux amd64 */ {
             return errors.New("not implemented")
@@ -866,9 +915,23 @@ func WithProfilingCacheRefPeriod(w io.Writer, period int) ProfilingOption {
         if period <= 0 {
             return errors.New("period should be > 0")
         }
-        pmu.profileCacheRefPeriod = period
-		runtime.SetPMUProfilePeriod(PERF_COUNT_HW_CACHE_REFERENCES, pmu.profileCacheRefPeriod)
-        go pmuProfileWriter(w, PERF_COUNT_HW_CACHE_REFERENCES, "cache references")
+        
+        // Clamp period to something reasonable
+        // Refer to hpctoolkit
+        if period < 300 {
+            period = 300
+        }
+        
+        var cacheMiss runtime.PMUEvent
+        cacheMiss.Cat = PERF_TYPE_HARDWARE
+        cacheMiss.Code = PERF_COUNT_HW_CACHE_MISSES
+        cacheMiss.Period = uint64(period)
+        if len(preciseIP) != 0 {
+            cacheMiss.PreciseIP = getPreciseIP(preciseIP[0])
+        }
+
+		runtime.SetPMUProfile(/*event ID*/ 3, &cacheMiss)
+        go pmuProfileWriter(w, /*event ID*/ 3, "cache misses")
 		return nil
 	})
 }
@@ -916,7 +979,7 @@ func pmuProfileWriter(w io.Writer, eventId int, eventName string) {
 	b := newProfileBuilder(w)
 	var err error
 	for {
-	    time.Sleep(100 * time.Millisecond)
+	    time.Sleep(10 * time.Millisecond)
 	    data, tags, eof := readPMUProfile(eventId)
         if e := b.addPMUData(data, tags); e != nil && err == nil {
 		    err = e
@@ -947,7 +1010,6 @@ func StopCPUProfile() {
     <-cpu.done
 }
 
-
 func StopPMUProfile() {
 	pmu.Lock()
 	defer pmu.Unlock()
@@ -957,22 +1019,12 @@ func StopPMUProfile() {
 	}
     pmu.profiling = false
    
-    if pmu.profileCyclePeriod != 0 {
-		runtime.SetPMUProfilePeriod(PERF_COUNT_HW_CPU_CYCLES, 0)
+    for i := 0; i < cap(pmu.done); i++ {
+        runtime.SetPMUProfile(i, nil)
 	}
-    if pmu.profileInstPeriod != 0 {
-		runtime.SetPMUProfilePeriod(PERF_COUNT_HW_INSTRUCTIONS, 0)
-	}
-    if pmu.profileCacheMissPeriod != 0 {
-		runtime.SetPMUProfilePeriod(PERF_COUNT_HW_CACHE_MISSES, 0)
-	}
-    if pmu.profileCacheRefPeriod != 0 {
-		runtime.SetPMUProfilePeriod(PERF_COUNT_HW_CACHE_REFERENCES, 0)
-	}
-    
     for i := 0; i < cap(pmu.done); i++ {
         <-pmu.done
-    } 
+    }
 }
 
 // countBlock returns the number of records in the blocking profile.

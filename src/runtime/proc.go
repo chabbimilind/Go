@@ -2149,7 +2149,7 @@ func execute(gp *g, inheritTime bool) {
 
 	// Check whether the profiler needs to be turned on or off.
 	hz := sched.profilehz
-    period := sched.profilePMUPeriod
+    events := sched.events
     
     // if _g_.m.profilehz != hz && _g_.m.profilePeriod != period  {
     //   println("should never reach here!")
@@ -2160,8 +2160,8 @@ func execute(gp *g, inheritTime bool) {
     }
     
     for eventId := 0; eventId < maxPMUEvents; eventId++ {
-        if  _g_.m.profilePMUPeriod[eventId] != period[eventId] {
-            setThreadPMUProfiler(int32(eventId), period[eventId])
+        if  _g_.m.events[eventId] != events[eventId] {
+            setThreadPMUProfiler(int32(eventId), events[eventId])
         }
     }
         
@@ -3632,9 +3632,9 @@ var prof struct {
 	hz         int32
 }
 
-var profs [10]struct {
+var profs [maxPMUEvents]struct { // TODO: come up with a bettter name
 	signalLock uint32
-    period     int32
+    event     *PMUEvent
 }
 
 func _System()                    { _System() }
@@ -3816,7 +3816,7 @@ var lostPMUAtomic64Count[10] uint64
 
 //go:nowritebarrierrec
 func sigpmu(pc, sp, lr uintptr, gp *g, mp *m, eventId int) {
-	if profs[eventId].period == 0 {
+	if profs[eventId].event == nil {
 		return
 	}
 	// On mips{,le}, 64bit atomics are emulated with spinlocks, in
@@ -3902,7 +3902,7 @@ func sigpmu(pc, sp, lr uintptr, gp *g, mp *m, eventId int) {
 		}
 	}
 
-	if profs[eventId].period != 0 {
+	if profs[eventId].event != nil {
 		if (GOARCH == "mips" || GOARCH == "mipsle" || GOARCH == "arm") && lostPMUAtomic64Count[eventId] > 0 {
 			pmuprof[eventId].addLostAtomic64(lostPMUAtomic64Count[eventId], eventId)
 			lostPMUAtomic64Count[eventId] = 0
@@ -3939,7 +3939,7 @@ func sigprofNonGo() {
 //go:nosplit
 //go:nowritebarrierrec
 func sigpmuNonGo(eventId int) {
-	if profs[eventId].period != 0 {
+	if profs[eventId].event != nil {
 		n := 0
 		for n < len(sigprofCallers) && sigprofCallers[n] != 0 {
 			n++
@@ -3968,7 +3968,7 @@ func sigprofNonGoPC(pc uintptr) {
 //go:nosplit
 //go:nowritebarrierrec
 func sigpmuNonGoPC(pc uintptr, eventId int) {
-	if profs[eventId].period != 0 {
+	if profs[eventId].event != nil {
 		stk := []uintptr{
 			pc,
 			funcPC(_ExternalCode) + sys.PCQuantum,
@@ -4039,11 +4039,7 @@ func setcpuprofilerate(hz int32) {
 	_g_.m.locks--
 }
 
-func setpmuprofileperiod(eventId int32, period int32) {
-    // Force sane arguments.
-    if period < 0 {
-        period = 0
-    }
+func setpmuprofile(eventId int32, event *PMUEvent) {
 
     // Disable preemption, otherwise we can be rescheduled to another thread
     // that has profiling enabled.
@@ -4053,23 +4049,23 @@ func setpmuprofileperiod(eventId int32, period int32) {
     // Stop profiler on this thread so that it is safe to lock prof.
     // if a profiling signal came in while we had prof locked,
     // it would deadlock.
-    setThreadPMUProfiler(eventId, 0)
+    setThreadPMUProfiler(eventId, nil)
 
     for !atomic.Cas(&profs[eventId].signalLock, 0, 1) {
         osyield()
     }
-    if profs[eventId].period != period {
-        setProcessPMUProfiler(period)
-        profs[eventId].period = period
+    if profs[eventId].event != event {
+        setProcessPMUProfiler(event)
+        profs[eventId].event = event
     }
     atomic.Store(&profs[eventId].signalLock, 0)
 
     lock(&sched.lock)
-    sched.profilePMUPeriod[eventId] = period
+    sched.events[eventId] = event
     unlock(&sched.lock)
 
-    if period != 0 {
-        setThreadPMUProfiler(eventId, period)
+    if event != nil {
+        setThreadPMUProfiler(eventId, event)
     }
 
     _g_.m.locks--

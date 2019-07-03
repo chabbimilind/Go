@@ -251,8 +251,8 @@ func setProcessCPUProfiler(hz int32) {
 	}
 }
 
-func setProcessPMUProfiler(period int32) {
-    if period != 0 {
+func setProcessPMUProfiler(event *PMUEvent) {
+    if event != nil {
         // Enable the Go signal handler if not enabled.
         if atomic.Cas(&handlingSig[_SIGRTMIN + 3], 0, 1) {
             atomic.Storeuintptr(&fwdSig[_SIGRTMIN + 3], getsig(_SIGRTMIN + 3))
@@ -285,50 +285,33 @@ func setThreadCPUProfiler(hz int32) {
     _g_.m.profilehz = hz
 }
 
-func getPreciseIP() int32 {
-    if ip, ok := atoi32(gogetenv("PMU_PRECISE_IP")); ok {
-        if ip < 0 {
-            ip = 0
-        } else if ip > 3 {
-            ip = 3
-        }
-        return ip
-    }
-    return 0 // PMU_PRECISE_IP is not set
-}
-
-var  preciseIP int32 = -1
-
-func setThreadPMUProfiler(eventId int32, period int32) {
+func setThreadPMUProfiler(eventId int32, event *PMUEvent) {
     _g_ := getg()
-    _g_.m.profilePMUPeriod[eventId] = period
-    if _g_.m.eventMap == nil {
-        _g_.m.eventMap = make(map[int32]int32)
+    if _g_.m.fdToEventIdMap == nil {
+        _g_.m.fdToEventIdMap = make(map[int32]int32)
     }
     
-    if period == 0 { // Go routine is finished
-        fd := _g_.m.eventFd[eventId]
-        if _, ok := _g_.m.eventMap[fd]; ok {
-            delete(_g_.m.eventMap, fd) // delete it from the map
-            closefd(fd)
-        }
+    if event == nil { // Go routine is finished
+        if _g_.m.events[eventId] != nil {
+            fd := _g_.m.fds[eventId]
+            if _, ok := _g_.m.fdToEventIdMap[fd]; ok {
+                delete(_g_.m.fdToEventIdMap, fd) // delete it from the map
+                closefd(fd)
+            }
+         }
     } else {
-        if preciseIP == -1 {
-            preciseIP = getPreciseIP() // never equals to -1 again
-        }
-        
         var attr PerfEventAttr
-        attr.Type = PERF_TYPE_HARDWARE
+        attr.Type = event.Cat
         attr.Size = uint32(unsafe.Sizeof(attr))
-        attr.Config = uint64(eventId)
-        attr.Sample = uint64(period)
-        attr.Bits = uint64(preciseIP) << 15 // precise ip
+        attr.Config = event.Code
+        attr.Sample = event.Period
+        attr.Bits = uint64(event.PreciseIP) << 15 // precise ip
         attr.Bits += 0b100000 // don't count kernel  
         attr.Bits += 0b1000000 // don't count hypervisor
 
         fd, _, _ := perfEventOpen(&attr, 0, -1, -1, 0, /* dummy*/ 0)
-        _g_.m.eventFd[eventId] = fd
-        _g_.m.eventMap[fd] = eventId
+        _g_.m.fds[eventId] = fd
+        _g_.m.fdToEventIdMap[fd] = eventId
         r, _ := fcntl(fd, /*F_GETFL*/ 0x3, 0)
         fcntl(fd, /*F_SETFL*/ 0x4, r | /*O_ASYNC*/ 0x2000)
         fcntl(fd, /*F_SETSIG*/ 0xa, _SIGRTMIN + 3)
@@ -336,6 +319,7 @@ func setThreadPMUProfiler(eventId int32, period int32) {
         fOwnEx := fOwnerEx{/*F_OWNER_TID*/ 0, int32(gettid())}
         fcntl2(fd, /*F_SETOWN_EX*/ 0xf, &fOwnEx)
     }
+    _g_.m.events[eventId] = event
 }
 
 func sigpipe() {
