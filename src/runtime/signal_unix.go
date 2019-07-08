@@ -141,6 +141,13 @@ func sigInstallGoHandler(sig uint32) bool {
 	return true
 }
 
+func isProfilingSignal(sig uint32) bool {
+    if sig == _SIGPROF  || sig == _SIGPMU {
+        return true
+    }
+    return false
+}
+
 // sigenable enables the Go signal handler to catch the signal sig.
 // It is only called while holding the os/signal.handlers lock,
 // via os/signal.enableSignal and signal_enable.
@@ -150,7 +157,7 @@ func sigenable(sig uint32) {
 	}
 
 	// SIGPROF and _SIGPMU are handled specially for profiling.
-	if sig == _SIGPROF  || sig == _SIGPMU {
+    if isProfilingSignal(sig) {
 		return
 	}
 	
@@ -175,7 +182,7 @@ func sigdisable(sig uint32) {
 	}
 
 	// SIGPROF and _SIGPMU are handled specially for profiling.
-	if sig == _SIGPROF  || sig == _SIGPMU {
+    if isProfilingSignal(sig) {
 		return
 	}
 
@@ -204,7 +211,7 @@ func sigignore(sig uint32) {
 	}
 
 	// SIGPROF and _SIGPMU are handled specially for profiling.
-	if sig == _SIGPROF  || sig == _SIGPMU {
+    if isProfilingSignal(sig) {
 		return
 	}
 
@@ -504,7 +511,7 @@ func dieFromSignal(sig uint32) {
 // thread, and the Go program does not want to handle it (that is, the
 // program has not called os/signal.Notify for the signal).
 func raisebadsignal(sig uint32, c *sigctxt) {
-	if sig == _SIGPROF  || sig == _SIGPMU {
+    if isProfilingSignal(sig) {
 		// Ignore profiling signals that arrive on non-Go threads.
 		return
 	}

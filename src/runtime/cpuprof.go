@@ -19,8 +19,9 @@ import (
 )
 
 const maxCPUProfStack = 64
+const maxPMUEvent  = 10
 
-type cpuProfile struct {
+type profile struct {
 	lock mutex
 	on   bool     // profiling is on
 	log  *profBuf // profile events written here
@@ -41,7 +42,11 @@ type cpuProfile struct {
 	lostExtra uint64 // count of frames lost because extra is full
 }
 
+type pmuProfile profile
+type cpuProfile profile
+
 var cpuprof cpuProfile
+var pmuprof [maxPMUEvent]pmuProfile
 
 // SetCPUProfileRate sets the CPU profiling rate to hz samples per second.
 // If hz <= 0, SetCPUProfileRate turns off profiling.
@@ -51,7 +56,6 @@ var cpuprof cpuProfile
 // the testing package's -test.cpuprofile flag instead of calling
 // SetCPUProfileRate directly.
 func SetCPUProfileRate(hz int) {
-// func SetCPUProfileRate(hz int) {
 	// Clamp hz to something reasonable.
 	if hz < 0 {
 		hz = 0
@@ -60,7 +64,7 @@ func SetCPUProfileRate(hz int) {
 		hz = 1000000
 	}
 
-	lock(&cpuprof.lock) // cpuprof[event].lock 
+	lock(&cpuprof.lock)
 	if hz > 0 {
 		if cpuprof.on || cpuprof.log != nil {
 			print("runtime: cannot set cpu profile rate until previous profile has finished.\n")
@@ -71,15 +75,38 @@ func SetCPUProfileRate(hz int) {
 		cpuprof.on = true
 		cpuprof.log = newProfBuf(1, 1<<17, 1<<14)
 		hdr := [1]uint64{uint64(hz)}
-		cpuprof.log.write(nil, nanotime(), hdr[:], nil) 
+		cpuprof.log.write(nil, nanotime(), hdr[:], nil)
 		setcpuprofilerate(int32(hz))
 	} else if cpuprof.on {
 		setcpuprofilerate(0)
 		cpuprof.on = false
-		cpuprof.addExtra() // cpuprof[event].addExtra() 
+		cpuprof.addExtra()
 		cpuprof.log.close()
 	}
 	unlock(&cpuprof.lock)
+}
+
+func SetPMUProfile(eventId int, eventAttr *PMUEventAttr) {
+    lock(&pmuprof[eventId].lock)
+    if eventAttr != nil {
+        if pmuprof[eventId].on || pmuprof[eventId].log != nil {
+            print("runtime: cannot set pmu profile rate until previous profile has finished.\n")
+            unlock(&pmuprof[eventId].lock)
+            return
+        }
+
+        pmuprof[eventId].on = true
+        pmuprof[eventId].log = newProfBuf(1, 1<<17, 1<<14)
+        hdr := [1]uint64{eventAttr.Period}
+        pmuprof[eventId].log.write(nil, nanotime(), hdr[:], nil)
+        setpmuprofile(int32(eventId), eventAttr)
+    } else if pmuprof[eventId].on {
+        setpmuprofile(int32(eventId), nil)
+        pmuprof[eventId].on = false
+        pmuprof[eventId].addExtra(eventId)
+        pmuprof[eventId].log.close()
+    }
+    unlock(&pmuprof[eventId].lock)
 }
 
 // add adds the stack trace to the profile.
@@ -107,6 +134,28 @@ func (p *cpuProfile) add(gp *g, stk []uintptr) {
 	}
 
 	atomic.Store(&prof.signalLock, 0)
+}
+
+//go:nowritebarrierrec
+func (p *pmuProfile) add(gp *g, stk []uintptr, eventId int) {
+	// Simple cas-lock to coordinate with setpmuprofile.
+	for !atomic.Cas(&pmuEvent[eventId].signalLock, 0, 1) {
+		osyield()
+	}
+
+	if pmuEvent[eventId].eventAttr != nil { // implies pmuprof[eventId].log != nil
+		if p.numExtra > 0 || p.lostExtra > 0 {
+			p.addExtra(eventId)
+		}
+		hdr := [1]uint64{1}
+		// Note: write "knows" that the argument is &gp.labels,
+		// because otherwise its write barrier behavior may not
+		// be correct. See the long comment there before
+		// changing the argument here.
+		pmuprof[eventId].log.write(&gp.labels, nanotime(), hdr[:], stk)
+	}
+
+	atomic.Store(&pmuEvent[eventId].signalLock, 0)
 }
 
 // addNonGo adds the non-Go stack trace to the profile.
@@ -139,6 +188,28 @@ func (p *cpuProfile) addNonGo(stk []uintptr) {
 	atomic.Store(&prof.signalLock, 0)
 }
 
+//go:nosplit
+//go:nowritebarrierrec
+func (p *pmuProfile) addNonGo(stk []uintptr, eventId int) {
+	// (Other calls to add or addNonGo should be blocked out
+	// by the fact that only one SIGPROF can be handled by the
+	// process at a time. If not, this lock will serialize those too.)
+	for !atomic.Cas(&pmuEvent[eventId].signalLock, 0, 1) {
+		osyield()
+	}
+
+	if pmuprof[eventId].numExtra+1+len(stk) < len(pmuprof[eventId].extra) {
+		i := pmuprof[eventId].numExtra
+		pmuprof[eventId].extra[i] = uintptr(1 + len(stk))
+		copy(pmuprof[eventId].extra[i+1:], stk)
+		pmuprof[eventId].numExtra += 1 + len(stk)
+	} else {
+		pmuprof[eventId].lostExtra++
+	}
+
+	atomic.Store(&pmuEvent[eventId].signalLock, 0)
+}
+
 // addExtra adds the "extra" profiling events,
 // queued by addNonGo, to the profile log.
 // addExtra is called either from a signal handler on a Go thread
@@ -165,6 +236,27 @@ func (p *cpuProfile) addExtra() {
 	}
 }
 
+func (p *pmuProfile) addExtra(eventId int) {
+	// Copy accumulated non-Go profile events.
+	hdr := [1]uint64{1}
+	for i := 0; i < p.numExtra; {
+		p.log.write(nil, 0, hdr[:], p.extra[i+1:i+int(p.extra[i])])
+		i += int(p.extra[i])
+	}
+	p.numExtra = 0
+
+	// Report any lost events.
+	if p.lostExtra > 0 {
+		hdr := [1]uint64{p.lostExtra}
+		lostStk := [2]uintptr{
+			funcPC(_LostExternalCode) + sys.PCQuantum,
+			funcPC(_ExternalCode) + sys.PCQuantum,
+		}
+		pmuprof[eventId].log.write(nil, 0, hdr[:], lostStk[:])
+		p.lostExtra = 0
+	}
+}
+
 func (p *cpuProfile) addLostAtomic64(count uint64) {
 	hdr := [1]uint64{count}
 	lostStk := [2]uintptr{
@@ -172,6 +264,15 @@ func (p *cpuProfile) addLostAtomic64(count uint64) {
 		funcPC(_System) + sys.PCQuantum,
 	}
 	cpuprof.log.write(nil, 0, hdr[:], lostStk[:])
+}
+
+func (p *pmuProfile) addLostAtomic64(count uint64, eventId int) {
+	hdr := [1]uint64{count}
+	lostStk := [2]uintptr{
+		funcPC(_LostSIGPMUDuringAtomic64) + sys.PCQuantum,
+		funcPC(_System) + sys.PCQuantum,
+	}
+	pmuprof[eventId].log.write(nil, 0, hdr[:], lostStk[:])
 }
 
 // CPUProfile panics.
@@ -208,6 +309,20 @@ func runtime_pprof_readProfile() ([]uint64, []unsafe.Pointer, bool) {
 		lock(&cpuprof.lock)
 		cpuprof.log = nil
 		unlock(&cpuprof.lock)
+	}
+	return data, tags, eof
+}
+
+//go:linkname runtime_pprof_readPMUProfile runtime/pprof.readPMUProfile
+func runtime_pprof_readPMUProfile(eventId int) ([]uint64, []unsafe.Pointer, bool) {
+	lock(&pmuprof[eventId].lock)
+	log := pmuprof[eventId].log
+	unlock(&pmuprof[eventId].lock)
+	data, tags, eof := log.read(profBufBlocking)
+	if len(data) == 0 && eof {
+		lock(&pmuprof[eventId].lock)
+		pmuprof[eventId].log = nil
+		unlock(&pmuprof[eventId].lock)
 	}
 	return data, tags, eof
 }

@@ -2151,15 +2151,10 @@ func execute(gp *g, inheritTime bool) {
 	hz := sched.profilehz
     eventAttrs := sched.eventAttrs
     
-    // if _g_.m.profilehz != hz && _g_.m.profilePeriod != period  {
-    //   println("should never reach here!")
-    // }
-	
     if _g_.m.profilehz != hz {
         setThreadCPUProfiler(hz)
     }
-    
-    for eventId := 0; eventId < maxPMUEvents; eventId++ {
+    for eventId := 0; eventId < maxPMUEvent; eventId++ {
         if  _g_.m.eventAttrs[eventId] != eventAttrs[eventId] {
             setThreadPMUProfiler(int32(eventId), eventAttrs[eventId])
         }
@@ -3632,9 +3627,9 @@ var prof struct {
 	hz         int32
 }
 
-var pmuEvent [maxPMUEvents]struct { // TODO: come up with a bettter name
+var pmuEvent [maxPMUEvent]struct {
 	signalLock uint32
-    eventAttr     *PMUEventAttr
+    eventAttr  *PMUEventAttr
 }
 
 func _System()                    { _System() }
@@ -3642,41 +3637,10 @@ func _ExternalCode()              { _ExternalCode() }
 func _LostExternalCode()          { _LostExternalCode() }
 func _GC()                        { _GC() }
 func _LostSIGPROFDuringAtomic64() { _LostSIGPROFDuringAtomic64() }
+func _LostSIGPMUDuringAtomic64() { _LostSIGPMUDuringAtomic64() }
 func _VDSO()                      { _VDSO() }
 
-// Counts SIGPROFs received while in atomic64 critical section, on mips{,le}
-var lostAtomic64Count uint64
-
-// Called if we receive a SIGPROF signal.
-// Called by the signal handler, may run during STW.
-//go:nowritebarrierrec
-func sigprof(pc, sp, lr uintptr, gp *g, mp *m) {
-	if prof.hz == 0 {
-		return
-	}
-	// On mips{,le}, 64bit atomics are emulated with spinlocks, in
-	// runtime/internal/atomic. If SIGPROF arrives while the program is inside
-	// the critical section, it creates a deadlock (when writing the sample).
-	// As a workaround, create a counter of SIGPROFs while in critical section
-	// to store the count, and pass it to sigprof.add() later when SIGPROF is
-	// received from somewhere else (with _LostSIGPROFDuringAtomic64 as pc).
-	if GOARCH == "mips" || GOARCH == "mipsle" || GOARCH == "arm" {
-		if f := findfunc(pc); f.valid() {
-			if hasPrefix(funcname(f), "runtime/internal/atomic") {
-				lostAtomic64Count++ // lostAtomic64Count[event]++
-				return
-			}
-		}
-	}
-
-	// Profiling runs concurrently with GC, so it must not allocate.
-	// Set a trap in case the code does allocate.
-	// Note that on windows, one thread takes profiles of all the
-	// other threads, so mp is usually not getg().m.
-	// In fact mp may not even be stopped.
-	// See golang.org/issue/17165.
-	getg().m.mallocing++
-
+func stackUnwinding(pc, sp, lr uintptr, gp *g, mp *m, stk []uintptr) int {
 	// Define that a "user g" is a user-created goroutine, and a "system g"
 	// is one that is m->g0 or m->gsignal.
 	//
@@ -3746,8 +3710,7 @@ func sigprof(pc, sp, lr uintptr, gp *g, mp *m) {
 	if gp == nil || sp < gp.stack.lo || gp.stack.hi < sp || setsSP(pc) || (mp != nil && mp.vdsoSP != 0) {
 		traceback = false
 	}
-	var stk [maxCPUProfStack]uintptr
-	n := 0
+    n := 0
 	if mp.ncgo > 0 && mp.curg != nil && mp.curg.syscallpc != 0 && mp.curg.syscallsp != 0 {
 		cgoOff := 0
 		// Check cgoCallersUse to make sure that we are not
@@ -3802,21 +3765,17 @@ func sigprof(pc, sp, lr uintptr, gp *g, mp *m) {
 		}
 	}
 
-	if prof.hz != 0 {
-		if (GOARCH == "mips" || GOARCH == "mipsle" || GOARCH == "arm") && lostAtomic64Count > 0 {
-			cpuprof.addLostAtomic64(lostAtomic64Count)
-			lostAtomic64Count = 0 // lostAtomic64Count[event] = 0
-		}
-		cpuprof.add(gp, stk[:n]) // cpuprof[event].add(gp, stk[:n])
-	}
-	getg().m.mallocing--
+    return n
 }
 
-var lostPMUAtomic64Count[10] uint64
+// Counts SIGPROFs received while in atomic64 critical section, on mips{,le}
+var lostAtomic64Count uint64
 
+// Called if we receive a SIGPROF signal.
+// Called by the signal handler, may run during STW.
 //go:nowritebarrierrec
-func sigpmu(pc, sp, lr uintptr, gp *g, mp *m, eventId int) { // SIGRTMIN + 3
-	if pmuEvent[eventId].eventAttr == nil {
+func sigprof(pc, sp, lr uintptr, gp *g, mp *m) {
+	if prof.hz == 0 {
 		return
 	}
 	// On mips{,le}, 64bit atomics are emulated with spinlocks, in
@@ -3825,6 +3784,50 @@ func sigpmu(pc, sp, lr uintptr, gp *g, mp *m, eventId int) { // SIGRTMIN + 3
 	// As a workaround, create a counter of SIGPROFs while in critical section
 	// to store the count, and pass it to sigprof.add() later when SIGPROF is
 	// received from somewhere else (with _LostSIGPROFDuringAtomic64 as pc).
+	if GOARCH == "mips" || GOARCH == "mipsle" || GOARCH == "arm" {
+		if f := findfunc(pc); f.valid() {
+			if hasPrefix(funcname(f), "runtime/internal/atomic") {
+				lostAtomic64Count++ // lostAtomic64Count[event]++
+				return
+			}
+		}
+	}
+
+	// Profiling runs concurrently with GC, so it must not allocate.
+	// Set a trap in case the code does allocate.
+	// Note that on windows, one thread takes profiles of all the
+	// other threads, so mp is usually not getg().m.
+	// In fact mp may not even be stopped.
+	// See golang.org/issue/17165.
+	getg().m.mallocing++
+	stk := make([]uintptr, maxCPUProfStack)
+	n := stackUnwinding(pc, sp, lr, gp, mp, stk)
+	if prof.hz != 0 {
+		if (GOARCH == "mips" || GOARCH == "mipsle" || GOARCH == "arm") && lostAtomic64Count > 0 {
+			cpuprof.addLostAtomic64(lostAtomic64Count)
+			lostAtomic64Count = 0
+		}
+		cpuprof.add(gp, stk[:n])
+	}
+	getg().m.mallocing--
+}
+
+// Counts SIGPMUs received while in atomic64 critical section, on mips{,le}
+var lostPMUAtomic64Count[maxPMUEvent] uint64
+
+// Called if we receive a SIGPMU signal.
+// Called by the signal handler, may run during STW.
+//go:nowritebarrierrec
+func sigpmu(pc, sp, lr uintptr, gp *g, mp *m, eventId int) { // SIGPMU = SIGRTMIN + 3
+	if pmuEvent[eventId].eventAttr == nil {
+		return
+	}
+	// On mips{,le}, 64bit atomics are emulated with spinlocks, in
+	// runtime/internal/atomic. If SIGPMU arrives while the program is inside
+	// the critical section, it creates a deadlock (when writing the sample).
+	// As a workaround, create a counter of SIGPMUs while in critical section
+	// to store the count, and pass it to sigprof.add() later when SIGPMU is
+	// received from somewhere else (with _LostSIGPMUDuringAtomic64 as pc).
 	if GOARCH == "mips" || GOARCH == "mipsle" || GOARCH == "arm" {
 		if f := findfunc(pc); f.valid() {
 			if hasPrefix(funcname(f), "runtime/internal/atomic") {
@@ -3841,67 +3844,8 @@ func sigpmu(pc, sp, lr uintptr, gp *g, mp *m, eventId int) { // SIGRTMIN + 3
 	// In fact mp may not even be stopped.
 	// See golang.org/issue/17165.
 	getg().m.mallocing++
-
-	traceback := true
-	if gp == nil || sp < gp.stack.lo || gp.stack.hi < sp || setsSP(pc) || (mp != nil && mp.vdsoSP != 0) {
-		traceback = false
-	}
-	var stk [maxPMUProfStack]uintptr
-	n := 0
-	if mp.ncgo > 0 && mp.curg != nil && mp.curg.syscallpc != 0 && mp.curg.syscallsp != 0 {
-		cgoOff := 0
-		// Check cgoCallersUse to make sure that we are not
-		// interrupting other code that is fiddling with
-		// cgoCallers.  We are running in a signal handler
-		// with all signals blocked, so we don't have to worry
-		// about any other code interrupting us.
-		if atomic.Load(&mp.cgoCallersUse) == 0 && mp.cgoCallers != nil && mp.cgoCallers[0] != 0 {
-			for cgoOff < len(mp.cgoCallers) && mp.cgoCallers[cgoOff] != 0 {
-				cgoOff++
-			}
-			copy(stk[:], mp.cgoCallers[:cgoOff])
-			mp.cgoCallers[0] = 0
-		}
-
-		// Collect Go stack that leads to the cgo call.
-		n = gentraceback(mp.curg.syscallpc, mp.curg.syscallsp, 0, mp.curg, 0, &stk[cgoOff], len(stk)-cgoOff, nil, nil, 0)
-		if n > 0 {
-			n += cgoOff
-		}
-	} else if traceback {
-		n = gentraceback(pc, sp, lr, gp, 0, &stk[0], len(stk), nil, nil, _TraceTrap|_TraceJumpStack)
-	}
-
-	if n <= 0 {
-		// Normal traceback is impossible or has failed.
-		// See if it falls into several common cases.
-		n = 0
-		if (GOOS == "windows" || GOOS == "solaris" || GOOS == "illumos" || GOOS == "darwin" || GOOS == "aix") && mp.libcallg != 0 && mp.libcallpc != 0 && mp.libcallsp != 0 {
-			// Libcall, i.e. runtime syscall on windows.
-			// Collect Go stack that leads to the call.
-			n = gentraceback(mp.libcallpc, mp.libcallsp, 0, mp.libcallg.ptr(), 0, &stk[0], len(stk), nil, nil, 0)
-		}
-		if n == 0 && mp != nil && mp.vdsoSP != 0 {
-			n = gentraceback(mp.vdsoPC, mp.vdsoSP, 0, gp, 0, &stk[0], len(stk), nil, nil, _TraceTrap|_TraceJumpStack)
-		}
-		if n == 0 {
-			// If all of the above has failed, account it against abstract "System" or "GC".
-			n = 2
-			if inVDSOPage(pc) {
-				pc = funcPC(_VDSO) + sys.PCQuantum
-			} else if pc > firstmoduledata.etext {
-				// "ExternalCode" is better than "etext".
-				pc = funcPC(_ExternalCode) + sys.PCQuantum
-			}
-			stk[0] = pc
-			if mp.preemptoff != "" {
-				stk[1] = funcPC(_GC) + sys.PCQuantum
-			} else {
-				stk[1] = funcPC(_System) + sys.PCQuantum
-			}
-		}
-	}
-
+	stk := make([]uintptr, maxCPUProfStack)
+    n := stackUnwinding(pc, sp, lr, gp, mp, stk)
 	if pmuEvent[eventId].eventAttr != nil {
 		if (GOARCH == "mips" || GOARCH == "mipsle" || GOARCH == "arm") && lostPMUAtomic64Count[eventId] > 0 {
 			pmuprof[eventId].addLostAtomic64(lostPMUAtomic64Count[eventId], eventId)

@@ -39,7 +39,7 @@ func sighandler(sig uint32, info *siginfo, ctxt unsafe.Pointer, gp *g) {
         ioctl(fd, PERF_EVENT_IOC_DISABLE, 0)
         
         var eventId int = -1
-        for i := 0; i < maxPMUEvents; i++ {
+        for i := 0; i < maxPMUEvent; i++ {
             if _g_.m.eventFds[i] == fd {
                 eventId = i
                 break
