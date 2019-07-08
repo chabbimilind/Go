@@ -818,24 +818,28 @@ func getPreciseIP(preciseIP int8) uint8 {
     return uint8(preciseIP)
 }
 
+func helper(w io.Writer, eventConfig *PMUEventConfig, eventId int, eventName string) {
+        pmu.eventOn[eventId] = true
+        eventAttr := runtime.PMUEventAttr{Period: uint64(eventConfig.Period),
+                                      PreciseIP: getPreciseIP(eventConfig.PreciseIP),
+                                      IsKernelIncluded: eventConfig.IsKernelIncluded,
+                                      IsHvIncluded: eventConfig.IsHvIncluded}
+        runtime.SetPMUProfile(eventId, &eventAttr)
+        go pmuProfileWriter(w, eventId, eventName)
+
+}
+
 func WithProfilingCycle(w io.Writer, eventConfig *PMUEventConfig) ProfilingOption {
 	return profilingOptionFunc(func() error {
        if eventConfig.Period <= 0 {
             return errors.New("Period should be > 0")
         }
         // Clamp period to something reasonable
-        // Refer to hpctoolkit
         if eventConfig.Period < 300 {
             eventConfig.Period = 300
         }
-        pmu.eventOn[0] = true
 
-        cycle := runtime.PMUEventAttr{Period: uint64(eventConfig.Period),
-                                      PreciseIP: getPreciseIP(eventConfig.PreciseIP),
-                                      IsKernelIncluded: eventConfig.IsKernelIncluded,
-                                      IsHvIncluded: eventConfig.IsHvIncluded}
-        runtime.SetPMUProfile(/*event ID*/ 0, &cycle)
-        go pmuProfileWriter(w, /*event ID*/ 0, "cycles")
+        helper(w, eventConfig, /*event ID*/ 0, /*event Name*/ "cycles")
 		return nil
 	})
 }
@@ -846,18 +850,11 @@ func WithProfilingInstr(w io.Writer, eventConfig *PMUEventConfig) ProfilingOptio
             return errors.New("Period should be > 0")
         }
         // Clamp period to something reasonable
-        // Refer to hpctoolkit
         if eventConfig.Period < 300 {
             eventConfig.Period = 300
         }
-        pmu.eventOn[1] = true
 
-        instr := runtime.PMUEventAttr{Period: uint64(eventConfig.Period),
-                                      PreciseIP: getPreciseIP(eventConfig.PreciseIP),
-                                      IsKernelIncluded: eventConfig.IsKernelIncluded,
-                                      IsHvIncluded: eventConfig.IsHvIncluded}
-		runtime.SetPMUProfile(/*event ID*/ 1, &instr)
-        go pmuProfileWriter(w, /*event ID*/ 1, "instructions")
+        helper(w, eventConfig, /*event ID*/ 1, /*event Name*/ "instructions")
 		return nil
 	})
 }
@@ -867,14 +864,9 @@ func WithProfilingCacheRef(w io.Writer, eventConfig *PMUEventConfig) ProfilingOp
         if eventConfig.Period <= 0 {
             return errors.New("Period should be > 0")
         }
-        pmu.eventOn[2] = true
+        // TODO: Clamp period to something reasonable
 
-        cacheRef := runtime.PMUEventAttr{Period: uint64(eventConfig.Period),
-                                         PreciseIP: getPreciseIP(eventConfig.PreciseIP),
-                                         IsKernelIncluded: eventConfig.IsKernelIncluded,
-                                         IsHvIncluded: eventConfig.IsHvIncluded}
-		runtime.SetPMUProfile(/*event ID*/ 2, &cacheRef)
-        go pmuProfileWriter(w, /*event ID*/ 2, "cache references")
+        helper(w, eventConfig, /*event ID*/ 2, /*event Name*/ "cache references")
 		return nil
 	})
 }
@@ -884,14 +876,9 @@ func WithProfilingCacheMiss(w io.Writer, eventConfig *PMUEventConfig) ProfilingO
         if eventConfig.Period <= 0 {
             return errors.New("Period should be > 0")
         }
-        pmu.eventOn[3] = true
+        // TODO: Clamp period to something reasonable
 
-        cacheMiss := runtime.PMUEventAttr{Period: uint64(eventConfig.Period),
-                                          PreciseIP: getPreciseIP(eventConfig.PreciseIP),
-                                          IsKernelIncluded: eventConfig.IsKernelIncluded,
-                                          IsHvIncluded: eventConfig.IsHvIncluded}
-		runtime.SetPMUProfile(/*event ID*/ 3, &cacheMiss)
-        go pmuProfileWriter(w, /*event ID*/ 3, "cache misses")
+        helper(w, eventConfig, /*event ID*/ 3, /*event Name*/ "cache misses")
 		return nil
 	})
 }
