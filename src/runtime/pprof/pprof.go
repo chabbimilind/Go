@@ -806,6 +806,8 @@ type PMUEventConfig struct {
     PreciseIP        int8
     IsKernelIncluded bool
     IsHvIncluded     bool
+    // TODO: IsMmapEnabled bool
+    // TODO: IsLBREnabled bool
 }
 
 func getPreciseIP(preciseIP int8) uint8 {
