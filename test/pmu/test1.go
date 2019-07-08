@@ -154,13 +154,18 @@ func f10() {
 
 
 func run() error {
-    cycle, err := os.Create("cycle_profile")
+    cycleFile, err := os.Create("cycle_profile")
 	if err != nil {
 	 return err
 	}
-    defer cycle.Close()
+    defer cycleFile.Close()
     
-    if err := pprof.StartPMUProfile(pprof.WithProfilingCycle(cycle, 20000000)); err != nil {
+    var cycle pprof.PMUEventConfig
+    cycle.Period =  20000000
+    cycle.IsKernelIncluded = false
+    cycle.IsHvIncluded = false
+    
+    if err := pprof.StartPMUProfile(pprof.WithProfilingCycle(cycleFile, &cycle)); err != nil {
         return err
 	}
 	defer pprof.StopPMUProfile()

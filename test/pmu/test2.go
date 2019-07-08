@@ -152,44 +152,59 @@ func f10() {
 	fmt.Println(sum)
 }
 
-
 func run() error {
-	itimer, err := os.Create("itimer_profile")
+	itimerFile, err := os.Create("itimer_profile")
 	if err != nil {
 	 return err
 	}
-    defer itimer.Close()
+    defer itimerFile.Close()
     
-    cycle, err := os.Create("cycle_profile")
+    cycleFile, err := os.Create("cycle_profile")
 	if err != nil {
 	 return err
 	}
-    defer cycle.Close()
+    defer cycleFile.Close()
     
-    instr, err := os.Create("instr_profile")
+    var cycle pprof.PMUEventConfig
+    cycle.Period =  20000000
+    // cycle.PreciseIP = 2
+
+    instrFile, err := os.Create("instr_profile")
 	if err != nil {
 	 return err
 	}
-    defer instr.Close()
+    defer instrFile.Close()
     
-    cacheRef, err := os.Create("cacheRef_profile")
+    var instr pprof.PMUEventConfig
+    instr.Period =  20000000
+    // instr.PreciseIP = 2
+   
+    cacheRefFile, err := os.Create("cacheRef_profile")
 	if err != nil {
 	 return err
 	}
-    defer cacheRef.Close()
+    defer cacheRefFile.Close()
+    
+    var cacheRef pprof.PMUEventConfig
+    cacheRef.Period =  200
+    // cacheRef.PreciseIP = 2
 	
-    cacheMiss, err := os.Create("cacheMiss_profile")
+    cacheMissFile, err := os.Create("cacheMiss_profile")
 	if err != nil {
 	 return err
 	}
-    defer cacheMiss.Close()
-	
-    if err := pprof.StartCPUProfile(itimer); err != nil {
+    defer cacheMissFile.Close()
+    
+    var cacheMiss pprof.PMUEventConfig
+    cacheMiss.Period =  10
+    // cacheMiss.PreciseIP = 2
+
+    if err := pprof.StartCPUProfile(itimerFile); err != nil {
         return err
 	}
 	defer pprof.StopCPUProfile()
 
-    if err := pprof.StartPMUProfile(pprof.WithProfilingCycle(cycle, 20000000), pprof.WithProfilingInstr(instr, 20000000), pprof.WithProfilingCacheRef(cacheRef, 1000), pprof.WithProfilingCacheMiss(cacheMiss, 1)); err != nil {
+    if err := pprof.StartPMUProfile(pprof.WithProfilingCycle(cycleFile, &cycle), pprof.WithProfilingInstr(instrFile, &instr), pprof.WithProfilingCacheRef(cacheRefFile, &cacheRef), pprof.WithProfilingCacheMiss(cacheMissFile, &cacheMiss)); err != nil {
         return err
 	}
 	defer pprof.StopPMUProfile()
