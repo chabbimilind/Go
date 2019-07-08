@@ -357,7 +357,7 @@ func sigaltstack(new, old *stackt)
 func setitimer(mode int32, new, old *itimerval)
 
 //go:noescape
-func perfEventOpen(attr *PerfEventAttr, pid, cpu, groupFd, flags, dummy int64) (r int32, r2, err int64)
+func perfEventOpen(attr *perfEventAttr, pid, cpu, groupFd, flags, dummy int64) (r int32, r2, err int64)
 
 func ioctl(fd int32, req, arg int64) int64
 

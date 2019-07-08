@@ -149,8 +149,8 @@ func sigenable(sig uint32) {
 		return
 	}
 
-	// SIGPROF and _SIGRTMIN + 3 are handled specially for profiling.
-	if sig == _SIGPROF  || sig == _SIGRTMIN + 3 {
+	// SIGPROF and _SIGPMU are handled specially for profiling.
+	if sig == _SIGPROF  || sig == _SIGPMU {
 		return
 	}
 	
@@ -174,8 +174,8 @@ func sigdisable(sig uint32) {
 		return
 	}
 
-	// SIGPROF and _SIGRTMIN + 3 are handled specially for profiling.
-	if sig == _SIGPROF  || sig == _SIGRTMIN + 3 {
+	// SIGPROF and _SIGPMU are handled specially for profiling.
+	if sig == _SIGPROF  || sig == _SIGPMU {
 		return
 	}
 
@@ -203,8 +203,8 @@ func sigignore(sig uint32) {
 		return
 	}
 
-	// SIGPROF and _SIGRTMIN + 3 are handled specially for profiling.
-	if sig == _SIGPROF  || sig == _SIGRTMIN + 3 {
+	// SIGPROF and _SIGPMU are handled specially for profiling.
+	if sig == _SIGPROF  || sig == _SIGPMU {
 		return
 	}
 
@@ -251,19 +251,19 @@ func setProcessCPUProfiler(hz int32) {
 	}
 }
 
-func setProcessPMUProfiler(event *PMUEvent) {
-    if event != nil {
+func setProcessPMUProfiler(eventAttr *PMUEventAttr) {
+    if eventAttr != nil {
         // Enable the Go signal handler if not enabled.
-        if atomic.Cas(&handlingSig[_SIGRTMIN + 3], 0, 1) {
-            atomic.Storeuintptr(&fwdSig[_SIGRTMIN + 3], getsig(_SIGRTMIN + 3))
-            setsig(_SIGRTMIN + 3, funcPC(sighandler))
+        if atomic.Cas(&handlingSig[_SIGPMU], 0, 1) {
+            atomic.Storeuintptr(&fwdSig[_SIGPMU], getsig(_SIGPMU))
+            setsig(_SIGPMU, funcPC(sighandler))
         }
     } else {
         // If the Go signal handler should be disabled by default,
         // disable it if it is enabled.
-        if !sigInstallGoHandler(_SIGRTMIN + 3) {
-            if atomic.Cas(&handlingSig[_SIGRTMIN + 3], 1, 0) {
-                setsig(_SIGRTMIN + 3, atomic.Loaduintptr(&fwdSig[_SIGRTMIN + 3]))
+        if !sigInstallGoHandler(_SIGPMU) {
+            if atomic.Cas(&handlingSig[_SIGPMU], 1, 0) {
+                setsig(_SIGPMU, atomic.Loaduintptr(&fwdSig[_SIGPMU]))
             }
         }
     }
@@ -285,41 +285,37 @@ func setThreadCPUProfiler(hz int32) {
     _g_.m.profilehz = hz
 }
 
-func setThreadPMUProfiler(eventId int32, event *PMUEvent) {
+func setThreadPMUProfiler(eventId int32, eventAttr *PMUEventAttr) {
     _g_ := getg()
-    if _g_.m.fdToEventIdMap == nil {
-        _g_.m.fdToEventIdMap = make(map[int32]int32)
-    }
     
-    if event == nil { // Go routine is finished
-        if _g_.m.events[eventId] != nil {
-            fd := _g_.m.fds[eventId]
-            if _, ok := _g_.m.fdToEventIdMap[fd]; ok {
-                delete(_g_.m.fdToEventIdMap, fd) // delete it from the map
-                closefd(fd)
-            }
-         }
+    if eventAttr == nil {
+        if _g_.m.eventAttrs[eventId] != nil {
+            closefd(_g_.m.eventFds[eventId])
+        }
     } else {
-        var attr PerfEventAttr
-        attr.Type = event.Cat
-        attr.Size = uint32(unsafe.Sizeof(attr))
-        attr.Config = event.Code
-        attr.Sample = event.Period
-        attr.Bits = uint64(event.PreciseIP) << 15 // precise ip
-        attr.Bits += 0b100000 // don't count kernel  
-        attr.Bits += 0b1000000 // don't count hypervisor
-
-        fd, _, _ := perfEventOpen(&attr, 0, -1, -1, 0, /* dummy*/ 0)
-        _g_.m.fds[eventId] = fd
-        _g_.m.fdToEventIdMap[fd] = eventId
+        var perfAttr perfEventAttr
+        perfAttr.Size = uint32(unsafe.Sizeof(perfAttr))
+        perfAttr.Type = perfEventOpt[eventId].Type
+        perfAttr.Config = perfEventOpt[eventId].Config
+        perfAttr.Sample = eventAttr.Period
+        perfAttr.Bits = uint64(eventAttr.PreciseIP) << 15 // precise ip
+        if !eventAttr.IsKernelIncluded { // don't count kernel
+            perfAttr.Bits += 0b100000
+        }
+        if !eventAttr.IsHvIncluded { // don't count hypervisor
+            perfAttr.Bits += 0b1000000
+        }
+        
+        fd, _, _ := perfEventOpen(&perfAttr, 0, -1, -1, 0, /* dummy*/ 0)
+        _g_.m.eventFds[eventId] = fd
         r, _ := fcntl(fd, /*F_GETFL*/ 0x3, 0)
         fcntl(fd, /*F_SETFL*/ 0x4, r | /*O_ASYNC*/ 0x2000)
-        fcntl(fd, /*F_SETSIG*/ 0xa, _SIGRTMIN + 3)
-        
+        fcntl(fd, /*F_SETSIG*/ 0xa, _SIGPMU)
         fOwnEx := fOwnerEx{/*F_OWNER_TID*/ 0, int32(gettid())}
         fcntl2(fd, /*F_SETOWN_EX*/ 0xf, &fOwnEx)
     }
-    _g_.m.events[eventId] = event
+
+    _g_.m.eventAttrs[eventId] = eventAttr
 }
 
 func sigpipe() {
@@ -350,7 +346,7 @@ func sigtrampgo(sig uint32, info *siginfo, ctx unsafe.Pointer) {
 		if sig == _SIGPROF {
 			sigprofNonGoPC(c.sigpc())
 			return
-		} else if sig == _SIGRTMIN + 3 {
+		} else if sig == _SIGPMU {
 			// sigpmuNonGoPC(c.sigpc())
             println("how do I know which pmu event delivers this signal")
 			return
@@ -508,7 +504,7 @@ func dieFromSignal(sig uint32) {
 // thread, and the Go program does not want to handle it (that is, the
 // program has not called os/signal.Notify for the signal).
 func raisebadsignal(sig uint32, c *sigctxt) {
-	if sig == _SIGPROF  || sig == _SIGRTMIN + 3 {
+	if sig == _SIGPROF  || sig == _SIGPMU {
 		// Ignore profiling signals that arrive on non-Go threads.
 		return
 	}

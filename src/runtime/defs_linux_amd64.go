@@ -57,7 +57,7 @@ const (
 	_SIGIO     = 0x1d
 	_SIGPWR    = 0x1e
 	_SIGSYS    = 0x1f
-    _SIGRTMIN  = 0x22
+    _SIGPMU    = 0x25
 
 	_FPE_INTDIV = 0x1
 	_FPE_INTOVF = 0x2
@@ -394,8 +394,7 @@ const (
     PERF_EVENT_IOC_SET_OUTPUT            = 0x2405
 )
 
-
-type PerfEventAttr struct {
+type perfEventAttr struct {
     Type               uint32
     Size               uint32
     Config             uint64
@@ -420,4 +419,14 @@ type fOwnerEx struct {
     Type int32
     Pid int32
 
+}
+
+var perfEventOpt = []struct {
+    Type    uint32
+    Config  uint64
+} {
+    {PERF_TYPE_HARDWARE, PERF_COUNT_HW_CPU_CYCLES},
+    {PERF_TYPE_HARDWARE, PERF_COUNT_HW_INSTRUCTIONS},
+    {PERF_TYPE_HARDWARE, PERF_COUNT_HW_CACHE_REFERENCES},
+    {PERF_TYPE_HARDWARE, PERF_COUNT_HW_CACHE_MISSES},
 }

@@ -44,10 +44,10 @@ type pmuProfile struct {
 
 var pmuprof [maxPMUEvents]pmuProfile // event -> cpuProfile
 
-func SetPMUProfile(eventId int, event *PMUEvent) {
+func SetPMUProfile(eventId int, eventAttr *PMUEventAttr) {
     
     lock(&pmuprof[eventId].lock)
-    if event != nil {
+    if eventAttr != nil {
         if pmuprof[eventId].on || pmuprof[eventId].log != nil {
             print("runtime: cannot set pmu profile rate until previous profile has finished.\n")
             unlock(&pmuprof[eventId].lock)
@@ -56,9 +56,9 @@ func SetPMUProfile(eventId int, event *PMUEvent) {
 
         pmuprof[eventId].on = true
         pmuprof[eventId].log = newProfBuf(1, 1<<17, 1<<14)
-        hdr := [1]uint64{event.Period}
+        hdr := [1]uint64{eventAttr.Period}
         pmuprof[eventId].log.write(nil, nanotime(), hdr[:], nil)
-        setpmuprofile(int32(eventId), event)
+        setpmuprofile(int32(eventId), eventAttr)
     } else if pmuprof[eventId].on {
         setpmuprofile(int32(eventId), nil)
         pmuprof[eventId].on = false
@@ -76,11 +76,11 @@ func SetPMUProfile(eventId int, event *PMUEvent) {
 //go:nowritebarrierrec
 func (p *pmuProfile) add(gp *g, stk []uintptr, eventId int) {
 	// Simple cas-lock to coordinate with setpmuprofile.
-	for !atomic.Cas(&profs[eventId].signalLock, 0, 1) {
+	for !atomic.Cas(&pmuEvent[eventId].signalLock, 0, 1) {
 		osyield()
 	}
 
-	if profs[eventId].event != nil { // implies pmuprof[eventId].log != nil
+	if pmuEvent[eventId].eventAttr != nil { // implies pmuprof[eventId].log != nil
 		if p.numExtra > 0 || p.lostExtra > 0 {
 			p.addExtra(eventId)
 		}
@@ -92,7 +92,7 @@ func (p *pmuProfile) add(gp *g, stk []uintptr, eventId int) {
 		pmuprof[eventId].log.write(&gp.labels, nanotime(), hdr[:], stk)
 	}
 
-	atomic.Store(&profs[eventId].signalLock, 0)
+	atomic.Store(&pmuEvent[eventId].signalLock, 0)
 }
 
 // addNonGo adds the non-Go stack trace to the profile.
@@ -108,7 +108,7 @@ func (p *pmuProfile) addNonGo(stk []uintptr, eventId int) {
 	// (Other calls to add or addNonGo should be blocked out
 	// by the fact that only one SIGPROF can be handled by the
 	// process at a time. If not, this lock will serialize those too.)
-	for !atomic.Cas(&profs[eventId].signalLock, 0, 1) {
+	for !atomic.Cas(&pmuEvent[eventId].signalLock, 0, 1) {
 		osyield()
 	}
 
@@ -121,7 +121,7 @@ func (p *pmuProfile) addNonGo(stk []uintptr, eventId int) {
 		pmuprof[eventId].lostExtra++
 	}
 
-	atomic.Store(&profs[eventId].signalLock, 0)
+	atomic.Store(&pmuEvent[eventId].signalLock, 0)
 }
 
 // addExtra adds the "extra" profiling events,
