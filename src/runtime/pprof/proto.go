@@ -29,22 +29,22 @@ func funcPC(f interface{}) uintptr {
 // A profileBuilder writes a profile incrementally from a
 // stream of profile samples delivered by the runtime.
 type profileBuilder struct {
-	start      time.Time
-	end        time.Time
-	havePeriod bool
-	period     int64
+	start        time.Time
+	end          time.Time
+	havePeriod   bool
+	period       int64
     isPMUEnabled bool
-	m          profMap
+	m            profMap
 
 	// encoding state
-	w         io.Writer
-	zw        *gzip.Writer
-	pb        protobuf
-	strings   []string
-	stringMap map[string]int
-	locs      map[uintptr]int
-	funcs     map[string]int // Package path-qualified function name to Function.ID
-	mem       []memMap
+	w           io.Writer
+	zw          *gzip.Writer
+	pb          protobuf
+	strings     []string
+	stringMap   map[string]int
+	locs        map[uintptr]int
+	funcs       map[string]int // Package path-qualified function name to Function.ID
+	mem         []memMap
 }
 
 type memMap struct {
@@ -313,26 +313,8 @@ func newProfileBuilder(w io.Writer) *profileBuilder {
 	return b
 }
 
-// addCPUData adds the CPU profiling data to the profile.
-// The data must be a whole number of records,
-// as delivered by the runtime.
-func (b *profileBuilder) addCPUData(data []uint64, tags []unsafe.Pointer) error {
-	if !b.havePeriod {
-		// first record is period
-		if len(data) < 3 {
-			return fmt.Errorf("truncated profile")
-		}
-		if data[0] != 3 || data[2] == 0 {
-			return fmt.Errorf("malformed profile")
-		}
-		// data[2] is sampling rate in Hz. Convert to sampling
-		// period in nanoseconds.
-		b.period = 1e9 / int64(data[2])
-		b.havePeriod = true
-		data = data[3:]
-	}
-
-	// Parse CPU samples from the profile.
+func (b *profileBuilder) addData(data []uint64, tags []unsafe.Pointer) error {
+	// Parse samples from the profile.
 	// Each sample is 3+n uint64s:
 	//	data[0] = 3+n
 	//	data[1] = time stamp (ignored)
@@ -375,6 +357,28 @@ func (b *profileBuilder) addCPUData(data []uint64, tags []unsafe.Pointer) error 
 	return nil
 }
 
+// addCPUData adds the CPU profiling data to the profile.
+// The data must be a whole number of records,
+// as delivered by the runtime.
+func (b *profileBuilder) addCPUData(data []uint64, tags []unsafe.Pointer) error {
+	if !b.havePeriod {
+		// first record is period
+		if len(data) < 3 {
+			return fmt.Errorf("truncated profile")
+		}
+		if data[0] != 3 || data[2] == 0 {
+			return fmt.Errorf("malformed profile")
+		}
+		// data[2] is sampling rate in Hz. Convert to sampling
+		// period in nanoseconds.
+		b.period = 1e9 / int64(data[2])
+		b.havePeriod = true
+		data = data[3:]
+	}
+
+    return b.addData(data, tags)
+}
+
 func (b *profileBuilder) addPMUData(data []uint64, tags []unsafe.Pointer) error {
 	if !b.isPMUEnabled {
 		// first record is period
@@ -389,47 +393,10 @@ func (b *profileBuilder) addPMUData(data []uint64, tags []unsafe.Pointer) error 
 		data = data[3:]
 	}
 
-	for len(data) > 0 {
-		if len(data) < 3 || data[0] > uint64(len(data)) {
-			return fmt.Errorf("truncated profile")
-		}
-		if data[0] < 3 || tags != nil && len(tags) < 1 {
-			return fmt.Errorf("malformed profile")
-		}
-		count := data[2]
-		stk := data[3:data[0]]
-		data = data[data[0]:]
-		var tag unsafe.Pointer
-		if tags != nil {
-			tag = tags[0]
-			tags = tags[1:]
-		}
-
-		if count == 0 && len(stk) == 1 {
-			// overflow record
-			count = uint64(stk[0])
-			stk = []uint64{
-				uint64(funcPC(lostProfileEvent)),
-			}
-		}
-		b.m.lookup(stk, tag).count += int64(count)
-	}
-	return nil
+    return b.addData(data, tags)
 }
 
-// build completes and returns the constructed profile.
-func (b *profileBuilder) build() {
-	b.end = time.Now()
-
-	b.pb.int64Opt(tagProfile_TimeNanos, b.start.UnixNano())
-	if b.havePeriod { // must be CPU profile
-		b.pbValueType(tagProfile_SampleType, "samples", "count")
-        b.pbValueType(tagProfile_SampleType, "cpu", "nanoseconds")
-		b.pb.int64Opt(tagProfile_DurationNanos, b.end.Sub(b.start).Nanoseconds())
-		b.pbValueType(tagProfile_PeriodType, "cpu", "nanoseconds")
-		b.pb.int64Opt(tagProfile_Period, b.period)
-	}
-
+func (b *profileBuilder) profileBuild() {
 	values := []int64{0, 0}
 	var locs []uint64
 	for e := b.m.all; e != nil; e = e.nextAll {
@@ -478,6 +445,22 @@ func (b *profileBuilder) build() {
 	b.zw.Close()
 }
 
+// build completes and returns the constructed profile.
+func (b *profileBuilder) build() {
+	b.end = time.Now()
+
+	b.pb.int64Opt(tagProfile_TimeNanos, b.start.UnixNano())
+	if b.havePeriod { // must be CPU profile
+		b.pbValueType(tagProfile_SampleType, "samples", "count")
+        b.pbValueType(tagProfile_SampleType, "cpu", "nanoseconds")
+		b.pb.int64Opt(tagProfile_DurationNanos, b.end.Sub(b.start).Nanoseconds())
+		b.pbValueType(tagProfile_PeriodType, "cpu", "nanoseconds")
+		b.pb.int64Opt(tagProfile_Period, b.period)
+	}
+    
+    b.profileBuild()
+}
+
 func (b *profileBuilder) pmuBuild(eventName string) {
 	b.pb.int64Opt(tagProfile_TimeNanos, b.start.UnixNano())
     b.pbValueType(tagProfile_SampleType, "samples", "count")
@@ -485,49 +468,7 @@ func (b *profileBuilder) pmuBuild(eventName string) {
     b.pbValueType(tagProfile_PeriodType, eventName, "count")
 	b.pb.int64Opt(tagProfile_Period, b.period)
 	
-    values := []int64{0, 0}
-	var locs []uint64
-	for e := b.m.all; e != nil; e = e.nextAll {
-		values[0] = e.count
-		values[1] = e.count * b.period
-
-		var labels func()
-		if e.tag != nil {
-			labels = func() {
-				for k, v := range *(*labelMap)(e.tag) {
-					b.pbLabel(tagSample_Label, k, v, 0)
-				}
-			}
-		}
-
-		locs = locs[:0]
-		for i, addr := range e.stk {
-			// Addresses from stack traces point to the
-			// next instruction after each call, except
-			// for the leaf, which points to where the
-			// signal occurred. locForPC expects return
-			// PCs, so increment the leaf address to look
-			// like a return PC.
-			if i == 0 {
-				addr++
-			}
-			l := b.locForPC(addr)
-			if l == 0 { // runtime.goexit
-				continue
-			}
-			locs = append(locs, l)
-		}
-		b.pbSample(values, locs, labels)
-	}
-
-	for i, m := range b.mem {
-		hasFunctions := m.funcs == lookupTried // lookupTried but not lookupFailed
-		b.pbMapping(tagProfile_Mapping, uint64(i+1), uint64(m.start), uint64(m.end), m.offset, m.file, m.buildID, hasFunctions)
-	}
-	
-    b.pb.strings(tagProfile_StringTable, b.strings)
-	b.zw.Write(b.pb.data)
-	b.zw.Close()
+    b.profileBuild()
 }
 
 // readMapping reads /proc/self/maps and writes mappings to b.pb.
