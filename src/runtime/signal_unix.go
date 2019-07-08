@@ -142,7 +142,7 @@ func sigInstallGoHandler(sig uint32) bool {
 }
 
 func isProfilingSignal(sig uint32) bool {
-    if sig == _SIGPROF  || sig == _SIGPMU {
+    if sig == _SIGPROF || sig == _SIGPMU {
         return true
     }
     return false
@@ -160,7 +160,7 @@ func sigenable(sig uint32) {
     if isProfilingSignal(sig) {
 		return
 	}
-	
+
 	t := &sigtable[sig]
 	if t.flags&_SigNotify != 0 {
 		ensureSigM()
@@ -294,7 +294,7 @@ func setThreadCPUProfiler(hz int32) {
 
 func setThreadPMUProfiler(eventId int32, eventAttr *PMUEventAttr) {
     _g_ := getg()
-    
+
     if eventAttr == nil {
         if _g_.m.eventAttrs[eventId] != nil {
             closefd(_g_.m.eventFds[eventId])
@@ -312,7 +312,7 @@ func setThreadPMUProfiler(eventId int32, eventAttr *PMUEventAttr) {
         if !eventAttr.IsHvIncluded { // don't count hypervisor
             perfAttr.Bits += 0b1000000
         }
-        
+
         fd, _, _ := perfEventOpen(&perfAttr, 0, -1, -1, 0, /* dummy*/ 0)
         _g_.m.eventFds[eventId] = fd
         r, _ := fcntl(fd, /*F_GETFL*/ 0x3, 0)

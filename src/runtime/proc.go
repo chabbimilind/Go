@@ -2134,7 +2134,7 @@ func gcstopm() {
 // acquiring a P in several places.
 //
 //go:yeswritebarrierrec
-func execute(gp *g, inheritTime bool) { 
+func execute(gp *g, inheritTime bool) {
 	_g_ := getg()
 
 	casgstatus(gp, _Grunnable, _Grunning)
@@ -3637,7 +3637,7 @@ func _ExternalCode()              { _ExternalCode() }
 func _LostExternalCode()          { _LostExternalCode() }
 func _GC()                        { _GC() }
 func _LostSIGPROFDuringAtomic64() { _LostSIGPROFDuringAtomic64() }
-func _LostSIGPMUDuringAtomic64() { _LostSIGPMUDuringAtomic64() }
+func _LostSIGPMUDuringAtomic64()  { _LostSIGPMUDuringAtomic64() }
 func _VDSO()                      { _VDSO() }
 
 func stackUnwinding(pc, sp, lr uintptr, gp *g, mp *m, stk []uintptr) int {

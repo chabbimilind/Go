@@ -193,7 +193,7 @@ ok:
 
 // func ioctl(fd int32, req, arg int64) int64
 TEXT runtime·ioctl(SB),NOSPLIT,$0
-	MOVL	fd+0(FP), DI 
+	MOVL	fd+0(FP), DI
 	MOVQ	req+8(FP), SI
 	MOVQ	arg+16(FP), DX
     MOVQ	$SYS_ioctl, AX
@@ -203,7 +203,7 @@ TEXT runtime·ioctl(SB),NOSPLIT,$0
 
 // func fcntl(fd int32, cmd arg int64) (r int64, err int64)
 TEXT runtime·fcntl(SB),NOSPLIT,$0
-	MOVL	fd+0(FP), DI 
+	MOVL	fd+0(FP), DI
 	MOVQ	cmd+8(FP), SI
 	MOVQ	arg+16(FP), DX
     MOVQ	$SYS_fcntl, AX
@@ -220,7 +220,7 @@ ok:
 	RET
 
 TEXT runtime·fcntl2(SB),NOSPLIT,$0
-	MOVL	fd+0(FP), DI 
+	MOVL	fd+0(FP), DI
 	MOVQ	cmd+8(FP), SI
 	MOVQ	arg+16(FP), DX
     MOVQ	$SYS_fcntl, AX

@@ -73,10 +73,10 @@
 package pprof
 
 import (
-    "bufio"
+	"bufio"
 	"bytes"
 	"errors"
-    "fmt"
+	"fmt"
 	"io"
 	"runtime"
 	"sort"
@@ -774,15 +774,15 @@ const maxPMUEvent = 10
 var pmu struct {
 	sync.Mutex
 	profiling bool
-    eventOn   [maxPMUEvent]bool
-    wg        sync.WaitGroup
+	eventOn   [maxPMUEvent]bool
+	wg        sync.WaitGroup
 }
 
 func StartPMUProfile(opts ...ProfilingOption) error {
     if runtime.GOOS != "linux" || runtime.GOARCH != "amd64" /* TODO GOOS is not linux amd64 */ {
         return errors.New("not implemented")
     }
-	
+
     pmu.Lock()
 	defer pmu.Unlock()
     pmu.wg.Add(len(opts))
@@ -791,7 +791,7 @@ func StartPMUProfile(opts ...ProfilingOption) error {
 		return fmt.Errorf("pmu profiling already in use")
 	}
 	pmu.profiling = true
-  	
+
     for _, opt := range opts {
 	    if err := opt.apply(); err != nil {
 			return err
@@ -851,7 +851,7 @@ func WithProfilingInstr(w io.Writer, eventConfig *PMUEventConfig) ProfilingOptio
             eventConfig.Period = 300
         }
         pmu.eventOn[1] = true
-        
+
         instr := runtime.PMUEventAttr{Period: uint64(eventConfig.Period),
                                       PreciseIP: getPreciseIP(eventConfig.PreciseIP),
                                       IsKernelIncluded: eventConfig.IsKernelIncluded,
@@ -868,7 +868,7 @@ func WithProfilingCacheRef(w io.Writer, eventConfig *PMUEventConfig) ProfilingOp
             return errors.New("Period should be > 0")
         }
         pmu.eventOn[2] = true
-        
+
         cacheRef := runtime.PMUEventAttr{Period: uint64(eventConfig.Period),
                                          PreciseIP: getPreciseIP(eventConfig.PreciseIP),
                                          IsKernelIncluded: eventConfig.IsKernelIncluded,
@@ -885,7 +885,7 @@ func WithProfilingCacheMiss(w io.Writer, eventConfig *PMUEventConfig) ProfilingO
             return errors.New("Period should be > 0")
         }
         pmu.eventOn[3] = true
-        
+
         cacheMiss := runtime.PMUEventAttr{Period: uint64(eventConfig.Period),
                                           PreciseIP: getPreciseIP(eventConfig.PreciseIP),
                                           IsKernelIncluded: eventConfig.IsKernelIncluded,
@@ -978,7 +978,7 @@ func StopPMUProfile() {
 		return
 	}
     pmu.profiling = false
-   
+
     for i := 0; i < maxPMUEvent; i++ {
         if pmu.eventOn[i] {
             runtime.SetPMUProfile(i, nil)

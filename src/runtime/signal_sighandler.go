@@ -37,7 +37,7 @@ func sighandler(sig uint32, info *siginfo, ctxt unsafe.Pointer, gp *g) {
     if sig == _SIGPMU {
         fd := info.si_fd
         ioctl(fd, PERF_EVENT_IOC_DISABLE, 0)
-        
+
         var eventId int = -1
         for i := 0; i < maxPMUEvent; i++ {
             if _g_.m.eventFds[i] == fd {
@@ -52,7 +52,7 @@ func sighandler(sig uint32, info *siginfo, ctxt unsafe.Pointer, gp *g) {
         ioctl(fd, PERF_EVENT_IOC_ENABLE, 0)
         return
 	}
-    
+
     if sig == _SIGPROF {
         sigprof(c.sigpc(), c.sigsp(), c.siglr(), gp, _g_.m)
         return
