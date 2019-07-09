@@ -50,7 +50,7 @@ var (
 
 	// dirs are the directories to look for *.go files in.
 	// TODO(bradfitz): just use all directories?
-	dirs = []string{".", "ken", "chan", "interface", "syntax", "dwarf", "fixedbugs", "codegen", "runtime", "pmu/cycle"}
+	dirs = []string{".", "ken", "chan", "interface", "syntax", "dwarf", "fixedbugs", "codegen", "runtime", "pmu"}
 
 	// ratec controls the max number of tests running at a time.
 	ratec chan bool
