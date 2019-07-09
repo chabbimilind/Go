@@ -788,7 +788,7 @@ func StartPMUProfile(opts ...ProfilingOption) error {
     pmu.wg.Add(len(opts))
     // Double-check.
 	if pmu.profiling {
-		return fmt.Errorf("pmu profiling already in use")
+		return errors.New("pmu profiling already in use")
 	}
 	pmu.profiling = true
 

@@ -54,6 +54,7 @@ package pprof
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -110,6 +111,42 @@ func serveError(w http.ResponseWriter, status int, txt string) {
 	fmt.Fprintln(w, txt)
 }
 
+func pmuProfile(w http.ResponseWriter, r *http.Request) error {
+    var eventConfig pprof.PMUEventConfig
+
+    period, err := strconv.ParseInt(r.FormValue("period"), 10, 64)
+    if err == nil {
+        eventConfig.Period = period
+    }
+    preciseIP, err := strconv.ParseInt(r.FormValue("preciseIP"), 10, 8)
+    if err == nil {
+        eventConfig.PreciseIP = int8(preciseIP)
+    }
+    isKernelIncluded, err := strconv.ParseBool(r.FormValue("kernel"))
+    if err == nil {
+        eventConfig.IsKernelIncluded = isKernelIncluded
+    }
+    isHvIncluded, err := strconv.ParseBool(r.FormValue("hv"))
+    if err == nil {
+        eventConfig.IsHvIncluded = isHvIncluded
+    }
+
+    switch eventName := r.FormValue("event"); eventName {
+        case "cycles":
+            err = pprof.StartPMUProfile(pprof.WithProfilingCycle(w, &eventConfig))
+        case "instructions":
+            err = pprof.StartPMUProfile(pprof.WithProfilingInstr(w, &eventConfig))
+        case "cacheReferences":
+            err = pprof.StartPMUProfile(pprof.WithProfilingCacheRef(w, &eventConfig))
+        case "cacheMisses":
+            err = pprof.StartPMUProfile(pprof.WithProfilingCacheMiss(w, &eventConfig))
+        default:
+            return errors.New("uknown event")
+    }
+
+    return err
+}
+
 // Profile responds with the pprof-formatted cpu profile.
 // Profiling lasts for duration specified in seconds GET parameter, or for 30 seconds if not specified.
 // The package initialization registers it as /debug/pprof/profile.
@@ -129,14 +166,33 @@ func Profile(w http.ResponseWriter, r *http.Request) {
 	// because if it does it starts writing.
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Header().Set("Content-Disposition", `attachment; filename="profile"`)
-	if err := pprof.StartCPUProfile(w); err != nil {
-		// StartCPUProfile failed, so no writes yet.
-		serveError(w, http.StatusInternalServerError,
+
+    isPMUEnabled, err := strconv.ParseBool(r.FormValue("pmu"))
+    if err != nil || isPMUEnabled == false {
+	    if err := pprof.StartCPUProfile(w); err != nil {
+		    // StartCPUProfile failed, so no writes yet.
+		    serveError(w, http.StatusInternalServerError,
 			fmt.Sprintf("Could not enable CPU profiling: %s", err))
-		return
-	}
-	sleep(w, time.Duration(sec)*time.Second)
-	pprof.StopCPUProfile()
+		    return
+	    }
+    } else if err == nil && isPMUEnabled == true {
+        if err = pmuProfile(w, r); err != nil {
+		    serveError(w, http.StatusInternalServerError,
+			fmt.Sprintf("Could not enable PMU profiling: %s", err))
+		    return
+        }
+    } else {
+		    serveError(w, http.StatusInternalServerError,
+			fmt.Sprintf("Could not enable CPU or PMU profiling: %s", err))
+		    return
+    }
+
+    sleep(w, time.Duration(sec)*time.Second)
+    if isPMUEnabled == true {
+	    pprof.StopPMUProfile()
+    } else {
+	    pprof.StopCPUProfile()
+    }
 }
 
 // Trace responds with the execution trace in binary form.
