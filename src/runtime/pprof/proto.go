@@ -33,7 +33,7 @@ type profileBuilder struct {
 	end          time.Time
 	havePeriod   bool
 	period       int64
-    isPMUEnabled bool
+	isPMUEnabled bool
 	m            profMap
 
 	// encoding state
@@ -389,7 +389,7 @@ func (b *profileBuilder) addPMUData(data []uint64, tags []unsafe.Pointer) error 
 			return fmt.Errorf("malformed profile")
 		}
 		b.isPMUEnabled = true
-        b.period = int64(data[2])
+		b.period = int64(data[2])
 		data = data[3:]
 	}
 
@@ -452,23 +452,23 @@ func (b *profileBuilder) build() {
 	b.pb.int64Opt(tagProfile_TimeNanos, b.start.UnixNano())
 	if b.havePeriod { // must be CPU profile
 		b.pbValueType(tagProfile_SampleType, "samples", "count")
-        b.pbValueType(tagProfile_SampleType, "cpu", "nanoseconds")
+		b.pbValueType(tagProfile_SampleType, "cpu", "nanoseconds")
 		b.pb.int64Opt(tagProfile_DurationNanos, b.end.Sub(b.start).Nanoseconds())
 		b.pbValueType(tagProfile_PeriodType, "cpu", "nanoseconds")
 		b.pb.int64Opt(tagProfile_Period, b.period)
 	}
-    
-    b.profileBuild()
+
+	b.profileBuild()
 }
 
 func (b *profileBuilder) pmuBuild(eventName string) {
 	b.pb.int64Opt(tagProfile_TimeNanos, b.start.UnixNano())
-    b.pbValueType(tagProfile_SampleType, "samples", "count")
-    b.pbValueType(tagProfile_SampleType, eventName, "count")
-    b.pbValueType(tagProfile_PeriodType, eventName, "count")
+	b.pbValueType(tagProfile_SampleType, "samples", "count")
+	b.pbValueType(tagProfile_SampleType, eventName, "count")
+	b.pbValueType(tagProfile_PeriodType, eventName, "count")
 	b.pb.int64Opt(tagProfile_Period, b.period)
-	
-    b.profileBuild()
+
+	b.profileBuild()
 }
 
 // readMapping reads /proc/self/maps and writes mappings to b.pb.

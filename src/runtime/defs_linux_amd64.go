@@ -377,53 +377,52 @@ const (
 	PERF_FLAG_PID_CGROUP  = 0x4
 	PERF_FLAG_FD_CLOEXEC  = 0x8
 
-    PERF_EVENT_IOC_DISABLE               = 0x2401
-    PERF_EVENT_IOC_ENABLE                = 0x2400
-    PERF_EVENT_IOC_ID                    = 0x80082407
-    PERF_EVENT_IOC_MODIFY_ATTRIBUTES     = 0x4008240b
-    PERF_EVENT_IOC_PAUSE_OUTPUT          = 0x40042409
-    PERF_EVENT_IOC_PERIOD                = 0x40082404
-    PERF_EVENT_IOC_QUERY_BPF             = 0xc008240a
-    PERF_EVENT_IOC_REFRESH               = 0x2402
-    PERF_EVENT_IOC_RESET                 = 0x2403
-    PERF_EVENT_IOC_SET_BPF               = 0x40042408
-    PERF_EVENT_IOC_SET_FILTER            = 0x40082406
-    PERF_EVENT_IOC_SET_OUTPUT            = 0x2405
+	PERF_EVENT_IOC_DISABLE               = 0x2401
+	PERF_EVENT_IOC_ENABLE                = 0x2400
+	PERF_EVENT_IOC_ID                    = 0x80082407
+	PERF_EVENT_IOC_MODIFY_ATTRIBUTES     = 0x4008240b
+	PERF_EVENT_IOC_PAUSE_OUTPUT          = 0x40042409
+	PERF_EVENT_IOC_PERIOD                = 0x40082404
+	PERF_EVENT_IOC_QUERY_BPF             = 0xc008240a
+	PERF_EVENT_IOC_REFRESH               = 0x2402
+	PERF_EVENT_IOC_RESET                 = 0x2403
+	PERF_EVENT_IOC_SET_BPF               = 0x40042408
+	PERF_EVENT_IOC_SET_FILTER            = 0x40082406
+	PERF_EVENT_IOC_SET_OUTPUT            = 0x2405
 )
 
 type perfEventAttr struct {
-    Type               uint32
-    Size               uint32
-    Config             uint64
-    Sample             uint64
-    Sample_type        uint64
-    Read_format        uint64
-    Bits               uint64
-    Wakeup             uint32
-    Bp_type            uint32
-    Ext1               uint64
-    Ext2               uint64
-    Branch_sample_type uint64
-    Sample_regs_user   uint64
-    Sample_stack_user  uint32
-    Clockid            int32
-    Sample_regs_intr   uint64
-    Aux_watermark      uint32
-    _                  uint32
+	Type               uint32
+	Size               uint32
+	Config             uint64
+	Sample             uint64
+	Sample_type        uint64
+	Read_format        uint64
+	Bits               uint64
+	Wakeup             uint32
+	Bp_type            uint32
+	Ext1               uint64
+	Ext2               uint64
+	Branch_sample_type uint64
+	Sample_regs_user   uint64
+	Sample_stack_user  uint32
+	Clockid            int32
+	Sample_regs_intr   uint64
+	Aux_watermark      uint32
+	_                  uint32
 }
 
 type fOwnerEx struct {
-    Type int32
-    Pid int32
-
+	Type int32
+	Pid int32
 }
 
 var perfEventOpt = []struct {
-    Type    uint32
-    Config  uint64
+	Type    uint32
+	 Config  uint64
 } {
-    {PERF_TYPE_HARDWARE, PERF_COUNT_HW_CPU_CYCLES},
-    {PERF_TYPE_HARDWARE, PERF_COUNT_HW_INSTRUCTIONS},
-    {PERF_TYPE_HARDWARE, PERF_COUNT_HW_CACHE_REFERENCES},
-    {PERF_TYPE_HARDWARE, PERF_COUNT_HW_CACHE_MISSES},
+	{PERF_TYPE_HARDWARE, PERF_COUNT_HW_CPU_CYCLES},
+	{PERF_TYPE_HARDWARE, PERF_COUNT_HW_INSTRUCTIONS},
+	{PERF_TYPE_HARDWARE, PERF_COUNT_HW_CACHE_REFERENCES},
+	{PERF_TYPE_HARDWARE, PERF_COUNT_HW_CACHE_MISSES},
 }

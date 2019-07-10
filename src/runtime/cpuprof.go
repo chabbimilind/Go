@@ -87,26 +87,26 @@ func SetCPUProfileRate(hz int) {
 }
 
 func SetPMUProfile(eventId int, eventAttr *PMUEventAttr) {
-    lock(&pmuprof[eventId].lock)
-    if eventAttr != nil {
-        if pmuprof[eventId].on || pmuprof[eventId].log != nil {
-            print("runtime: cannot set pmu profile rate until previous profile has finished.\n")
-            unlock(&pmuprof[eventId].lock)
-            return
-        }
+	lock(&pmuprof[eventId].lock)
+	if eventAttr != nil {
+		if pmuprof[eventId].on || pmuprof[eventId].log != nil {
+		print("runtime: cannot set pmu profile rate until previous profile has finished.\n")
+		unlock(&pmuprof[eventId].lock)
+		return
+		}
 
-        pmuprof[eventId].on = true
-        pmuprof[eventId].log = newProfBuf(1, 1<<17, 1<<14)
-        hdr := [1]uint64{eventAttr.Period}
-        pmuprof[eventId].log.write(nil, nanotime(), hdr[:], nil)
-        setpmuprofile(int32(eventId), eventAttr)
-    } else if pmuprof[eventId].on {
-        setpmuprofile(int32(eventId), nil)
-        pmuprof[eventId].on = false
-        pmuprof[eventId].addExtra(eventId)
-        pmuprof[eventId].log.close()
-    }
-    unlock(&pmuprof[eventId].lock)
+		pmuprof[eventId].on = true
+		pmuprof[eventId].log = newProfBuf(1, 1<<17, 1<<14)
+		hdr := [1]uint64{eventAttr.Period}
+		pmuprof[eventId].log.write(nil, nanotime(), hdr[:], nil)
+		setpmuprofile(int32(eventId), eventAttr)
+	} else if pmuprof[eventId].on {
+		setpmuprofile(int32(eventId), nil)
+		pmuprof[eventId].on = false
+		pmuprof[eventId].addExtra(eventId)
+		pmuprof[eventId].log.close()
+	}
+	unlock(&pmuprof[eventId].lock)
 }
 
 // add adds the stack trace to the profile.

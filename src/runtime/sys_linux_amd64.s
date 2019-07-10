@@ -196,9 +196,9 @@ TEXT runtime·ioctl(SB),NOSPLIT,$0
 	MOVL	fd+0(FP), DI
 	MOVQ	req+8(FP), SI
 	MOVQ	arg+16(FP), DX
-    MOVQ	$SYS_ioctl, AX
+	MOVQ	$SYS_ioctl, AX
 	SYSCALL
-    MOVQ    AX, ret+24(FP)
+	MOVQ    AX, ret+24(FP)
 	RET
 
 // func fcntl(fd int32, cmd arg int64) (r int64, err int64)
@@ -206,7 +206,7 @@ TEXT runtime·fcntl(SB),NOSPLIT,$0
 	MOVL	fd+0(FP), DI
 	MOVQ	cmd+8(FP), SI
 	MOVQ	arg+16(FP), DX
-    MOVQ	$SYS_fcntl, AX
+	MOVQ	$SYS_fcntl, AX
 	SYSCALL
 	CMPQ	AX, $0xfffffffffffff001
 	JLS	ok
@@ -223,7 +223,7 @@ TEXT runtime·fcntl2(SB),NOSPLIT,$0
 	MOVL	fd+0(FP), DI
 	MOVQ	cmd+8(FP), SI
 	MOVQ	arg+16(FP), DX
-    MOVQ	$SYS_fcntl, AX
+	MOVQ	$SYS_fcntl, AX
 	SYSCALL
 	CMPQ	AX, $0xfffffffffffff001
 	JLS	ok

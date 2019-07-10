@@ -37,8 +37,8 @@ const (
 )
 
 type PMUEventAttr struct {
-    Period           uint64
-    PreciseIP        uint8
-    IsKernelIncluded bool
-    IsHvIncluded     bool
+	Period           uint64
+	PreciseIP        uint8
+	IsKernelIncluded bool
+	IsHvIncluded     bool
 }

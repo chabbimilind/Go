@@ -2149,17 +2149,17 @@ func execute(gp *g, inheritTime bool) {
 
 	// Check whether the profiler needs to be turned on or off.
 	hz := sched.profilehz
-    eventAttrs := sched.eventAttrs
-    
-    if _g_.m.profilehz != hz {
-        setThreadCPUProfiler(hz)
-    }
-    for eventId := 0; eventId < maxPMUEvent; eventId++ {
-        if  _g_.m.eventAttrs[eventId] != eventAttrs[eventId] {
-            setThreadPMUProfiler(int32(eventId), eventAttrs[eventId])
-        }
-    }
-        
+	eventAttrs := sched.eventAttrs
+
+	if _g_.m.profilehz != hz {
+		setThreadCPUProfiler(hz)
+	}
+	for eventId := 0; eventId < maxPMUEvent; eventId++ {
+		if  _g_.m.eventAttrs[eventId] != eventAttrs[eventId] {
+			setThreadPMUProfiler(int32(eventId), eventAttrs[eventId])
+		}
+	}
+
 	if trace.enabled {
 		// GoSysExit has to happen when we have a P, but before GoStart.
 		// So we emit it here.
@@ -3629,7 +3629,7 @@ var prof struct {
 
 var pmuEvent [maxPMUEvent]struct {
 	signalLock uint32
-    eventAttr  *PMUEventAttr
+	eventAttr  *PMUEventAttr
 }
 
 func _System()                    { _System() }
@@ -3845,7 +3845,7 @@ func sigpmu(pc, sp, lr uintptr, gp *g, mp *m, eventId int) { // SIGPMU = SIGRTMI
 	// See golang.org/issue/17165.
 	getg().m.mallocing++
 	stk := make([]uintptr, maxCPUProfStack)
-    n := stackUnwinding(pc, sp, lr, gp, mp, stk)
+	n := stackUnwinding(pc, sp, lr, gp, mp, stk)
 	if pmuEvent[eventId].eventAttr != nil {
 		if (GOARCH == "mips" || GOARCH == "mipsle" || GOARCH == "arm") && lostPMUAtomic64Count[eventId] > 0 {
 			pmuprof[eventId].addLostAtomic64(lostPMUAtomic64Count[eventId], eventId)
@@ -3984,35 +3984,34 @@ func setcpuprofilerate(hz int32) {
 }
 
 func setpmuprofile(eventId int32, eventAttr *PMUEventAttr) {
+	// Disable preemption, otherwise we can be rescheduled to another thread
+	// that has profiling enabled.
+	_g_ := getg()
+	_g_.m.locks++
 
-    // Disable preemption, otherwise we can be rescheduled to another thread
-    // that has profiling enabled.
-    _g_ := getg()
-    _g_.m.locks++
+	// Stop profiler on this thread so that it is safe to lock prof.
+	// if a profiling signal came in while we had prof locked,
+	// it would deadlock.
+	setThreadPMUProfiler(eventId, nil)
 
-    // Stop profiler on this thread so that it is safe to lock prof.
-    // if a profiling signal came in while we had prof locked,
-    // it would deadlock.
-    setThreadPMUProfiler(eventId, nil)
+	for !atomic.Cas(&pmuEvent[eventId].signalLock, 0, 1) {
+		osyield()
+	}
+	if pmuEvent[eventId].eventAttr != eventAttr {
+		setProcessPMUProfiler(eventAttr)
+		pmuEvent[eventId].eventAttr = eventAttr
+	}
+	atomic.Store(&pmuEvent[eventId].signalLock, 0)
 
-    for !atomic.Cas(&pmuEvent[eventId].signalLock, 0, 1) {
-        osyield()
-    }
-    if pmuEvent[eventId].eventAttr != eventAttr {
-        setProcessPMUProfiler(eventAttr)
-        pmuEvent[eventId].eventAttr = eventAttr
-    }
-    atomic.Store(&pmuEvent[eventId].signalLock, 0)
+	lock(&sched.lock)
+	sched.eventAttrs[eventId] = eventAttr
+	unlock(&sched.lock)
 
-    lock(&sched.lock)
-    sched.eventAttrs[eventId] = eventAttr
-    unlock(&sched.lock)
+	if eventAttr != nil {
+		setThreadPMUProfiler(eventId, eventAttr)
+	}
 
-    if eventAttr != nil {
-        setThreadPMUProfiler(eventId, eventAttr)
-    }
-
-    _g_.m.locks--
+	_g_.m.locks--
  }
 
 // init initializes pp, which may be a freshly allocated p or a

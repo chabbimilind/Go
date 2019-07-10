@@ -740,35 +740,34 @@ var cpu struct {
 // for syscall.SIGPROF, but note that doing so may break any profiling
 // being done by the main program.
 func StartCPUProfile(w io.Writer, profileHz ...int) error {
-    // The runtime routines allow a variable profiling rate,
-    // but in practice operating systems cannot trigger signals
-    // at more than about 500 Hz, and our processing of the
-    // signal is not cheap (mostly getting the stack trace).
-    // 100 Hz is a reasonable choice: it is frequent enough to
-    // produce useful data, rare enough not to bog down the
-    // system, and a nice round number to make it easy to
-    // convert sample counts to seconds. Instead of requiring
-    // each client to specify the frequency, we hard code it.
-    
-    var hz = 100
-    if len(profileHz) != 0 {
-        hz = profileHz[0]
-    }
+	// The runtime routines allow a variable profiling rate,
+	// but in practice operating systems cannot trigger signals
+	// at more than about 500 Hz, and our processing of the
+	// signal is not cheap (mostly getting the stack trace).
+	// 100 Hz is a reasonable choice: it is frequent enough to
+	// produce useful data, rare enough not to bog down the
+	// system, and a nice round number to make it easy to
+	// convert sample counts to seconds. Instead of requiring
+	// each client to specify the frequency, we hard code it.
+	var hz = 100
+	if len(profileHz) != 0 {
+		hz = profileHz[0]
+	}
 
-    cpu.Lock()
-    defer cpu.Unlock()
-    if cpu.done == nil {
-        cpu.done = make(chan bool)
-    }
-    // Double-check.
-    if cpu.profiling {
-        return fmt.Errorf("cpu profiling already in use")
-    }
-    cpu.profiling = true
-    runtime.SetCPUProfileRate(hz)
-    go profileWriter(w)
-    return nil
-}
+	cpu.Lock()
+	defer cpu.Unlock()
+	if cpu.done == nil {
+		cpu.done = make(chan bool)
+	}
+	// Double-check.
+	if cpu.profiling {
+		return fmt.Errorf("cpu profiling already in use")
+	}
+	cpu.profiling = true
+	runtime.SetCPUProfileRate(hz)
+	go profileWriter(w)
+	return nil
+	}
 
 const maxPMUEvent = 10
 var pmu struct {
@@ -779,21 +778,21 @@ var pmu struct {
 }
 
 func StartPMUProfile(opts ...ProfilingOption) error {
-    if runtime.GOOS != "linux" || runtime.GOARCH != "amd64" /* TODO GOOS is not linux amd64 */ {
-        return errors.New("not implemented")
-    }
+	if runtime.GOOS != "linux" || runtime.GOARCH != "amd64" /* TODO GOOS is not linux amd64 */ {
+		return errors.New("not implemented")
+	}
 
-    pmu.Lock()
+	pmu.Lock()
 	defer pmu.Unlock()
-    pmu.wg.Add(len(opts))
-    // Double-check.
+	pmu.wg.Add(len(opts))
+	// Double-check.
 	if pmu.profiling {
 		return errors.New("pmu profiling already in use")
 	}
 	pmu.profiling = true
 
-    for _, opt := range opts {
-	    if err := opt.apply(); err != nil {
+	for _, opt := range opts {
+		if err := opt.apply(); err != nil {
 			return err
 		}
 	}
@@ -801,21 +800,21 @@ func StartPMUProfile(opts ...ProfilingOption) error {
 }
 
 type PMUEventConfig struct {
-    Period           int64
-    PreciseIP        int8
-    IsKernelIncluded bool
-    IsHvIncluded     bool
-    // TODO: IsMmapEnabled bool
-    // TODO: IsLBREnabled bool
+	Period           int64
+	PreciseIP        int8
+	IsKernelIncluded bool
+	IsHvIncluded     bool
+	// TODO: IsMmapEnabled bool
+	// TODO: IsLBREnabled bool
 }
 
 func getPreciseIP(preciseIP int8) uint8 {
-    if preciseIP < 0 {
-        preciseIP = 0
-    } else if preciseIP > 3 {
-        preciseIP = 3
-    }
-    return uint8(preciseIP)
+	if preciseIP < 0 {
+		preciseIP = 0
+	} else if preciseIP > 3 {
+		preciseIP = 3
+	}
+	return uint8(preciseIP)
 }
 
 func helper(w io.Writer, eventConfig *PMUEventConfig, eventId int, eventName string) {
@@ -847,11 +846,11 @@ func WithProfilingCycle(w io.Writer, eventConfig *PMUEventConfig) ProfilingOptio
 func WithProfilingInstr(w io.Writer, eventConfig *PMUEventConfig) ProfilingOption {
 	return profilingOptionFunc(func() error {
         if eventConfig.Period <= 0 {
-            return errors.New("Period should be > 0")
+		return errors.New("Period should be > 0")
         }
         // Clamp period to something reasonable
         if eventConfig.Period < 300 {
-            eventConfig.Period = 300
+		eventConfig.Period = 300
         }
 
         helper(w, eventConfig, /*event ID*/ 1, /*event Name*/ "instructions")
@@ -862,7 +861,7 @@ func WithProfilingInstr(w io.Writer, eventConfig *PMUEventConfig) ProfilingOptio
 func WithProfilingCacheRef(w io.Writer, eventConfig *PMUEventConfig) ProfilingOption {
 	return profilingOptionFunc(func() error {
         if eventConfig.Period <= 0 {
-            return errors.New("Period should be > 0")
+		return errors.New("Period should be > 0")
         }
         // TODO: Clamp period to something reasonable
 
@@ -874,7 +873,7 @@ func WithProfilingCacheRef(w io.Writer, eventConfig *PMUEventConfig) ProfilingOp
 func WithProfilingCacheMiss(w io.Writer, eventConfig *PMUEventConfig) ProfilingOption {
 	return profilingOptionFunc(func() error {
         if eventConfig.Period <= 0 {
-            return errors.New("Period should be > 0")
+		return errors.New("Period should be > 0")
         }
         // TODO: Clamp period to something reasonable
 
@@ -902,19 +901,19 @@ func profileWriter(w io.Writer) {
 	b := newProfileBuilder(w)
 	var err error
 	for {
-	    time.Sleep(100 * time.Millisecond)
-	    data, tags, eof := readProfile()
-	    if e := b.addCPUData(data, tags); e != nil && err == nil {
-		    err = e
-	    }
-	    if eof {
-		    break
-	    }
+		time.Sleep(100 * time.Millisecond)
+		data, tags, eof := readProfile()
+		if e := b.addCPUData(data, tags); e != nil && err == nil {
+			err = e
+		}
+		if eof {
+			break
+		}
 	}
-    if err != nil {
-        // The runtime should never produce an invalid or truncated profile.
-	    // It drops records that can't fit into its log buffers.
-	    panic("runtime/pprof: converting profile: " + err.Error())
+	if err != nil {
+		// The runtime should never produce an invalid or truncated profile.
+		// It drops records that can't fit into its log buffers.
+		 panic("runtime/pprof: converting profile: " + err.Error())
 	}
 	b.build()
 	cpu.done <- true
@@ -926,16 +925,16 @@ func pmuProfileWriter(w io.Writer, eventId int, eventName string) {
 	b := newProfileBuilder(w)
 	var err error
 	for {
-	    time.Sleep(100 * time.Millisecond)
-	    data, tags, eof := readPMUProfile(eventId)
-        if e := b.addPMUData(data, tags); e != nil && err == nil {
-		    err = e
-	    }
-	    if eof {
-		    break
-	    }
+		time.Sleep(100 * time.Millisecond)
+		data, tags, eof := readPMUProfile(eventId)
+		if e := b.addPMUData(data, tags); e != nil && err == nil {
+			err = e
+		}
+		if eof {
+			break
+		}
 	}
-    if err != nil {
+	if err != nil {
 	    panic("runtime/pprof: converting profile: " + err.Error())
 	}
 	b.pmuBuild(eventName)
@@ -946,15 +945,15 @@ func pmuProfileWriter(w io.Writer, eventId int, eventName string) {
 // StopCPUProfile only returns after all the writes for the
 // profile have completed.
 func StopCPUProfile() {
-    cpu.Lock()
-    defer cpu.Unlock()
+	cpu.Lock()
+	defer cpu.Unlock()
 
-    if !cpu.profiling {
-        return
-    }
-    cpu.profiling = false
-    runtime.SetCPUProfileRate(0)
-    <-cpu.done
+	if !cpu.profiling {
+		return
+	}
+	cpu.profiling = false
+	runtime.SetCPUProfileRate(0)
+	<-cpu.done
 }
 
 func StopPMUProfile() {
@@ -964,14 +963,14 @@ func StopPMUProfile() {
 	if !pmu.profiling {
 		return
 	}
-    pmu.profiling = false
+	pmu.profiling = false
 
-    for i := 0; i < maxPMUEvent; i++ {
-        if pmu.eventOn[i] {
-            runtime.SetPMUProfile(i, nil)
-        }
+	for i := 0; i < maxPMUEvent; i++ {
+		if pmu.eventOn[i] {
+		runtime.SetPMUProfile(i, nil)
+		}
 	}
-    pmu.wg.Wait()
+	pmu.wg.Wait()
 }
 
 // countBlock returns the number of records in the blocking profile.
