@@ -59,6 +59,7 @@ const (
 	_SIGTERM    = 0xf
 	_SIGEMT     = 0x7
 	_SIGWAITING = 0x27
+	_SIGPMU    = 0x1f // psu: SIGRTMIN should not be considered constants from userland; use _SIGUSR2 instead
 
 	_FPE_INTDIV = 0x14
 	_FPE_INTOVF = 0x15

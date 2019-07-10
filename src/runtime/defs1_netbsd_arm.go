@@ -53,6 +53,7 @@ const (
 	_SIGINFO   = 0x1d
 	_SIGUSR1   = 0x1e
 	_SIGUSR2   = 0x1f
+	_SIGPMU    = 0x1f // psu: SIGRTMIN should not be considered constants from userland; use _SIGUSR2 instead
 
 	_FPE_INTDIV = 0x1
 	_FPE_INTOVF = 0x2

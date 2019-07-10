@@ -71,4 +71,5 @@ const (
 	_SIGTRAP   = 6
 	_SIGPROF   = 0 // dummy value defined for badsignal
 	_SIGQUIT   = 0 // dummy value defined for sighandler
+	_SIGPMU    = 0 // psu: dummy value in order to pass testing
 )

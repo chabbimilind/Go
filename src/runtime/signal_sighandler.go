@@ -31,27 +31,13 @@ var testSigtrap func(info *siginfo, ctxt *sigctxt, gp *g) bool
 //
 //go:nowritebarrierrec
 func sighandler(sig uint32, info *siginfo, ctxt unsafe.Pointer, gp *g) {
-	_g_ := getg()
-	c := &sigctxt{info, ctxt}
-
 	if sig == _SIGPMU {
-		fd := info.si_fd
-		ioctl(fd, PERF_EVENT_IOC_DISABLE, 0)
-
-		var eventId int = -1
-		for i := 0; i < maxPMUEvent; i++ {
-			if _g_.m.eventFds[i] == fd {
-				eventId = i
-				break
-			}
-		}
-		if eventId != -1 {
-			sigpmu(c.sigpc(), c.sigsp(), c.siglr(), gp, _g_.m, eventId)
-		}
-
-		ioctl(fd, PERF_EVENT_IOC_ENABLE, 0)
+		sigpmuhandler(info, ctxt, gp)
 		return
 	}
+
+	_g_ := getg()
+	c := &sigctxt{info, ctxt}
 
 	if sig == _SIGPROF {
 		sigprof(c.sigpc(), c.sigsp(), c.siglr(), gp, _g_.m)

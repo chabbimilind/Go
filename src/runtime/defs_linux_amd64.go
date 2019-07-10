@@ -57,7 +57,7 @@ const (
 	_SIGIO     = 0x1d
 	_SIGPWR    = 0x1e
 	_SIGSYS    = 0x1f
-	_SIGPMU    = 0x25
+	_SIGPMU    = 0x25 // psu: _SIGPMU = SIGRTMIN + 3
 
 	_FPE_INTDIV = 0x1
 	_FPE_INTOVF = 0x2
@@ -128,7 +128,7 @@ type siginfo struct {
 	si_code  int32
 	// below here is a union; si_addr is the only field we use
 	si_addr  uint64
-	// an unreliable workaround and need to figure out a better solution
+	// psu: an unreliable workaround and need to figure out a better solution
 	si_fd    int32
 }
 
