@@ -8557,4 +8557,3 @@ pkg crypto/x509, const Ed25519 = 4
 pkg crypto/x509, const Ed25519 PublicKeyAlgorithm
 pkg crypto/x509, const PureEd25519 = 16
 pkg crypto/x509, const PureEd25519 SignatureAlgorithm
-pkg go/types, func CheckExpr(*token.FileSet, *Package, token.Pos, ast.Expr, *Info) error
