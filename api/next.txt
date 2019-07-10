@@ -8040,3 +8040,521 @@ pkg unicode, var Makasar *RangeTable
 pkg unicode, var Medefaidrin *RangeTable
 pkg unicode, var Old_Sogdian *RangeTable
 pkg unicode, var Sogdian *RangeTable
+pkg runtime (linux-amd64), const PERF_CONTEXT_GUEST = -2048
+pkg runtime (linux-amd64), const PERF_CONTEXT_GUEST ideal-int
+pkg runtime (linux-amd64), const PERF_CONTEXT_GUEST_KERNEL = -2176
+pkg runtime (linux-amd64), const PERF_CONTEXT_GUEST_KERNEL ideal-int
+pkg runtime (linux-amd64), const PERF_CONTEXT_GUEST_USER = -2560
+pkg runtime (linux-amd64), const PERF_CONTEXT_GUEST_USER ideal-int
+pkg runtime (linux-amd64), const PERF_CONTEXT_HV = -32
+pkg runtime (linux-amd64), const PERF_CONTEXT_HV ideal-int
+pkg runtime (linux-amd64), const PERF_CONTEXT_KERNEL = -128
+pkg runtime (linux-amd64), const PERF_CONTEXT_KERNEL ideal-int
+pkg runtime (linux-amd64), const PERF_CONTEXT_USER = -512
+pkg runtime (linux-amd64), const PERF_CONTEXT_USER ideal-int
+pkg runtime (linux-amd64), const PERF_COUNT_HW_BRANCH_INSTRUCTIONS = 4
+pkg runtime (linux-amd64), const PERF_COUNT_HW_BRANCH_INSTRUCTIONS ideal-int
+pkg runtime (linux-amd64), const PERF_COUNT_HW_BRANCH_MISSES = 5
+pkg runtime (linux-amd64), const PERF_COUNT_HW_BRANCH_MISSES ideal-int
+pkg runtime (linux-amd64), const PERF_COUNT_HW_BUS_CYCLES = 6
+pkg runtime (linux-amd64), const PERF_COUNT_HW_BUS_CYCLES ideal-int
+pkg runtime (linux-amd64), const PERF_COUNT_HW_CACHE_BPU = 5
+pkg runtime (linux-amd64), const PERF_COUNT_HW_CACHE_BPU ideal-int
+pkg runtime (linux-amd64), const PERF_COUNT_HW_CACHE_DTLB = 3
+pkg runtime (linux-amd64), const PERF_COUNT_HW_CACHE_DTLB ideal-int
+pkg runtime (linux-amd64), const PERF_COUNT_HW_CACHE_ITLB = 4
+pkg runtime (linux-amd64), const PERF_COUNT_HW_CACHE_ITLB ideal-int
+pkg runtime (linux-amd64), const PERF_COUNT_HW_CACHE_L1D = 0
+pkg runtime (linux-amd64), const PERF_COUNT_HW_CACHE_L1D ideal-int
+pkg runtime (linux-amd64), const PERF_COUNT_HW_CACHE_L1I = 1
+pkg runtime (linux-amd64), const PERF_COUNT_HW_CACHE_L1I ideal-int
+pkg runtime (linux-amd64), const PERF_COUNT_HW_CACHE_LL = 2
+pkg runtime (linux-amd64), const PERF_COUNT_HW_CACHE_LL ideal-int
+pkg runtime (linux-amd64), const PERF_COUNT_HW_CACHE_MISSES = 3
+pkg runtime (linux-amd64), const PERF_COUNT_HW_CACHE_MISSES ideal-int
+pkg runtime (linux-amd64), const PERF_COUNT_HW_CACHE_NODE = 6
+pkg runtime (linux-amd64), const PERF_COUNT_HW_CACHE_NODE ideal-int
+pkg runtime (linux-amd64), const PERF_COUNT_HW_CACHE_OP_PREFETCH = 2
+pkg runtime (linux-amd64), const PERF_COUNT_HW_CACHE_OP_PREFETCH ideal-int
+pkg runtime (linux-amd64), const PERF_COUNT_HW_CACHE_OP_READ = 0
+pkg runtime (linux-amd64), const PERF_COUNT_HW_CACHE_OP_READ ideal-int
+pkg runtime (linux-amd64), const PERF_COUNT_HW_CACHE_OP_WRITE = 1
+pkg runtime (linux-amd64), const PERF_COUNT_HW_CACHE_OP_WRITE ideal-int
+pkg runtime (linux-amd64), const PERF_COUNT_HW_CACHE_REFERENCES = 2
+pkg runtime (linux-amd64), const PERF_COUNT_HW_CACHE_REFERENCES ideal-int
+pkg runtime (linux-amd64), const PERF_COUNT_HW_CACHE_RESULT_ACCESS = 0
+pkg runtime (linux-amd64), const PERF_COUNT_HW_CACHE_RESULT_ACCESS ideal-int
+pkg runtime (linux-amd64), const PERF_COUNT_HW_CACHE_RESULT_MISS = 1
+pkg runtime (linux-amd64), const PERF_COUNT_HW_CACHE_RESULT_MISS ideal-int
+pkg runtime (linux-amd64), const PERF_COUNT_HW_CPU_CYCLES = 0
+pkg runtime (linux-amd64), const PERF_COUNT_HW_CPU_CYCLES ideal-int
+pkg runtime (linux-amd64), const PERF_COUNT_HW_INSTRUCTIONS = 1
+pkg runtime (linux-amd64), const PERF_COUNT_HW_INSTRUCTIONS ideal-int
+pkg runtime (linux-amd64), const PERF_COUNT_HW_REF_CPU_CYCLES = 9
+pkg runtime (linux-amd64), const PERF_COUNT_HW_REF_CPU_CYCLES ideal-int
+pkg runtime (linux-amd64), const PERF_COUNT_HW_STALLED_CYCLES_BACKEND = 8
+pkg runtime (linux-amd64), const PERF_COUNT_HW_STALLED_CYCLES_BACKEND ideal-int
+pkg runtime (linux-amd64), const PERF_COUNT_HW_STALLED_CYCLES_FRONTEND = 7
+pkg runtime (linux-amd64), const PERF_COUNT_HW_STALLED_CYCLES_FRONTEND ideal-int
+pkg runtime (linux-amd64), const PERF_COUNT_SW_ALIGNMENT_FAULTS = 7
+pkg runtime (linux-amd64), const PERF_COUNT_SW_ALIGNMENT_FAULTS ideal-int
+pkg runtime (linux-amd64), const PERF_COUNT_SW_BPF_OUTPUT = 10
+pkg runtime (linux-amd64), const PERF_COUNT_SW_BPF_OUTPUT ideal-int
+pkg runtime (linux-amd64), const PERF_COUNT_SW_CONTEXT_SWITCHES = 3
+pkg runtime (linux-amd64), const PERF_COUNT_SW_CONTEXT_SWITCHES ideal-int
+pkg runtime (linux-amd64), const PERF_COUNT_SW_CPU_CLOCK = 0
+pkg runtime (linux-amd64), const PERF_COUNT_SW_CPU_CLOCK ideal-int
+pkg runtime (linux-amd64), const PERF_COUNT_SW_CPU_MIGRATIONS = 4
+pkg runtime (linux-amd64), const PERF_COUNT_SW_CPU_MIGRATIONS ideal-int
+pkg runtime (linux-amd64), const PERF_COUNT_SW_DUMMY = 9
+pkg runtime (linux-amd64), const PERF_COUNT_SW_DUMMY ideal-int
+pkg runtime (linux-amd64), const PERF_COUNT_SW_EMULATION_FAULTS = 8
+pkg runtime (linux-amd64), const PERF_COUNT_SW_EMULATION_FAULTS ideal-int
+pkg runtime (linux-amd64), const PERF_COUNT_SW_PAGE_FAULTS = 2
+pkg runtime (linux-amd64), const PERF_COUNT_SW_PAGE_FAULTS ideal-int
+pkg runtime (linux-amd64), const PERF_COUNT_SW_PAGE_FAULTS_MAJ = 6
+pkg runtime (linux-amd64), const PERF_COUNT_SW_PAGE_FAULTS_MAJ ideal-int
+pkg runtime (linux-amd64), const PERF_COUNT_SW_PAGE_FAULTS_MIN = 5
+pkg runtime (linux-amd64), const PERF_COUNT_SW_PAGE_FAULTS_MIN ideal-int
+pkg runtime (linux-amd64), const PERF_COUNT_SW_TASK_CLOCK = 1
+pkg runtime (linux-amd64), const PERF_COUNT_SW_TASK_CLOCK ideal-int
+pkg runtime (linux-amd64), const PERF_EVENT_IOC_DISABLE = 9217
+pkg runtime (linux-amd64), const PERF_EVENT_IOC_DISABLE ideal-int
+pkg runtime (linux-amd64), const PERF_EVENT_IOC_ENABLE = 9216
+pkg runtime (linux-amd64), const PERF_EVENT_IOC_ENABLE ideal-int
+pkg runtime (linux-amd64), const PERF_EVENT_IOC_ID = 2148017159
+pkg runtime (linux-amd64), const PERF_EVENT_IOC_ID ideal-int
+pkg runtime (linux-amd64), const PERF_EVENT_IOC_MODIFY_ATTRIBUTES = 1074275339
+pkg runtime (linux-amd64), const PERF_EVENT_IOC_MODIFY_ATTRIBUTES ideal-int
+pkg runtime (linux-amd64), const PERF_EVENT_IOC_PAUSE_OUTPUT = 1074013193
+pkg runtime (linux-amd64), const PERF_EVENT_IOC_PAUSE_OUTPUT ideal-int
+pkg runtime (linux-amd64), const PERF_EVENT_IOC_PERIOD = 1074275332
+pkg runtime (linux-amd64), const PERF_EVENT_IOC_PERIOD ideal-int
+pkg runtime (linux-amd64), const PERF_EVENT_IOC_QUERY_BPF = 3221758986
+pkg runtime (linux-amd64), const PERF_EVENT_IOC_QUERY_BPF ideal-int
+pkg runtime (linux-amd64), const PERF_EVENT_IOC_REFRESH = 9218
+pkg runtime (linux-amd64), const PERF_EVENT_IOC_REFRESH ideal-int
+pkg runtime (linux-amd64), const PERF_EVENT_IOC_RESET = 9219
+pkg runtime (linux-amd64), const PERF_EVENT_IOC_RESET ideal-int
+pkg runtime (linux-amd64), const PERF_EVENT_IOC_SET_BPF = 1074013192
+pkg runtime (linux-amd64), const PERF_EVENT_IOC_SET_BPF ideal-int
+pkg runtime (linux-amd64), const PERF_EVENT_IOC_SET_FILTER = 1074275334
+pkg runtime (linux-amd64), const PERF_EVENT_IOC_SET_FILTER ideal-int
+pkg runtime (linux-amd64), const PERF_EVENT_IOC_SET_OUTPUT = 9221
+pkg runtime (linux-amd64), const PERF_EVENT_IOC_SET_OUTPUT ideal-int
+pkg runtime (linux-amd64), const PERF_FLAG_FD_CLOEXEC = 8
+pkg runtime (linux-amd64), const PERF_FLAG_FD_CLOEXEC ideal-int
+pkg runtime (linux-amd64), const PERF_FLAG_FD_NO_GROUP = 1
+pkg runtime (linux-amd64), const PERF_FLAG_FD_NO_GROUP ideal-int
+pkg runtime (linux-amd64), const PERF_FLAG_FD_OUTPUT = 2
+pkg runtime (linux-amd64), const PERF_FLAG_FD_OUTPUT ideal-int
+pkg runtime (linux-amd64), const PERF_FLAG_PID_CGROUP = 4
+pkg runtime (linux-amd64), const PERF_FLAG_PID_CGROUP ideal-int
+pkg runtime (linux-amd64), const PERF_FORMAT_GROUP = 8
+pkg runtime (linux-amd64), const PERF_FORMAT_GROUP ideal-int
+pkg runtime (linux-amd64), const PERF_FORMAT_ID = 4
+pkg runtime (linux-amd64), const PERF_FORMAT_ID ideal-int
+pkg runtime (linux-amd64), const PERF_FORMAT_TOTAL_TIME_ENABLED = 1
+pkg runtime (linux-amd64), const PERF_FORMAT_TOTAL_TIME_ENABLED ideal-int
+pkg runtime (linux-amd64), const PERF_FORMAT_TOTAL_TIME_RUNNING = 2
+pkg runtime (linux-amd64), const PERF_FORMAT_TOTAL_TIME_RUNNING ideal-int
+pkg runtime (linux-amd64), const PERF_RECORD_AUX = 11
+pkg runtime (linux-amd64), const PERF_RECORD_AUX ideal-int
+pkg runtime (linux-amd64), const PERF_RECORD_COMM = 3
+pkg runtime (linux-amd64), const PERF_RECORD_COMM ideal-int
+pkg runtime (linux-amd64), const PERF_RECORD_EXIT = 4
+pkg runtime (linux-amd64), const PERF_RECORD_EXIT ideal-int
+pkg runtime (linux-amd64), const PERF_RECORD_FORK = 7
+pkg runtime (linux-amd64), const PERF_RECORD_FORK ideal-int
+pkg runtime (linux-amd64), const PERF_RECORD_ITRACE_START = 12
+pkg runtime (linux-amd64), const PERF_RECORD_ITRACE_START ideal-int
+pkg runtime (linux-amd64), const PERF_RECORD_LOST = 2
+pkg runtime (linux-amd64), const PERF_RECORD_LOST ideal-int
+pkg runtime (linux-amd64), const PERF_RECORD_LOST_SAMPLES = 13
+pkg runtime (linux-amd64), const PERF_RECORD_LOST_SAMPLES ideal-int
+pkg runtime (linux-amd64), const PERF_RECORD_MMAP = 1
+pkg runtime (linux-amd64), const PERF_RECORD_MMAP ideal-int
+pkg runtime (linux-amd64), const PERF_RECORD_MMAP2 = 10
+pkg runtime (linux-amd64), const PERF_RECORD_MMAP2 ideal-int
+pkg runtime (linux-amd64), const PERF_RECORD_NAMESPACES = 16
+pkg runtime (linux-amd64), const PERF_RECORD_NAMESPACES ideal-int
+pkg runtime (linux-amd64), const PERF_RECORD_READ = 8
+pkg runtime (linux-amd64), const PERF_RECORD_READ ideal-int
+pkg runtime (linux-amd64), const PERF_RECORD_SAMPLE = 9
+pkg runtime (linux-amd64), const PERF_RECORD_SAMPLE ideal-int
+pkg runtime (linux-amd64), const PERF_RECORD_SWITCH = 14
+pkg runtime (linux-amd64), const PERF_RECORD_SWITCH ideal-int
+pkg runtime (linux-amd64), const PERF_RECORD_SWITCH_CPU_WIDE = 15
+pkg runtime (linux-amd64), const PERF_RECORD_SWITCH_CPU_WIDE ideal-int
+pkg runtime (linux-amd64), const PERF_RECORD_THROTTLE = 5
+pkg runtime (linux-amd64), const PERF_RECORD_THROTTLE ideal-int
+pkg runtime (linux-amd64), const PERF_RECORD_UNTHROTTLE = 6
+pkg runtime (linux-amd64), const PERF_RECORD_UNTHROTTLE ideal-int
+pkg runtime (linux-amd64), const PERF_SAMPLE_ADDR = 8
+pkg runtime (linux-amd64), const PERF_SAMPLE_ADDR ideal-int
+pkg runtime (linux-amd64), const PERF_SAMPLE_BRANCH_ABORT_TX = 128
+pkg runtime (linux-amd64), const PERF_SAMPLE_BRANCH_ABORT_TX ideal-int
+pkg runtime (linux-amd64), const PERF_SAMPLE_BRANCH_ANY = 8
+pkg runtime (linux-amd64), const PERF_SAMPLE_BRANCH_ANY ideal-int
+pkg runtime (linux-amd64), const PERF_SAMPLE_BRANCH_ANY_CALL = 16
+pkg runtime (linux-amd64), const PERF_SAMPLE_BRANCH_ANY_CALL ideal-int
+pkg runtime (linux-amd64), const PERF_SAMPLE_BRANCH_ANY_RETURN = 32
+pkg runtime (linux-amd64), const PERF_SAMPLE_BRANCH_ANY_RETURN ideal-int
+pkg runtime (linux-amd64), const PERF_SAMPLE_BRANCH_CALL = 8192
+pkg runtime (linux-amd64), const PERF_SAMPLE_BRANCH_CALL ideal-int
+pkg runtime (linux-amd64), const PERF_SAMPLE_BRANCH_CALL_STACK = 2048
+pkg runtime (linux-amd64), const PERF_SAMPLE_BRANCH_CALL_STACK ideal-int
+pkg runtime (linux-amd64), const PERF_SAMPLE_BRANCH_COND = 1024
+pkg runtime (linux-amd64), const PERF_SAMPLE_BRANCH_COND ideal-int
+pkg runtime (linux-amd64), const PERF_SAMPLE_BRANCH_HV = 4
+pkg runtime (linux-amd64), const PERF_SAMPLE_BRANCH_HV ideal-int
+pkg runtime (linux-amd64), const PERF_SAMPLE_BRANCH_IND_CALL = 64
+pkg runtime (linux-amd64), const PERF_SAMPLE_BRANCH_IND_CALL ideal-int
+pkg runtime (linux-amd64), const PERF_SAMPLE_BRANCH_IND_JUMP = 4096
+pkg runtime (linux-amd64), const PERF_SAMPLE_BRANCH_IND_JUMP ideal-int
+pkg runtime (linux-amd64), const PERF_SAMPLE_BRANCH_IN_TX = 256
+pkg runtime (linux-amd64), const PERF_SAMPLE_BRANCH_IN_TX ideal-int
+pkg runtime (linux-amd64), const PERF_SAMPLE_BRANCH_KERNEL = 2
+pkg runtime (linux-amd64), const PERF_SAMPLE_BRANCH_KERNEL ideal-int
+pkg runtime (linux-amd64), const PERF_SAMPLE_BRANCH_NO_CYCLES = 32768
+pkg runtime (linux-amd64), const PERF_SAMPLE_BRANCH_NO_CYCLES ideal-int
+pkg runtime (linux-amd64), const PERF_SAMPLE_BRANCH_NO_FLAGS = 16384
+pkg runtime (linux-amd64), const PERF_SAMPLE_BRANCH_NO_FLAGS ideal-int
+pkg runtime (linux-amd64), const PERF_SAMPLE_BRANCH_NO_TX = 512
+pkg runtime (linux-amd64), const PERF_SAMPLE_BRANCH_NO_TX ideal-int
+pkg runtime (linux-amd64), const PERF_SAMPLE_BRANCH_STACK = 2048
+pkg runtime (linux-amd64), const PERF_SAMPLE_BRANCH_STACK ideal-int
+pkg runtime (linux-amd64), const PERF_SAMPLE_BRANCH_TYPE_SAVE = 65536
+pkg runtime (linux-amd64), const PERF_SAMPLE_BRANCH_TYPE_SAVE ideal-int
+pkg runtime (linux-amd64), const PERF_SAMPLE_BRANCH_USER = 1
+pkg runtime (linux-amd64), const PERF_SAMPLE_BRANCH_USER ideal-int
+pkg runtime (linux-amd64), const PERF_SAMPLE_CALLCHAIN = 32
+pkg runtime (linux-amd64), const PERF_SAMPLE_CALLCHAIN ideal-int
+pkg runtime (linux-amd64), const PERF_SAMPLE_CPU = 128
+pkg runtime (linux-amd64), const PERF_SAMPLE_CPU ideal-int
+pkg runtime (linux-amd64), const PERF_SAMPLE_ID = 64
+pkg runtime (linux-amd64), const PERF_SAMPLE_ID ideal-int
+pkg runtime (linux-amd64), const PERF_SAMPLE_IP = 1
+pkg runtime (linux-amd64), const PERF_SAMPLE_IP ideal-int
+pkg runtime (linux-amd64), const PERF_SAMPLE_PERIOD = 256
+pkg runtime (linux-amd64), const PERF_SAMPLE_PERIOD ideal-int
+pkg runtime (linux-amd64), const PERF_SAMPLE_RAW = 1024
+pkg runtime (linux-amd64), const PERF_SAMPLE_RAW ideal-int
+pkg runtime (linux-amd64), const PERF_SAMPLE_READ = 16
+pkg runtime (linux-amd64), const PERF_SAMPLE_READ ideal-int
+pkg runtime (linux-amd64), const PERF_SAMPLE_STREAM_ID = 512
+pkg runtime (linux-amd64), const PERF_SAMPLE_STREAM_ID ideal-int
+pkg runtime (linux-amd64), const PERF_SAMPLE_TID = 2
+pkg runtime (linux-amd64), const PERF_SAMPLE_TID ideal-int
+pkg runtime (linux-amd64), const PERF_SAMPLE_TIME = 4
+pkg runtime (linux-amd64), const PERF_SAMPLE_TIME ideal-int
+pkg runtime (linux-amd64), const PERF_TYPE_BREAKPOINT = 5
+pkg runtime (linux-amd64), const PERF_TYPE_BREAKPOINT ideal-int
+pkg runtime (linux-amd64), const PERF_TYPE_HARDWARE = 0
+pkg runtime (linux-amd64), const PERF_TYPE_HARDWARE ideal-int
+pkg runtime (linux-amd64), const PERF_TYPE_HW_CACHE = 3
+pkg runtime (linux-amd64), const PERF_TYPE_HW_CACHE ideal-int
+pkg runtime (linux-amd64), const PERF_TYPE_RAW = 4
+pkg runtime (linux-amd64), const PERF_TYPE_RAW ideal-int
+pkg runtime (linux-amd64), const PERF_TYPE_SOFTWARE = 1
+pkg runtime (linux-amd64), const PERF_TYPE_SOFTWARE ideal-int
+pkg runtime (linux-amd64), const PERF_TYPE_TRACEPOINT = 2
+pkg runtime (linux-amd64), const PERF_TYPE_TRACEPOINT ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_CONTEXT_GUEST = -2048
+pkg runtime (linux-amd64-cgo), const PERF_CONTEXT_GUEST ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_CONTEXT_GUEST_KERNEL = -2176
+pkg runtime (linux-amd64-cgo), const PERF_CONTEXT_GUEST_KERNEL ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_CONTEXT_GUEST_USER = -2560
+pkg runtime (linux-amd64-cgo), const PERF_CONTEXT_GUEST_USER ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_CONTEXT_HV = -32
+pkg runtime (linux-amd64-cgo), const PERF_CONTEXT_HV ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_CONTEXT_KERNEL = -128
+pkg runtime (linux-amd64-cgo), const PERF_CONTEXT_KERNEL ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_CONTEXT_USER = -512
+pkg runtime (linux-amd64-cgo), const PERF_CONTEXT_USER ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_BRANCH_INSTRUCTIONS = 4
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_BRANCH_INSTRUCTIONS ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_BRANCH_MISSES = 5
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_BRANCH_MISSES ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_BUS_CYCLES = 6
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_BUS_CYCLES ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_CACHE_BPU = 5
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_CACHE_BPU ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_CACHE_DTLB = 3
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_CACHE_DTLB ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_CACHE_ITLB = 4
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_CACHE_ITLB ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_CACHE_L1D = 0
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_CACHE_L1D ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_CACHE_L1I = 1
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_CACHE_L1I ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_CACHE_LL = 2
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_CACHE_LL ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_CACHE_MISSES = 3
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_CACHE_MISSES ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_CACHE_NODE = 6
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_CACHE_NODE ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_CACHE_OP_PREFETCH = 2
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_CACHE_OP_PREFETCH ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_CACHE_OP_READ = 0
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_CACHE_OP_READ ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_CACHE_OP_WRITE = 1
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_CACHE_OP_WRITE ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_CACHE_REFERENCES = 2
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_CACHE_REFERENCES ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_CACHE_RESULT_ACCESS = 0
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_CACHE_RESULT_ACCESS ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_CACHE_RESULT_MISS = 1
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_CACHE_RESULT_MISS ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_CPU_CYCLES = 0
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_CPU_CYCLES ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_INSTRUCTIONS = 1
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_INSTRUCTIONS ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_REF_CPU_CYCLES = 9
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_REF_CPU_CYCLES ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_STALLED_CYCLES_BACKEND = 8
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_STALLED_CYCLES_BACKEND ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_STALLED_CYCLES_FRONTEND = 7
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_HW_STALLED_CYCLES_FRONTEND ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_SW_ALIGNMENT_FAULTS = 7
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_SW_ALIGNMENT_FAULTS ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_SW_BPF_OUTPUT = 10
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_SW_BPF_OUTPUT ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_SW_CONTEXT_SWITCHES = 3
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_SW_CONTEXT_SWITCHES ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_SW_CPU_CLOCK = 0
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_SW_CPU_CLOCK ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_SW_CPU_MIGRATIONS = 4
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_SW_CPU_MIGRATIONS ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_SW_DUMMY = 9
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_SW_DUMMY ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_SW_EMULATION_FAULTS = 8
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_SW_EMULATION_FAULTS ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_SW_PAGE_FAULTS = 2
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_SW_PAGE_FAULTS ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_SW_PAGE_FAULTS_MAJ = 6
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_SW_PAGE_FAULTS_MAJ ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_SW_PAGE_FAULTS_MIN = 5
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_SW_PAGE_FAULTS_MIN ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_SW_TASK_CLOCK = 1
+pkg runtime (linux-amd64-cgo), const PERF_COUNT_SW_TASK_CLOCK ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_EVENT_IOC_DISABLE = 9217
+pkg runtime (linux-amd64-cgo), const PERF_EVENT_IOC_DISABLE ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_EVENT_IOC_ENABLE = 9216
+pkg runtime (linux-amd64-cgo), const PERF_EVENT_IOC_ENABLE ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_EVENT_IOC_ID = 2148017159
+pkg runtime (linux-amd64-cgo), const PERF_EVENT_IOC_ID ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_EVENT_IOC_MODIFY_ATTRIBUTES = 1074275339
+pkg runtime (linux-amd64-cgo), const PERF_EVENT_IOC_MODIFY_ATTRIBUTES ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_EVENT_IOC_PAUSE_OUTPUT = 1074013193
+pkg runtime (linux-amd64-cgo), const PERF_EVENT_IOC_PAUSE_OUTPUT ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_EVENT_IOC_PERIOD = 1074275332
+pkg runtime (linux-amd64-cgo), const PERF_EVENT_IOC_PERIOD ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_EVENT_IOC_QUERY_BPF = 3221758986
+pkg runtime (linux-amd64-cgo), const PERF_EVENT_IOC_QUERY_BPF ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_EVENT_IOC_REFRESH = 9218
+pkg runtime (linux-amd64-cgo), const PERF_EVENT_IOC_REFRESH ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_EVENT_IOC_RESET = 9219
+pkg runtime (linux-amd64-cgo), const PERF_EVENT_IOC_RESET ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_EVENT_IOC_SET_BPF = 1074013192
+pkg runtime (linux-amd64-cgo), const PERF_EVENT_IOC_SET_BPF ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_EVENT_IOC_SET_FILTER = 1074275334
+pkg runtime (linux-amd64-cgo), const PERF_EVENT_IOC_SET_FILTER ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_EVENT_IOC_SET_OUTPUT = 9221
+pkg runtime (linux-amd64-cgo), const PERF_EVENT_IOC_SET_OUTPUT ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_FLAG_FD_CLOEXEC = 8
+pkg runtime (linux-amd64-cgo), const PERF_FLAG_FD_CLOEXEC ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_FLAG_FD_NO_GROUP = 1
+pkg runtime (linux-amd64-cgo), const PERF_FLAG_FD_NO_GROUP ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_FLAG_FD_OUTPUT = 2
+pkg runtime (linux-amd64-cgo), const PERF_FLAG_FD_OUTPUT ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_FLAG_PID_CGROUP = 4
+pkg runtime (linux-amd64-cgo), const PERF_FLAG_PID_CGROUP ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_FORMAT_GROUP = 8
+pkg runtime (linux-amd64-cgo), const PERF_FORMAT_GROUP ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_FORMAT_ID = 4
+pkg runtime (linux-amd64-cgo), const PERF_FORMAT_ID ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_FORMAT_TOTAL_TIME_ENABLED = 1
+pkg runtime (linux-amd64-cgo), const PERF_FORMAT_TOTAL_TIME_ENABLED ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_FORMAT_TOTAL_TIME_RUNNING = 2
+pkg runtime (linux-amd64-cgo), const PERF_FORMAT_TOTAL_TIME_RUNNING ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_RECORD_AUX = 11
+pkg runtime (linux-amd64-cgo), const PERF_RECORD_AUX ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_RECORD_COMM = 3
+pkg runtime (linux-amd64-cgo), const PERF_RECORD_COMM ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_RECORD_EXIT = 4
+pkg runtime (linux-amd64-cgo), const PERF_RECORD_EXIT ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_RECORD_FORK = 7
+pkg runtime (linux-amd64-cgo), const PERF_RECORD_FORK ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_RECORD_ITRACE_START = 12
+pkg runtime (linux-amd64-cgo), const PERF_RECORD_ITRACE_START ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_RECORD_LOST = 2
+pkg runtime (linux-amd64-cgo), const PERF_RECORD_LOST ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_RECORD_LOST_SAMPLES = 13
+pkg runtime (linux-amd64-cgo), const PERF_RECORD_LOST_SAMPLES ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_RECORD_MMAP = 1
+pkg runtime (linux-amd64-cgo), const PERF_RECORD_MMAP ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_RECORD_MMAP2 = 10
+pkg runtime (linux-amd64-cgo), const PERF_RECORD_MMAP2 ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_RECORD_NAMESPACES = 16
+pkg runtime (linux-amd64-cgo), const PERF_RECORD_NAMESPACES ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_RECORD_READ = 8
+pkg runtime (linux-amd64-cgo), const PERF_RECORD_READ ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_RECORD_SAMPLE = 9
+pkg runtime (linux-amd64-cgo), const PERF_RECORD_SAMPLE ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_RECORD_SWITCH = 14
+pkg runtime (linux-amd64-cgo), const PERF_RECORD_SWITCH ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_RECORD_SWITCH_CPU_WIDE = 15
+pkg runtime (linux-amd64-cgo), const PERF_RECORD_SWITCH_CPU_WIDE ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_RECORD_THROTTLE = 5
+pkg runtime (linux-amd64-cgo), const PERF_RECORD_THROTTLE ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_RECORD_UNTHROTTLE = 6
+pkg runtime (linux-amd64-cgo), const PERF_RECORD_UNTHROTTLE ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_ADDR = 8
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_ADDR ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_BRANCH_ABORT_TX = 128
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_BRANCH_ABORT_TX ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_BRANCH_ANY = 8
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_BRANCH_ANY ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_BRANCH_ANY_CALL = 16
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_BRANCH_ANY_CALL ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_BRANCH_ANY_RETURN = 32
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_BRANCH_ANY_RETURN ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_BRANCH_CALL = 8192
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_BRANCH_CALL ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_BRANCH_CALL_STACK = 2048
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_BRANCH_CALL_STACK ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_BRANCH_COND = 1024
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_BRANCH_COND ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_BRANCH_HV = 4
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_BRANCH_HV ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_BRANCH_IND_CALL = 64
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_BRANCH_IND_CALL ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_BRANCH_IND_JUMP = 4096
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_BRANCH_IND_JUMP ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_BRANCH_IN_TX = 256
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_BRANCH_IN_TX ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_BRANCH_KERNEL = 2
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_BRANCH_KERNEL ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_BRANCH_NO_CYCLES = 32768
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_BRANCH_NO_CYCLES ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_BRANCH_NO_FLAGS = 16384
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_BRANCH_NO_FLAGS ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_BRANCH_NO_TX = 512
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_BRANCH_NO_TX ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_BRANCH_STACK = 2048
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_BRANCH_STACK ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_BRANCH_TYPE_SAVE = 65536
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_BRANCH_TYPE_SAVE ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_BRANCH_USER = 1
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_BRANCH_USER ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_CALLCHAIN = 32
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_CALLCHAIN ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_CPU = 128
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_CPU ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_ID = 64
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_ID ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_IP = 1
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_IP ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_PERIOD = 256
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_PERIOD ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_RAW = 1024
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_RAW ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_READ = 16
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_READ ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_STREAM_ID = 512
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_STREAM_ID ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_TID = 2
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_TID ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_TIME = 4
+pkg runtime (linux-amd64-cgo), const PERF_SAMPLE_TIME ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_TYPE_BREAKPOINT = 5
+pkg runtime (linux-amd64-cgo), const PERF_TYPE_BREAKPOINT ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_TYPE_HARDWARE = 0
+pkg runtime (linux-amd64-cgo), const PERF_TYPE_HARDWARE ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_TYPE_HW_CACHE = 3
+pkg runtime (linux-amd64-cgo), const PERF_TYPE_HW_CACHE ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_TYPE_RAW = 4
+pkg runtime (linux-amd64-cgo), const PERF_TYPE_RAW ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_TYPE_SOFTWARE = 1
+pkg runtime (linux-amd64-cgo), const PERF_TYPE_SOFTWARE ideal-int
+pkg runtime (linux-amd64-cgo), const PERF_TYPE_TRACEPOINT = 2
+pkg runtime (linux-amd64-cgo), const PERF_TYPE_TRACEPOINT ideal-int
+pkg runtime, const GO_COUNT_HW_BRANCH_INSTRUCTIONS = 4
+pkg runtime, const GO_COUNT_HW_BRANCH_INSTRUCTIONS ideal-int
+pkg runtime, const GO_COUNT_HW_BRANCH_MISSES = 5
+pkg runtime, const GO_COUNT_HW_BRANCH_MISSES ideal-int
+pkg runtime, const GO_COUNT_HW_BUS_CYCLES = 6
+pkg runtime, const GO_COUNT_HW_BUS_CYCLES ideal-int
+pkg runtime, const GO_COUNT_HW_CACHE_BPU = 15
+pkg runtime, const GO_COUNT_HW_CACHE_BPU ideal-int
+pkg runtime, const GO_COUNT_HW_CACHE_DTLB = 13
+pkg runtime, const GO_COUNT_HW_CACHE_DTLB ideal-int
+pkg runtime, const GO_COUNT_HW_CACHE_ITLB = 14
+pkg runtime, const GO_COUNT_HW_CACHE_ITLB ideal-int
+pkg runtime, const GO_COUNT_HW_CACHE_L1D = 10
+pkg runtime, const GO_COUNT_HW_CACHE_L1D ideal-int
+pkg runtime, const GO_COUNT_HW_CACHE_L1I = 11
+pkg runtime, const GO_COUNT_HW_CACHE_L1I ideal-int
+pkg runtime, const GO_COUNT_HW_CACHE_LL = 12
+pkg runtime, const GO_COUNT_HW_CACHE_LL ideal-int
+pkg runtime, const GO_COUNT_HW_CACHE_MISSES = 3
+pkg runtime, const GO_COUNT_HW_CACHE_MISSES ideal-int
+pkg runtime, const GO_COUNT_HW_CACHE_NODE = 16
+pkg runtime, const GO_COUNT_HW_CACHE_NODE ideal-int
+pkg runtime, const GO_COUNT_HW_CACHE_OP_PREFETCH = 19
+pkg runtime, const GO_COUNT_HW_CACHE_OP_PREFETCH ideal-int
+pkg runtime, const GO_COUNT_HW_CACHE_OP_READ = 17
+pkg runtime, const GO_COUNT_HW_CACHE_OP_READ ideal-int
+pkg runtime, const GO_COUNT_HW_CACHE_OP_WRITE = 18
+pkg runtime, const GO_COUNT_HW_CACHE_OP_WRITE ideal-int
+pkg runtime, const GO_COUNT_HW_CACHE_REFERENCES = 2
+pkg runtime, const GO_COUNT_HW_CACHE_REFERENCES ideal-int
+pkg runtime, const GO_COUNT_HW_CACHE_RESULT_ACCESS = 20
+pkg runtime, const GO_COUNT_HW_CACHE_RESULT_ACCESS ideal-int
+pkg runtime, const GO_COUNT_HW_CACHE_RESULT_MISS = 21
+pkg runtime, const GO_COUNT_HW_CACHE_RESULT_MISS ideal-int
+pkg runtime, const GO_COUNT_HW_CPU_CYCLES = 0
+pkg runtime, const GO_COUNT_HW_CPU_CYCLES ideal-int
+pkg runtime, const GO_COUNT_HW_INSTRUCTIONS = 1
+pkg runtime, const GO_COUNT_HW_INSTRUCTIONS ideal-int
+pkg runtime, const GO_COUNT_HW_REF_CPU_CYCLES = 9
+pkg runtime, const GO_COUNT_HW_REF_CPU_CYCLES ideal-int
+pkg runtime, const GO_COUNT_HW_STALLED_CYCLES_BACKEND = 8
+pkg runtime, const GO_COUNT_HW_STALLED_CYCLES_BACKEND ideal-int
+pkg runtime, const GO_COUNT_HW_STALLED_CYCLES_FRONTEND = 7
+pkg runtime, const GO_COUNT_HW_STALLED_CYCLES_FRONTEND ideal-int
+pkg runtime, const GO_COUNT_SW_CONTEXT_SWITCHES = 25
+pkg runtime, const GO_COUNT_SW_CONTEXT_SWITCHES ideal-int
+pkg runtime, const GO_COUNT_SW_CPU_CLOCK = 22
+pkg runtime, const GO_COUNT_SW_CPU_CLOCK ideal-int
+pkg runtime, const GO_COUNT_SW_PAGE_FAULTS = 24
+pkg runtime, const GO_COUNT_SW_PAGE_FAULTS ideal-int
+pkg runtime, const GO_COUNT_SW_TASK_CLOCK = 23
+pkg runtime, const GO_COUNT_SW_TASK_CLOCK ideal-int
+pkg runtime, func SetPMUProfile(int, *PMUEventAttr)
+pkg runtime, type PMUEventAttr struct
+pkg runtime, type PMUEventAttr struct, IsHvIncluded bool
+pkg runtime, type PMUEventAttr struct, IsKernelIncluded bool
+pkg runtime, type PMUEventAttr struct, Period uint64
+pkg runtime, type PMUEventAttr struct, PreciseIP uint8
+pkg runtime/pprof, func StartCPUProfile(io.Writer, ...int) error
+pkg runtime/pprof, func StartPMUProfile(...ProfilingOption) error
+pkg runtime/pprof, func StopPMUProfile()
+pkg runtime/pprof, func WithProfilingCacheMiss(io.Writer, *PMUEventConfig) ProfilingOption
+pkg runtime/pprof, func WithProfilingCacheRef(io.Writer, *PMUEventConfig) ProfilingOption
+pkg runtime/pprof, func WithProfilingCycle(io.Writer, *PMUEventConfig) ProfilingOption
+pkg runtime/pprof, func WithProfilingInstr(io.Writer, *PMUEventConfig) ProfilingOption
+pkg runtime/pprof, type PMUEventConfig struct
+pkg runtime/pprof, type PMUEventConfig struct, IsHvIncluded bool
+pkg runtime/pprof, type PMUEventConfig struct, IsKernelIncluded bool
+pkg runtime/pprof, type PMUEventConfig struct, Period int64
+pkg runtime/pprof, type PMUEventConfig struct, PreciseIP int8
+pkg runtime/pprof, type ProfilingOption interface, unexported methods
+pkg crypto/tls, const Ed25519 = 2055
+pkg crypto/tls, const Ed25519 SignatureScheme
+pkg crypto/x509, const Ed25519 = 4
+pkg crypto/x509, const Ed25519 PublicKeyAlgorithm
+pkg crypto/x509, const PureEd25519 = 16
+pkg crypto/x509, const PureEd25519 SignatureAlgorithm
+pkg go/types, func CheckExpr(*token.FileSet, *Package, token.Pos, ast.Expr, *Info) error
