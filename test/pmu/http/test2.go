@@ -48,5 +48,5 @@ func main() {
 		log.Fatal(err)
 	}
 
-    fmt.Println(sum)
+	fmt.Println(sum)
 }
