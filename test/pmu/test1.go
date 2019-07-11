@@ -4,7 +4,7 @@ package main
 
 import (
 	"fmt"
-    "log"
+	"log"
 	"os"
 	"sync"
 	"runtime/pprof"
@@ -154,23 +154,23 @@ func f10() {
 
 
 func run() error {
-    cycleFile, err := os.Create("cycle_profile")
-	if err != nil {
-	 return err
-	}
-    defer cycleFile.Close()
-    
-    var cycle pprof.PMUEventConfig
-    cycle.Period =  20000000
-    cycle.IsKernelIncluded = false
-    cycle.IsHvIncluded = false
-    
-    if err := pprof.StartPMUProfile(pprof.WithProfilingCycle(cycleFile, &cycle)); err != nil {
-        return err
+	cycleFile, err := os.Create("cycle_profile")
+		if err != nil {
+			return err
+		}
+	defer cycleFile.Close()
+
+	var cycle pprof.PMUEventConfig
+	cycle.Period =  10000000
+	cycle.IsKernelIncluded = false
+	cycle.IsHvIncluded = false
+
+	if err := pprof.StartPMUProfile(pprof.WithProfilingCycle(cycleFile, &cycle)); err != nil {
+		return err
 	}
 	defer pprof.StopPMUProfile()
 
-    wg.Add(10)
+	wg.Add(10)
 	defer wg.Wait()
 
 	go f1()
@@ -184,7 +184,7 @@ func run() error {
 	go f9()
 	go f10()
 
-    return nil
+	return nil
 }
 
 func main() {
