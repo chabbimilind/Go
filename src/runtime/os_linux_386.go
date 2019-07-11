@@ -4,8 +4,8 @@
 
 package runtime
 
-func setProcessPMUProfiler(arg ...interface{}) /*TODO: implementation*/{}
-func setThreadPMUProfiler(arg ...interface{}) {/*TODO: implementation*/}
+func setProcessPMUProfiler(arg ...interface{}) {/* TODO: implementation */}
+func setThreadPMUProfiler(arg ...interface{}) {/* TODO: implementation */}
 
 //go:nowritebarrierrec
-func sigpmuhandler(arg ...interface{}) {/*TODO: implementation*/}
+func sigpmuhandler(arg ...interface{}) {/* TODO: implementation */}

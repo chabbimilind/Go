@@ -838,7 +838,7 @@ func WithProfilingCycle(w io.Writer, eventConfig *PMUEventConfig) ProfilingOptio
             eventConfig.Period = 300
         }
 
-        helper(w, eventConfig, /*event ID*/ runtime.GO_COUNT_HW_CPU_CYCLES, /*event Name*/ "cycles")
+        helper(w, eventConfig, /* event ID */ runtime.GO_COUNT_HW_CPU_CYCLES, /* event name */ "cycles")
 		return nil
 	})
 }
@@ -853,7 +853,7 @@ func WithProfilingInstr(w io.Writer, eventConfig *PMUEventConfig) ProfilingOptio
 		eventConfig.Period = 300
         }
 
-        helper(w, eventConfig, /*event ID*/ runtime.GO_COUNT_HW_INSTRUCTIONS, /*event Name*/ "instructions")
+        helper(w, eventConfig, /* event ID */ runtime.GO_COUNT_HW_INSTRUCTIONS, /* event name */ "instructions")
 		return nil
 	})
 }
@@ -865,7 +865,7 @@ func WithProfilingCacheRef(w io.Writer, eventConfig *PMUEventConfig) ProfilingOp
         }
         // TODO: Clamp period to something reasonable
 
-        helper(w, eventConfig, /*event ID*/ runtime.GO_COUNT_HW_CACHE_REFERENCES, /*event Name*/ "cache references")
+        helper(w, eventConfig, /* event ID */ runtime.GO_COUNT_HW_CACHE_REFERENCES, /* event name */ "cache references")
 		return nil
 	})
 }
@@ -877,7 +877,7 @@ func WithProfilingCacheMiss(w io.Writer, eventConfig *PMUEventConfig) ProfilingO
         }
         // TODO: Clamp period to something reasonable
 
-        helper(w, eventConfig, /*event ID*/ runtime.GO_COUNT_HW_CACHE_MISSES, /*event Name*/ "cache misses")
+        helper(w, eventConfig, /* event ID */ runtime.GO_COUNT_HW_CACHE_MISSES, /* event name */ "cache misses")
 		return nil
 	})
 }

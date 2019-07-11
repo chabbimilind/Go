@@ -59,13 +59,13 @@ func setThreadPMUProfiler(eventId int32, eventAttr *PMUEventAttr) {
 			perfAttr.Bits += 0b1000000
 		}
 
-		fd, _, _ := perfEventOpen(&perfAttr, 0, -1, -1, 0, /* dummy*/ 0)
+		fd, _, _ := perfEventOpen(&perfAttr, 0, -1, -1, 0, /* dummy */ 0)
 		_g_.m.eventFds[eventId] = fd
-		r, _ := fcntl(fd, /*F_GETFL*/ 0x3, 0)
-		fcntl(fd, /*F_SETFL*/ 0x4, r | /*O_ASYNC*/ 0x2000)
-		fcntl(fd, /*F_SETSIG*/ 0xa, _SIGPMU)
-		fOwnEx := fOwnerEx{/*F_OWNER_TID*/ 0, int32(gettid())}
-		fcntl2(fd, /*F_SETOWN_EX*/ 0xf, &fOwnEx)
+		r, _ := fcntl(fd, /* F_GETFL */ 0x3, 0)
+		fcntl(fd, /* F_SETFL */ 0x4, r | /* O_ASYNC */ 0x2000)
+		fcntl(fd, /* F_SETSIG */ 0xa, _SIGPMU)
+		fOwnEx := fOwnerEx{/* F_OWNER_TID */ 0, int32(gettid())}
+		fcntl2(fd, /* F_SETOWN_EX */ 0xf, &fOwnEx)
 	}
 
 	_g_.m.eventAttrs[eventId] = eventAttr
