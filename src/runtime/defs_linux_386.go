@@ -57,7 +57,6 @@ const (
 	_SIGIO     = 0x1d
 	_SIGPWR    = 0x1e
 	_SIGSYS    = 0x1f
-	_SIGPMU    = 0x25 // psu: _SIGPMU = SIGRTMIN + 3
 
 	_FPE_INTDIV = 0x1
 	_FPE_INTOVF = 0x2

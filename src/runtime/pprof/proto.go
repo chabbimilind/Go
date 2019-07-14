@@ -37,14 +37,14 @@ type profileBuilder struct {
 	m            profMap
 
 	// encoding state
-	w           io.Writer
-	zw          *gzip.Writer
-	pb          protobuf
-	strings     []string
-	stringMap   map[string]int
-	locs        map[uintptr]int
-	funcs       map[string]int // Package path-qualified function name to Function.ID
-	mem         []memMap
+	w            io.Writer
+	zw           *gzip.Writer
+	pb           protobuf
+	strings      []string
+	stringMap    map[string]int
+	locs         map[uintptr]int
+	funcs        map[string]int // Package path-qualified function name to Function.ID
+	mem          []memMap
 }
 
 type memMap struct {

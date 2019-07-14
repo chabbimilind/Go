@@ -2125,6 +2125,9 @@ func gcstopm() {
 	stopm()
 }
 
+var register_setProcessPMUProfiler func(eventAttr *PMUEventAttr)
+var register_setThreadPMUProfiler func(eventId int32, eventAttr *PMUEventAttr)
+
 // Schedules gp to run on the current M.
 // If inheritTime is true, gp inherits the remaining time in the
 // current time slice. Otherwise, it starts a new time slice.
@@ -2149,14 +2152,16 @@ func execute(gp *g, inheritTime bool) {
 
 	// Check whether the profiler needs to be turned on or off.
 	hz := sched.profilehz
-	eventAttrs := sched.eventAttrs
-
 	if _g_.m.profilehz != hz {
 		setThreadCPUProfiler(hz)
 	}
-	for eventId := 0; eventId < maxPMUEvent; eventId++ {
-		if  _g_.m.eventAttrs[eventId] != eventAttrs[eventId] {
-			setThreadPMUProfiler(int32(eventId), eventAttrs[eventId])
+
+	if register_setThreadPMUProfiler != nil {
+		eventAttrs := sched.eventAttrs
+		for eventId := 0; eventId < maxPMUEvent; eventId++ {
+			if _g_.m.eventAttrs[eventId] != eventAttrs[eventId] {
+				register_setThreadPMUProfiler(int32(eventId), eventAttrs[eventId])
+			}
 		}
 	}
 
@@ -3622,7 +3627,7 @@ func mcount() int32 {
 	return int32(sched.mnext - sched.nmfreed)
 }
 
-var prof struct {
+var itimer struct {
 	signalLock uint32
 	hz         int32
 }
@@ -3637,7 +3642,6 @@ func _ExternalCode()              { _ExternalCode() }
 func _LostExternalCode()          { _LostExternalCode() }
 func _GC()                        { _GC() }
 func _LostSIGPROFDuringAtomic64() { _LostSIGPROFDuringAtomic64() }
-func _LostSIGPMUDuringAtomic64()  { _LostSIGPMUDuringAtomic64() }
 func _VDSO()                      { _VDSO() }
 
 func stackUnwinding(pc, sp, lr uintptr, gp *g, mp *m, stk []uintptr) int {
@@ -3771,11 +3775,11 @@ func stackUnwinding(pc, sp, lr uintptr, gp *g, mp *m, stk []uintptr) int {
 // Counts SIGPROFs received while in atomic64 critical section, on mips{,le}
 var lostAtomic64Count uint64
 
-// Called if we receive a SIGPROF signal.
+// Called if we receive a SIGPROF signal and itimer is enabled.
 // Called by the signal handler, may run during STW.
 //go:nowritebarrierrec
 func sigprof(pc, sp, lr uintptr, gp *g, mp *m) {
-	if prof.hz == 0 {
+	if itimer.hz == 0 {
 		return
 	}
 	// On mips{,le}, 64bit atomics are emulated with spinlocks, in
@@ -3802,7 +3806,7 @@ func sigprof(pc, sp, lr uintptr, gp *g, mp *m) {
 	getg().m.mallocing++
 	stk := make([]uintptr, maxCPUProfStack)
 	n := stackUnwinding(pc, sp, lr, gp, mp, stk)
-	if prof.hz != 0 {
+	if itimer.hz != 0 {
 		if (GOARCH == "mips" || GOARCH == "mipsle" || GOARCH == "arm") && lostAtomic64Count > 0 {
 			cpuprof.addLostAtomic64(lostAtomic64Count)
 			lostAtomic64Count = 0
@@ -3812,22 +3816,15 @@ func sigprof(pc, sp, lr uintptr, gp *g, mp *m) {
 	getg().m.mallocing--
 }
 
-// Counts SIGPMUs received while in atomic64 critical section, on mips{,le}
 var lostPMUAtomic64Count[maxPMUEvent] uint64
 
-// Called if we receive a SIGPMU signal.
+// Called if we receive a SIGPROF  signal and PMU is enabled.
 // Called by the signal handler, may run during STW.
 //go:nowritebarrierrec
-func sigpmu(pc, sp, lr uintptr, gp *g, mp *m, eventId int) { // SIGPMU = SIGRTMIN + 3
+func sigpmu(pc, sp, lr uintptr, gp *g, mp *m, eventId int) {
 	if pmuEvent[eventId].eventAttr == nil {
 		return
 	}
-	// On mips{,le}, 64bit atomics are emulated with spinlocks, in
-	// runtime/internal/atomic. If SIGPMU arrives while the program is inside
-	// the critical section, it creates a deadlock (when writing the sample).
-	// As a workaround, create a counter of SIGPMUs while in critical section
-	// to store the count, and pass it to sigprof.add() later when SIGPMU is
-	// received from somewhere else (with _LostSIGPMUDuringAtomic64 as pc).
 	if GOARCH == "mips" || GOARCH == "mipsle" || GOARCH == "arm" {
 		if f := findfunc(pc); f.valid() {
 			if hasPrefix(funcname(f), "runtime/internal/atomic") {
@@ -3837,12 +3834,6 @@ func sigpmu(pc, sp, lr uintptr, gp *g, mp *m, eventId int) { // SIGPMU = SIGRTMI
 		}
 	}
 
-	// Profiling runs concurrently with GC, so it must not allocate.
-	// Set a trap in case the code does allocate.
-	// Note that on windows, one thread takes profiles of all the
-	// other threads, so mp is usually not getg().m.
-	// In fact mp may not even be stopped.
-	// See golang.org/issue/17165.
 	getg().m.mallocing++
 	stk := make([]uintptr, maxCPUProfStack)
 	n := stackUnwinding(pc, sp, lr, gp, mp, stk)
@@ -3869,7 +3860,7 @@ var sigprofCallersUse uint32
 //go:nosplit
 //go:nowritebarrierrec
 func sigprofNonGo() {
-	if prof.hz != 0 {
+	if itimer.hz != 0 {
 		n := 0
 		for n < len(sigprofCallers) && sigprofCallers[n] != 0 {
 			n++
@@ -3900,7 +3891,7 @@ func sigpmuNonGo(eventId int) {
 //go:nosplit
 //go:nowritebarrierrec
 func sigprofNonGoPC(pc uintptr) {
-	if prof.hz != 0 {
+	if itimer.hz != 0 {
 		stk := []uintptr{
 			pc,
 			funcPC(_ExternalCode) + sys.PCQuantum,
@@ -3958,19 +3949,19 @@ func setcpuprofilerate(hz int32) {
 	_g_ := getg()
 	_g_.m.locks++
 
-	// Stop profiler on this thread so that it is safe to lock prof.
+	// Stop profiler on this thread so that it is safe to lock itimer.
 	// if a profiling signal came in while we had prof locked,
 	// it would deadlock.
 	setThreadCPUProfiler(0)
 
-	for !atomic.Cas(&prof.signalLock, 0, 1) {
+	for !atomic.Cas(&itimer.signalLock, 0, 1) {
 		osyield()
 	}
-	if prof.hz != hz {
+	if itimer.hz != hz {
 		setProcessCPUProfiler(hz)
-		prof.hz = hz
+		itimer.hz = hz
 	}
-	atomic.Store(&prof.signalLock, 0)
+	atomic.Store(&itimer.signalLock, 0)
 
 	lock(&sched.lock)
 	sched.profilehz = hz
@@ -3984,21 +3975,25 @@ func setcpuprofilerate(hz int32) {
 }
 
 func setpmuprofile(eventId int32, eventAttr *PMUEventAttr) {
+	if  register_setProcessPMUProfiler == nil || register_setThreadPMUProfiler == nil {
+		return
+	}
+
 	// Disable preemption, otherwise we can be rescheduled to another thread
 	// that has profiling enabled.
 	_g_ := getg()
 	_g_.m.locks++
 
-	// Stop profiler on this thread so that it is safe to lock prof.
-	// if a profiling signal came in while we had prof locked,
+	// Stop profiler on this thread so that it is safe to lock pmuEvent[eventId].
+	// if a profiling signal came in while we had pmuEvent[eventId] locked,
 	// it would deadlock.
-	setThreadPMUProfiler(eventId, nil)
+	register_setThreadPMUProfiler(eventId, nil)
 
 	for !atomic.Cas(&pmuEvent[eventId].signalLock, 0, 1) {
 		osyield()
 	}
 	if pmuEvent[eventId].eventAttr != eventAttr {
-		setProcessPMUProfiler(eventAttr)
+		register_setProcessPMUProfiler(eventAttr)
 		pmuEvent[eventId].eventAttr = eventAttr
 	}
 	atomic.Store(&pmuEvent[eventId].signalLock, 0)
@@ -4008,7 +4003,7 @@ func setpmuprofile(eventId int32, eventAttr *PMUEventAttr) {
 	unlock(&sched.lock)
 
 	if eventAttr != nil {
-		setThreadPMUProfiler(eventId, eventAttr)
+		register_setThreadPMUProfiler(eventId, eventAttr)
 	}
 
 	_g_.m.locks--

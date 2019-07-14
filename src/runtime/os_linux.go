@@ -5,6 +5,7 @@
 package runtime
 
 import (
+	"runtime/internal/atomic"
 	"runtime/internal/sys"
 	"unsafe"
 )
@@ -289,6 +290,10 @@ func getHugePageSize() uintptr {
 func osinit() {
 	ncpu = getproccount()
 	physHugePageSize = getHugePageSize()
+
+	register_setProcessPMUProfiler = setProcessPMUProfiler
+	register_setThreadPMUProfiler = setThreadPMUProfiler
+	register_sigpmuhandler = sigpmuhandler
 }
 
 var urandom_dev = []byte("/dev/urandom\x00")
@@ -452,3 +457,84 @@ func sysSigaction(sig uint32, new, old *sigactiont) {
 // rt_sigaction is implemented in assembly.
 //go:noescape
 func rt_sigaction(sig uintptr, new, old *sigactiont, size uintptr) int32
+
+func setProcessPMUProfiler(eventAttr *PMUEventAttr) {
+	if eventAttr != nil {
+		atomic.Cas(&sigState, _UNINSTALLED, _PMU_INSTALLED)
+		// Enable the Go signal handler if not enabled.
+		if atomic.Cas(&handlingSig[_SIGPROF], 0, 1) {
+			atomic.Storeuintptr(&fwdSig[_SIGPROF], getsig(_SIGPROF))
+			setsig(_SIGPROF, funcPC(sighandler))
+		}
+	} else {
+		atomic.Cas(&sigState, _PMU_INSTALLED, _UNINSTALLED)
+		// If the Go signal handler should be disabled by default,
+		// disable it if it is enabled.
+		if !sigInstallGoHandler(_SIGPROF) {
+			if atomic.Cas(&handlingSig[_SIGPROF], 1, 0) {
+				setsig(_SIGPROF, atomic.Loaduintptr(&fwdSig[_SIGPROF]))
+			}
+		}
+	}
+}
+
+//go:noescape
+func perfEventOpen(attr *perfEventAttr, pid, cpu, groupFd, flags, dummy int) (r int32, r2, err int)
+func fcntl(fd int32, cmd, arg int) (r, err int)
+//go:noescape
+func fcntl2(fd int32, cmd int, arg *fOwnerEx) (r, err int)
+
+func setThreadPMUProfiler(eventId int32, eventAttr *PMUEventAttr) {
+	_g_ := getg()
+
+	if eventAttr == nil {
+		if _g_.m.eventAttrs[eventId] != nil {
+			closefd(_g_.m.eventFds[eventId])
+		}
+	} else {
+		var perfAttr perfEventAttr
+		perfAttr.Size = uint32(unsafe.Sizeof(perfAttr))
+		perfAttr.Type = perfEventOpt[eventId].Type
+		perfAttr.Config = perfEventOpt[eventId].Config
+		perfAttr.Sample = eventAttr.Period
+		perfAttr.Bits = uint64(eventAttr.PreciseIP) << 15 // precise ip
+		if !eventAttr.IsKernelIncluded { // don't count kernel
+			perfAttr.Bits += 0b100000
+		}
+		if !eventAttr.IsHvIncluded { // don't count hypervisor
+			perfAttr.Bits += 0b1000000
+		}
+
+		fd, _, _ := perfEventOpen(&perfAttr, 0, -1, -1, 0, /* dummy */ 0)
+		_g_.m.eventFds[eventId] = fd
+		r, _ := fcntl(fd, /* F_GETFL */ 0x3, 0)
+		fcntl(fd, /* F_SETFL */ 0x4, r | /* O_ASYNC */ 0x2000)
+		fcntl(fd, /* F_SETSIG */ 0xa, _SIGPROF)
+		fOwnEx := fOwnerEx{/* F_OWNER_TID */ 0, int32(gettid())}
+		fcntl2(fd, /* F_SETOWN_EX */ 0xf, &fOwnEx)
+	}
+
+	_g_.m.eventAttrs[eventId] = eventAttr
+}
+
+func ioctl(fd int32, req, arg int) int
+
+//go:nowritebarrierrec
+func sigpmuhandler(info *siginfo, c *sigctxt, gp *g, _g_ *g) {
+	fd := info.si_fd
+	ioctl(fd, PERF_EVENT_IOC_DISABLE, 0)
+
+	var eventId int = -1
+	for i := 0; i < maxPMUEvent; i++ {
+		if _g_.m.eventFds[i] == fd {
+			eventId = i
+			break
+		}
+	}
+	if eventId != -1 {
+		sigpmu(c.sigpc(), c.sigsp(), c.siglr(), gp, _g_.m, eventId)
+	}
+
+	ioctl(fd, PERF_EVENT_IOC_ENABLE, 0)
+	return
+}

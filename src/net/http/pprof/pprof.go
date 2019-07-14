@@ -141,7 +141,7 @@ func pmuProfile(w http.ResponseWriter, r *http.Request) error {
 		case "cacheMisses":
 			err = pprof.StartPMUProfile(pprof.WithProfilingCacheMiss(w, &eventConfig))
 		default:
-			return errors.New("uknown event")
+			return errors.New("unknown or not yet implemented event")
 	}
 
 	return err
@@ -168,27 +168,30 @@ func Profile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Disposition", `attachment; filename="profile"`)
 
 	isPMUEnabled, err := strconv.ParseBool(r.FormValue("pmu"))
-	if err != nil || isPMUEnabled == false {
-		if err := pprof.StartCPUProfile(w); err != nil {
-			// StartCPUProfile failed, so no writes yet.
+
+	if err != nil {
+		if err = pprof.StartCPUProfile(w); err != nil {
 			serveError(w, http.StatusInternalServerError,
 				fmt.Sprintf("Could not enable CPU profiling: %s", err))
 			return
 		}
-	} else if err == nil && isPMUEnabled == true {
+	} else if isPMUEnabled {
 		if err = pmuProfile(w, r); err != nil {
 			serveError(w, http.StatusInternalServerError,
 				fmt.Sprintf("Could not enable PMU profiling: %s", err))
 			return
 		}
 	} else {
-		serveError(w, http.StatusInternalServerError,
-			fmt.Sprintf("Could not enable CPU or PMU profiling: %s", err))
-		return
+		if err = pprof.StartCPUProfile(w); err != nil {
+			serveError(w, http.StatusInternalServerError,
+				fmt.Sprintf("Could not enable CPU profiling: %s", err))
+			return
+		}
 	}
 
 	sleep(w, time.Duration(sec)*time.Second)
-	if isPMUEnabled == true {
+
+	if isPMUEnabled {
 		pprof.StopPMUProfile()
 	} else {
 		pprof.StopCPUProfile()

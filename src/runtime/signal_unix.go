@@ -38,6 +38,14 @@ const (
 	_SIG_IGN uintptr = 1
 )
 
+const (
+	_UNINSTALLED      = 0
+	_ITIMER_INSTALLED = 1
+	_PMU_INSTALLED	  = 2
+)
+
+var sigState uint32
+
 // Stores the signal handlers registered before Go installed its own.
 // These signal handlers will be invoked in cases where Go doesn't want to
 // handle a particular signal (e.g., signal occurred on a non-Go thread).
@@ -141,13 +149,6 @@ func sigInstallGoHandler(sig uint32) bool {
 	return true
 }
 
-func isProfilingSignal(sig uint32) bool {
-	if sig == _SIGPROF || sig == _SIGPMU {
-		return true
-	}
-	return false
-}
-
 // sigenable enables the Go signal handler to catch the signal sig.
 // It is only called while holding the os/signal.handlers lock,
 // via os/signal.enableSignal and signal_enable.
@@ -156,8 +157,8 @@ func sigenable(sig uint32) {
 		return
 	}
 
-	// SIGPROF and _SIGPMU are handled specially for profiling.
-	if isProfilingSignal(sig) {
+	// SIGPROF is handled specially for profiling.
+	if sig == _SIGPROF {
 		return
 	}
 
@@ -181,8 +182,8 @@ func sigdisable(sig uint32) {
 		return
 	}
 
-	// SIGPROF and _SIGPMU are handled specially for profiling.
-	if isProfilingSignal(sig) {
+	// SIGPROF is handled specially for profiling.
+	if sig == _SIGPROF {
 		return
 	}
 
@@ -210,8 +211,8 @@ func sigignore(sig uint32) {
 		return
 	}
 
-	// SIGPROF and _SIGPMU are handled specially for profiling.
-    if isProfilingSignal(sig) {
+	// SIGPROF is handled specially for profiling.
+	if sig == _SIGPROF {
 		return
 	}
 
@@ -242,12 +243,14 @@ func clearSignalHandlers() {
 // required for -buildmode=c-archive.
 func setProcessCPUProfiler(hz int32) {
 	if hz != 0 {
+		atomic.Cas(&sigState, _UNINSTALLED, _ITIMER_INSTALLED)
 		// Enable the Go signal handler if not enabled.
 		if atomic.Cas(&handlingSig[_SIGPROF], 0, 1) {
 			atomic.Storeuintptr(&fwdSig[_SIGPROF], getsig(_SIGPROF))
 			setsig(_SIGPROF, funcPC(sighandler))
 		}
 	} else {
+		atomic.Cas(&sigState, _ITIMER_INSTALLED, _UNINSTALLED)
 		// If the Go signal handler should be disabled by default,
 		// disable it if it is enabled.
 		if !sigInstallGoHandler(_SIGPROF) {
@@ -301,10 +304,6 @@ func sigtrampgo(sig uint32, info *siginfo, ctx unsafe.Pointer) {
 		c := &sigctxt{info, ctx}
 		if sig == _SIGPROF {
 			sigprofNonGoPC(c.sigpc())
-			return
-		} else if sig == _SIGPMU {
-			// sigpmuNonGoPC(c.sigpc())
-			println("how do I know which pmu event delivers this signal")
 			return
 		}
 		c.fixsigcode(sig)
@@ -460,7 +459,7 @@ func dieFromSignal(sig uint32) {
 // thread, and the Go program does not want to handle it (that is, the
 // program has not called os/signal.Notify for the signal).
 func raisebadsignal(sig uint32, c *sigctxt) {
-    if isProfilingSignal(sig) {
+	if sig == _SIGPROF {
 		// Ignore profiling signals that arrive on non-Go threads.
 		return
 	}

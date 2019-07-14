@@ -760,6 +760,9 @@ func StartCPUProfile(w io.Writer, profileHz ...int) error {
 		cpu.done = make(chan bool)
 	}
 	// Double-check.
+	if pmu.profiling {
+		return errors.New("Please enable either cpu or pmu profiling instead of both")
+	}
 	if cpu.profiling {
 		return fmt.Errorf("cpu profiling already in use")
 	}
@@ -786,6 +789,9 @@ func StartPMUProfile(opts ...ProfilingOption) error {
 	defer pmu.Unlock()
 	pmu.wg.Add(len(opts))
 	// Double-check.
+	if cpu.profiling {
+		return errors.New("Please enable either cpu or pmu profiling instead of both")
+	}
 	if pmu.profiling {
 		return errors.New("pmu profiling already in use")
 	}
@@ -819,65 +825,66 @@ func getPreciseIP(preciseIP int8) uint8 {
 
 func helper(w io.Writer, eventConfig *PMUEventConfig, eventId int, eventName string) {
         pmu.eventOn[eventId] = true
-        eventAttr := runtime.PMUEventAttr{Period: uint64(eventConfig.Period),
-                                      PreciseIP: getPreciseIP(eventConfig.PreciseIP),
-                                      IsKernelIncluded: eventConfig.IsKernelIncluded,
-                                      IsHvIncluded: eventConfig.IsHvIncluded}
+        eventAttr := runtime.PMUEventAttr{
+		Period: uint64(eventConfig.Period),
+		PreciseIP: getPreciseIP(eventConfig.PreciseIP),
+		IsKernelIncluded: eventConfig.IsKernelIncluded,
+		IsHvIncluded: eventConfig.IsHvIncluded,
+	}
         runtime.SetPMUProfile(eventId, &eventAttr)
         go pmuProfileWriter(w, eventId, eventName)
-
 }
 
 func WithProfilingCycle(w io.Writer, eventConfig *PMUEventConfig) ProfilingOption {
 	return profilingOptionFunc(func() error {
-       if eventConfig.Period <= 0 {
-            return errors.New("Period should be > 0")
-        }
-        // Clamp period to something reasonable
-        if eventConfig.Period < 300 {
-            eventConfig.Period = 300
-        }
+		if eventConfig.Period <= 0 {
+			return errors.New("Period should be > 0")
+		}
+		// Clamp period to something reasonable
+		if eventConfig.Period < 300 {
+			eventConfig.Period = 300
+		}
 
-        helper(w, eventConfig, /* event ID */ runtime.GO_COUNT_HW_CPU_CYCLES, /* event name */ "cycles")
+		helper(w, eventConfig, /* event ID */ runtime.GO_COUNT_HW_CPU_CYCLES, /* event name */ "cycles")
 		return nil
 	})
 }
 
 func WithProfilingInstr(w io.Writer, eventConfig *PMUEventConfig) ProfilingOption {
 	return profilingOptionFunc(func() error {
-        if eventConfig.Period <= 0 {
-		return errors.New("Period should be > 0")
-        }
-        // Clamp period to something reasonable
-        if eventConfig.Period < 300 {
-		eventConfig.Period = 300
-        }
+		if eventConfig.Period <= 0 {
+			return errors.New("Period should be > 0")
+		}
+		// Clamp period to something reasonable
+		if eventConfig.Period < 300 {
+			eventConfig.Period = 300
+		}
 
-        helper(w, eventConfig, /* event ID */ runtime.GO_COUNT_HW_INSTRUCTIONS, /* event name */ "instructions")
-		return nil
+		helper(w, eventConfig, /* event ID */ runtime.GO_COUNT_HW_INSTRUCTIONS, /* event name */ "instructions")
+			return nil
 	})
 }
 
 func WithProfilingCacheRef(w io.Writer, eventConfig *PMUEventConfig) ProfilingOption {
 	return profilingOptionFunc(func() error {
-        if eventConfig.Period <= 0 {
-		return errors.New("Period should be > 0")
-        }
-        // TODO: Clamp period to something reasonable
+		if eventConfig.Period <= 0 {
+			return errors.New("Period should be > 0")
+		}
+		// TODO: Clamp period to something reasonable
 
-        helper(w, eventConfig, /* event ID */ runtime.GO_COUNT_HW_CACHE_REFERENCES, /* event name */ "cache references")
+		helper(w, eventConfig, /* event ID */ runtime.GO_COUNT_HW_CACHE_REFERENCES, /* event name */ "cache references")
 		return nil
 	})
 }
 
 func WithProfilingCacheMiss(w io.Writer, eventConfig *PMUEventConfig) ProfilingOption {
 	return profilingOptionFunc(func() error {
-        if eventConfig.Period <= 0 {
-		return errors.New("Period should be > 0")
-        }
-        // TODO: Clamp period to something reasonable
+		if eventConfig.Period <= 0 {
+			return errors.New("Period should be > 0")
+		}
+		// TODO: Clamp period to something reasonable
 
-        helper(w, eventConfig, /* event ID */ runtime.GO_COUNT_HW_CACHE_MISSES, /* event name */ "cache misses")
+		helper(w, eventConfig, /* event ID */ runtime.GO_COUNT_HW_CACHE_MISSES, /* event name */ "cache misses")
 		return nil
 	})
 }
@@ -895,7 +902,7 @@ func (pof profilingOptionFunc) apply() error { return pof() }
 // If profiling is turned off and all the profile data accumulated while it was
 // on has been returned, readProfile returns eof=true.
 // The caller must save the returned data and tags before calling readProfile again.
-func readProfile() (data []uint64, tags []unsafe.Pointer, eof bool)
+func readProfile(eventIds ...int) (data []uint64, tags []unsafe.Pointer, eof bool)
 
 func profileWriter(w io.Writer) {
 	b := newProfileBuilder(w)
@@ -919,14 +926,12 @@ func profileWriter(w io.Writer) {
 	cpu.done <- true
 }
 
-func readPMUProfile(eventId int) (data []uint64, tags []unsafe.Pointer, eof bool)
-
 func pmuProfileWriter(w io.Writer, eventId int, eventName string) {
 	b := newProfileBuilder(w)
 	var err error
 	for {
 		time.Sleep(100 * time.Millisecond)
-		data, tags, eof := readPMUProfile(eventId)
+		data, tags, eof := readProfile(eventId)
 		if e := b.addPMUData(data, tags); e != nil && err == nil {
 			err = e
 		}
@@ -938,7 +943,7 @@ func pmuProfileWriter(w io.Writer, eventId int, eventName string) {
 	    panic("runtime/pprof: converting profile: " + err.Error())
 	}
 	b.pmuBuild(eventName)
-    pmu.wg.Done()
+	pmu.wg.Done()
 }
 
 // StopCPUProfile stops the current CPU profile, if any.

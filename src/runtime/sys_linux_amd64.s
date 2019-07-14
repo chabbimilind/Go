@@ -47,7 +47,7 @@
 #define SYS_faccessat		269
 #define SYS_epoll_pwait		281
 #define SYS_epoll_create1	291
-#define SYS_perfEventOpen 298
+#define SYS_perfEventOpen 	298
 
 TEXT runtime·exit(SB),NOSPLIT,$0-4
 	MOVL	code+0(FP), DI
@@ -168,7 +168,6 @@ TEXT runtime·setitimer(SB),NOSPLIT,$0-24
 	SYSCALL
 	RET
 
-// func perfEventOpen(attr *PerfEventAttr, pid, cpu, groupFd, flags, dummy int64) (r int32, r2, err int64) 
 TEXT runtime·perfEventOpen(SB),NOSPLIT,$0
 	MOVQ	attr+0(FP), DI
 	MOVQ	pid+8(FP), SI
@@ -191,21 +190,25 @@ ok:
 	MOVQ	$0, err+64(FP)
 	RET
 
-// func ioctl(fd int32, req, arg int64) int64
 TEXT runtime·ioctl(SB),NOSPLIT,$0
 	MOVL	fd+0(FP), DI
 	MOVQ	req+8(FP), SI
 	MOVQ	arg+16(FP), DX
+	MOVQ    $0, R10
+        MOVQ    $0, R8
+        MOVQ    $0, R9
 	MOVQ	$SYS_ioctl, AX
 	SYSCALL
 	MOVQ    AX, ret+24(FP)
 	RET
 
-// func fcntl(fd int32, cmd arg int64) (r int64, err int64)
 TEXT runtime·fcntl(SB),NOSPLIT,$0
 	MOVL	fd+0(FP), DI
 	MOVQ	cmd+8(FP), SI
 	MOVQ	arg+16(FP), DX
+	MOVQ    $0, R10
+        MOVQ    $0, R8
+        MOVQ    $0, R9
 	MOVQ	$SYS_fcntl, AX
 	SYSCALL
 	CMPQ	AX, $0xfffffffffffff001

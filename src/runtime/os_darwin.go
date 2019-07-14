@@ -355,9 +355,3 @@ func sysargs(argc int32, argv **byte) {
 		executablePath = executablePath[len(prefix):]
 	}
 }
-
-func setProcessPMUProfiler(arg ...interface{}) {/* TODO: implementation */}
-func setThreadPMUProfiler(arg ...interface{}) {/* TODO: implementation */}
-
-//go:nowritebarrierrec
-func sigpmuhandler(arg ...interface{}) {/* TODO: implementation */}
