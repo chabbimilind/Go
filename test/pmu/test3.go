@@ -153,50 +153,17 @@ func f10() {
 }
 
 func run() error {
-	cycleFile, err := os.Create("cycle_profile")
+	itimerFile, err := os.Create("itimer_profile")
 	if err != nil {
 		return err
 	}
-	defer cycleFile.Close()
+	defer itimerFile.Close()
 
-	var cycle pprof.PMUEventConfig
-	cycle.Period =  15000000
-	// cycle.PreciseIP = 2
-
-	instrFile, err := os.Create("instr_profile")
-	if err != nil {
+	if err := pprof.StartCPUProfile(itimerFile); err != nil {
 		return err
 	}
-	defer instrFile.Close()
+	defer pprof.StopCPUProfile()
 
-	var instr pprof.PMUEventConfig
-	instr.Period =  10000000
-	// instr.PreciseIP = 2
-
-	cacheRefFile, err := os.Create("cacheRef_profile")
-	if err != nil {
-		return err
-	}
-	defer cacheRefFile.Close()
-
-	var cacheRef pprof.PMUEventConfig
-	cacheRef.Period =  200
-	// cacheRef.PreciseIP = 2
-
-	cacheMissFile, err := os.Create("cacheMiss_profile")
-	if err != nil {
-		return err
-	}
-	defer cacheMissFile.Close()
-
-	var cacheMiss pprof.PMUEventConfig
-	cacheMiss.Period =  1
-	// cacheMiss.PreciseIP = 2
-
-	if err := pprof.StartPMUProfile(pprof.WithProfilingCycle(cycleFile, &cycle), pprof.WithProfilingInstr(instrFile, &instr), pprof.WithProfilingCacheRef(cacheRefFile, &cacheRef), pprof.WithProfilingCacheMiss(cacheMissFile, &cacheMiss)); err != nil {
-		return err
-	 }
-	 defer pprof.StopPMUProfile()
 
 	wg.Add(10)
 	defer wg.Wait()
