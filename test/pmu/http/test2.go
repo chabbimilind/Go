@@ -7,9 +7,8 @@ import (
 	"fmt"
 	"log"
 	"sync"
-    // "time"
-    "net/http"
-    _ "net/http/pprof"
+	"net/http"
+	_ "net/http/pprof"
 )
 
 var wg sync.WaitGroup
