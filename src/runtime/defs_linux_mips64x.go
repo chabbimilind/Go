@@ -310,28 +310,6 @@ type ucontext struct {
 	uc_sigmask  uint64
 }
 
-type perfEventAttr struct {
-	Type               uint32
-	Size               uint32
-	Config             uint64
-	Sample             uint64
-	Sample_type        uint64
-	Read_format        uint64
-	Bits               uint64
-	Wakeup             uint32
-	Bp_type            uint32
-	Ext1               uint64
-	Ext2               uint64
-	Branch_sample_type uint64
-	Sample_regs_user   uint64
-	Sample_stack_user  uint32
-	Clockid            int32
-	Sample_regs_intr   uint64
-	Aux_watermark      uint32
-	Sample_max_stack   uint16
-	_                  uint16
-}
-
 // psu: only test it on amd64 
 type fOwnerEx struct {
 	Type int32
