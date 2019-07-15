@@ -3714,7 +3714,7 @@ func stackUnwinding(pc, sp, lr uintptr, gp *g, mp *m, stk []uintptr) int {
 	if gp == nil || sp < gp.stack.lo || gp.stack.hi < sp || setsSP(pc) || (mp != nil && mp.vdsoSP != 0) {
 		traceback = false
 	}
-    n := 0
+	n := 0
 	if mp.ncgo > 0 && mp.curg != nil && mp.curg.syscallpc != 0 && mp.curg.syscallsp != 0 {
 		cgoOff := 0
 		// Check cgoCallersUse to make sure that we are not
@@ -3768,8 +3768,7 @@ func stackUnwinding(pc, sp, lr uintptr, gp *g, mp *m, stk []uintptr) int {
 			}
 		}
 	}
-
-    return n
+	return n
 }
 
 // Counts SIGPROFs received while in atomic64 critical section, on mips{,le}
@@ -3818,7 +3817,7 @@ func sigprof(pc, sp, lr uintptr, gp *g, mp *m) {
 
 var lostPMUAtomic64Count[maxPMUEvent] uint64
 
-// Called if we receive a SIGPROF  signal and PMU is enabled.
+// Called if we receive a SIGPROF signal and PMU is enabled.
 // Called by the signal handler, may run during STW.
 //go:nowritebarrierrec
 func sigpmu(pc, sp, lr uintptr, gp *g, mp *m, eventId int) {

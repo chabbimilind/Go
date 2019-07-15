@@ -740,6 +740,13 @@ var cpu struct {
 // for syscall.SIGPROF, but note that doing so may break any profiling
 // being done by the main program.
 func StartCPUProfile(w io.Writer, profileHz ...int) error {
+	pmu.Lock()
+	if pmu.profiling {
+		pmu.Unlock()
+		return errors.New("Please disable pmu profiling before enabling cpu profiling")
+	}
+	pmu.Unlock()
+
 	// The runtime routines allow a variable profiling rate,
 	// but in practice operating systems cannot trigger signals
 	// at more than about 500 Hz, and our processing of the
@@ -760,9 +767,6 @@ func StartCPUProfile(w io.Writer, profileHz ...int) error {
 		cpu.done = make(chan bool)
 	}
 	// Double-check.
-	if pmu.profiling {
-		return errors.New("Please enable either cpu or pmu profiling instead of both")
-	}
 	if cpu.profiling {
 		return fmt.Errorf("cpu profiling already in use")
 	}
@@ -781,17 +785,21 @@ var pmu struct {
 }
 
 func StartPMUProfile(opts ...ProfilingOption) error {
-	if runtime.GOOS != "linux" || runtime.GOARCH != "amd64" /* TODO GOOS is not linux amd64 */ {
+	if runtime.GOOS != "linux" || runtime.GOARCH != "amd64" {
 		return errors.New("not implemented")
 	}
+
+	cpu.Lock()
+	if cpu.profiling {
+		cpu.Unlock()
+		return errors.New("Please disable cpu profiling before enabling pmu profiling")
+	}
+	cpu.Unlock()
 
 	pmu.Lock()
 	defer pmu.Unlock()
 	pmu.wg.Add(len(opts))
 	// Double-check.
-	if cpu.profiling {
-		return errors.New("Please enable either cpu or pmu profiling instead of both")
-	}
 	if pmu.profiling {
 		return errors.New("pmu profiling already in use")
 	}
@@ -920,7 +928,7 @@ func profileWriter(w io.Writer) {
 	if err != nil {
 		// The runtime should never produce an invalid or truncated profile.
 		// It drops records that can't fit into its log buffers.
-		 panic("runtime/pprof: converting profile: " + err.Error())
+		panic("runtime/pprof: converting profile: " + err.Error())
 	}
 	b.build()
 	cpu.done <- true
@@ -972,7 +980,7 @@ func StopPMUProfile() {
 
 	for i := 0; i < maxPMUEvent; i++ {
 		if pmu.eventOn[i] {
-		runtime.SetPMUProfile(i, nil)
+			runtime.SetPMUProfile(i, nil)
 		}
 	}
 	pmu.wg.Wait()

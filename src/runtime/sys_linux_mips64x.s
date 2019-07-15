@@ -31,7 +31,7 @@
 #define SYS_rt_sigreturn	5211
 #define SYS_rt_sigaction	5013
 #define SYS_rt_sigprocmask	5014
-#define SYS_ioctl       	5015
+#define SYS_ioctl		5015
 #define SYS_sigaltstack		5129
 #define SYS_madvise		5027
 #define SYS_mincore		5026
@@ -515,12 +515,12 @@ TEXT runtime·ioctl,NOSPLIT,$0-40
 	SYSCALL
 	BEQ	R7, ok
 	MOVV	$-1, R1
-	MOVV	R1, r+24(FP)	
+	MOVV	R1, r+24(FP)
 	MOVV	R2, err+32(FP)	
 	RET
 ok:
-	MOVV	R2, r+24(FP)	
-	MOVV	R0, err+32(FP)	
+	MOVV	R2, r+24(FP)
+	MOVV	R0, err+32(FP)
 	RET
 
 // psu: not tested

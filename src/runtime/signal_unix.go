@@ -44,8 +44,6 @@ const (
 	_PMU_INSTALLED	  = 2
 )
 
-var sigState uint32
-
 // Stores the signal handlers registered before Go installed its own.
 // These signal handlers will be invoked in cases where Go doesn't want to
 // handle a particular signal (e.g., signal occurred on a non-Go thread).

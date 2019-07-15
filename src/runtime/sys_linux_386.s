@@ -766,7 +766,7 @@ TEXT runtime·ioctl(SB),NOSPLIT,$0-20
 	MOVL	req+4(FP), CX
 	MOVL	arg+8(FP), DX
 	MOVL    $0, SI
-        MOVL    $0, DI
+	MOVL    $0, DI
 	MOVL	$SYS_ioctl, AX
 	INVOKE_SYSCALL
 	CMPL	AX, $0xfffff001
@@ -786,7 +786,7 @@ TEXT runtime·fcntl(SB),NOSPLIT,$0-20
 	MOVL	cmd+4(FP), CX
 	MOVL	arg+8(FP), DX
 	MOVL    $0, SI
-        MOVL    $0, DI
+	MOVL    $0, DI
 	MOVL	$SYS_fcntl, AX
 	INVOKE_SYSCALL
 	CMPL	AX, $0xfffff001
@@ -806,7 +806,7 @@ TEXT runtime·fcntl2(SB),NOSPLIT,$0-20
 	MOVL	cmd+4(FP), CX
 	MOVL	arg+8(FP), DX
 	MOVL    $0, SI
-        MOVL    $0, DI
+	MOVL    $0, DI
 	MOVL	$SYS_fcntl, AX
 	INVOKE_SYSCALL
 	CMPL	AX, $0xfffff001

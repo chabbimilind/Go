@@ -101,7 +101,7 @@ const (
 	_PERF_TYPE_HW_CACHE   = 0x3
 	_PERF_TYPE_RAW        = 0x4
 	_PERF_TYPE_BREAKPOINT = 0x5
-         
+
 	_PERF_COUNT_HW_CPU_CYCLES              = 0x0
 	_PERF_COUNT_HW_INSTRUCTIONS            = 0x1
 	_PERF_COUNT_HW_CACHE_REFERENCES        = 0x2
@@ -112,7 +112,7 @@ const (
 	_PERF_COUNT_HW_STALLED_CYCLES_FRONTEND = 0x7
 	_PERF_COUNT_HW_STALLED_CYCLES_BACKEND  = 0x8
 	_PERF_COUNT_HW_REF_CPU_CYCLES          = 0x9
-         
+
 	_PERF_COUNT_HW_CACHE_L1D  = 0x0
 	_PERF_COUNT_HW_CACHE_L1I  = 0x1
 	_PERF_COUNT_HW_CACHE_LL   = 0x2
@@ -120,14 +120,14 @@ const (
 	_PERF_COUNT_HW_CACHE_ITLB = 0x4
 	_PERF_COUNT_HW_CACHE_BPU  = 0x5
 	_PERF_COUNT_HW_CACHE_NODE = 0x6
-         
+
 	_PERF_COUNT_HW_CACHE_OP_READ     = 0x0
 	_PERF_COUNT_HW_CACHE_OP_WRITE    = 0x1
 	_PERF_COUNT_HW_CACHE_OP_PREFETCH = 0x2
-         
+
 	_PERF_COUNT_HW_CACHE_RESULT_ACCESS = 0x0
 	_PERF_COUNT_HW_CACHE_RESULT_MISS   = 0x1
-         
+
 	_PERF_COUNT_SW_CPU_CLOCK        = 0x0
 	_PERF_COUNT_SW_TASK_CLOCK       = 0x1
 	_PERF_COUNT_SW_PAGE_FAULTS      = 0x2
@@ -139,7 +139,7 @@ const (
 	_PERF_COUNT_SW_EMULATION_FAULTS = 0x8
 	_PERF_COUNT_SW_DUMMY            = 0x9
 	_PERF_COUNT_SW_BPF_OUTPUT       = 0xa
-         
+
 	_PERF_SAMPLE_IP           = 0x1
 	_PERF_SAMPLE_TID          = 0x2
 	_PERF_SAMPLE_TIME         = 0x4
@@ -152,7 +152,7 @@ const (
 	_PERF_SAMPLE_STREAM_ID    = 0x200
 	_PERF_SAMPLE_RAW          = 0x400
 	_PERF_SAMPLE_BRANCH_STACK = 0x800
-         
+
 	_PERF_SAMPLE_BRANCH_USER       = 0x1
 	_PERF_SAMPLE_BRANCH_KERNEL     = 0x2
 	_PERF_SAMPLE_BRANCH_HV         = 0x4
@@ -170,12 +170,12 @@ const (
 	_PERF_SAMPLE_BRANCH_NO_FLAGS   = 0x4000
 	_PERF_SAMPLE_BRANCH_NO_CYCLES  = 0x8000
 	_PERF_SAMPLE_BRANCH_TYPE_SAVE  = 0x10000
-         
+
 	_PERF_FORMAT_TOTAL_TIME_ENABLED = 0x1
 	_PERF_FORMAT_TOTAL_TIME_RUNNING = 0x2
 	_PERF_FORMAT_ID                 = 0x4
 	_PERF_FORMAT_GROUP              = 0x8
-         
+
 	_PERF_RECORD_MMAP            = 0x1
 	_PERF_RECORD_LOST            = 0x2
 	_PERF_RECORD_COMM            = 0x3
@@ -192,20 +192,20 @@ const (
 	_PERF_RECORD_SWITCH          = 0xe
 	_PERF_RECORD_SWITCH_CPU_WIDE = 0xf
 	_PERF_RECORD_NAMESPACES      = 0x10
-         
+
 	_PERF_CONTEXT_HV     = -0x20
 	_PERF_CONTEXT_KERNEL = -0x80
 	_PERF_CONTEXT_USER   = -0x200
-         
+
 	_PERF_CONTEXT_GUEST        = -0x800
 	_PERF_CONTEXT_GUEST_KERNEL = -0x880
 	_PERF_CONTEXT_GUEST_USER   = -0xa00
-         
+
 	_PERF_FLAG_FD_NO_GROUP = 0x1
 	_PERF_FLAG_FD_OUTPUT   = 0x2
 	_PERF_FLAG_PID_CGROUP  = 0x4
 	_PERF_FLAG_FD_CLOEXEC  = 0x8
-         
+
 	_PERF_EVENT_IOC_DISABLE               = 0x2401
 	_PERF_EVENT_IOC_ENABLE                = 0x2400
 	_PERF_EVENT_IOC_ID                    = 0x80082407
@@ -314,7 +314,7 @@ type ucontext struct {
 	uc_mcontext sigcontext
 }
 
-// psu: only test it on amd64 
+// psu: only tested on amd64
 type fOwnerEx struct {
 	Type int32
 	Pid  int32

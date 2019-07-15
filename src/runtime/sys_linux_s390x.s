@@ -41,7 +41,7 @@
 #define SYS_epoll_wait          251
 #define SYS_clock_gettime       260
 #define SYS_epoll_create1       327
-#define SYS_perf_event_open 	331
+#define SYS_perf_event_open	331
 
 TEXT runtime·exit(SB),NOSPLIT|NOFRAME,$0-4
 	MOVW	code+0(FP), R2

@@ -622,7 +622,7 @@ TEXT runtime·perfEventOpen(SB),NOSPLIT,$0-36
 	MOVW	dummy+20(FP), R5
 	MOVW	$SYS_perf_event_open, R7
 	SWI     $0
-	MOVW    $0xfffff001, R6 
+	MOVW    $0xfffff001, R6
 	CMP     R6, R0
 	BLS     ok
 	MOVW	$-1, R1
@@ -630,7 +630,7 @@ TEXT runtime·perfEventOpen(SB),NOSPLIT,$0-36
 	MOVW    $0, R2
 	MOVW	R2, r2+28(FP)
 	RSB     $0, R0, R0
-        MOVW    R0, err+32(FP) 
+	MOVW    R0, err+32(FP)
 	RET
 ok:
 	MOVW	R0, r+24(FP)

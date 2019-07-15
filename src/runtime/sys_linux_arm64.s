@@ -49,7 +49,7 @@
 #define SYS_socket		198
 #define SYS_connect		203
 #define SYS_brk			214
-#define SYS_perf_event_open 	241
+#define SYS_perf_event_open	241
 
 TEXT runtime·exit(SB),NOSPLIT|NOFRAME,$0-4
 	MOVW	code+0(FP), R0

@@ -753,8 +753,8 @@ TEXT runtime·ioctl(SB),NOSPLIT,$0-40
 	MOVQ	req+8(FP), SI
 	MOVQ	arg+16(FP), DX
 	MOVQ    $0, R10
-        MOVQ    $0, R8
-        MOVQ    $0, R9
+	MOVQ    $0, R8
+	MOVQ    $0, R9
 	MOVQ	$SYS_ioctl, AX
 	SYSCALL
 	CMPQ    AX, $0xfffffffffffff001
@@ -773,8 +773,8 @@ TEXT runtime·fcntl(SB),NOSPLIT,$0-40
 	MOVQ	cmd+8(FP), SI
 	MOVQ	arg+16(FP), DX
 	MOVQ    $0, R10
-        MOVQ    $0, R8
-        MOVQ    $0, R9
+	MOVQ    $0, R8
+	MOVQ    $0, R9
 	MOVQ	$SYS_fcntl, AX
 	SYSCALL
 	CMPQ	AX, $0xfffffffffffff001
@@ -793,8 +793,8 @@ TEXT runtime·fcntl2(SB),NOSPLIT,$0-40
 	MOVQ	cmd+8(FP), SI
 	MOVQ	arg+16(FP), DX
 	MOVQ    $0, R10
-        MOVQ    $0, R8
-        MOVQ    $0, R9
+	MOVQ    $0, R8
+	MOVQ    $0, R9
 	MOVQ	$SYS_fcntl, AX
 	SYSCALL
 	CMPQ	AX, $0xfffffffffffff001
