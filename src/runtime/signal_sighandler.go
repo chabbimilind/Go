@@ -38,11 +38,11 @@ func sighandler(sig uint32, info *siginfo, ctxt unsafe.Pointer, gp *g) {
 	c := &sigctxt{info, ctxt}
 
 	if sig == _SIGPROF {
-		state := atomic.Load(&sigState)
+		state := atomic.Load(&handlingSig[_SIGPROF])
 		if state == _ITIMER_INSTALLED {
 			sigprof(c.sigpc(), c.sigsp(), c.siglr(), gp, _g_.m)
 		} else if state == _PMU_INSTALLED && register_sigpmuhandler != nil {
-				register_sigpmuhandler(info, (*sigctxt)(noescape(unsafe.Pointer(c))), gp, _g_)
+			register_sigpmuhandler(info, (*sigctxt)(noescape(unsafe.Pointer(c))), gp, _g_)
 		}
 		return
 	}
