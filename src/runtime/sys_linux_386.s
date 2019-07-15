@@ -33,6 +33,7 @@
 #define SYS_access		33
 #define SYS_kill		37
 #define SYS_brk 		45
+#define SYS_ioctl       	54
 #define SYS_fcntl		55
 #define SYS_munmap		91
 #define SYS_socketcall		102
@@ -58,6 +59,7 @@
 #define SYS_clock_gettime	265
 #define SYS_tgkill		270
 #define SYS_epoll_create1	329
+#define SYS_perf_event_open 	336
 
 TEXT runtime·exit(SB),NOSPLIT,$0
 	MOVL	$SYS_exit_group, AX
@@ -733,4 +735,87 @@ TEXT runtime·sbrk0(SB),NOSPLIT,$0-4
 	MOVL	$0, BX  // NULL
 	INVOKE_SYSCALL
 	MOVL	AX, ret+0(FP)
+	RET
+
+// psu: not tested
+TEXT runtime·perfEventOpen(SB),NOSPLIT,$0
+	MOVL	attr+0(FP), BX
+	MOVL	pid+4(FP), CX
+	MOVL	cpu+8(FP), DX
+	MOVL	groupFd+12(FP), SI
+	MOVL	flags+16(FP), DI
+	MOVL	dummy+20(FP), BP
+	MOVL	$SYS_perf_event_open, AX
+	INVOKE_SYSCALL
+	CMPL	AX, $0xfffff001
+	JLS	ok
+	MOVL	$-1, r+24(FP)
+	MOVL	$0, r2+28(FP)
+	NEGL	AX
+	MOVL	AX, err+32(FP)
+	RET
+ok:
+	MOVL	AX, r+24(FP)
+	MOVL	DX, r2+28(FP)
+	MOVL	$0, err+32(FP)
+	RET
+
+// psu: not tested
+TEXT runtime·ioctl(SB),NOSPLIT,$0
+	MOVL	fd+0(FP), BX
+	MOVL	req+4(FP), CX
+	MOVL	arg+8(FP), DX
+	MOVL    $0, SI
+        MOVL    $0, DI
+	MOVL	$SYS_ioctl, AX
+	INVOKE_SYSCALL
+	CMPL	AX, $0xfffff001
+	JLS	ok
+	MOVL	$-1, r+12(FP)
+	NEGL	AX
+	MOVL	AX, err+16(FP)
+	RET
+ok:
+	MOVL	AX, r+12(FP)
+	MOVL	$0, err+16(FP)
+	RET
+
+// psu: not tested
+TEXT runtime·fcntl(SB),NOSPLIT,$0
+	MOVL	fd+0(FP), BX
+	MOVL	cmd+4(FP), CX
+	MOVL	arg+8(FP), DX
+	MOVL    $0, SI
+        MOVL    $0, DI
+	MOVL	$SYS_fcntl, AX
+	INVOKE_SYSCALL
+	CMPL	AX, $0xfffff001
+	JLS	ok
+	MOVL	$-1, r+12(FP)
+	NEGL	AX
+	MOVL	AX, err+16(FP)
+	RET
+ok:
+	MOVL	AX, r+12(FP)
+	MOVL	$0, err+16(FP)
+	RET
+
+// psu: not tested
+TEXT runtime·fcntl2(SB),NOSPLIT,$0
+	MOVL	fd+0(FP), BX
+	MOVL	cmd+4(FP), CX
+	MOVL	arg+8(FP), DX
+	MOVL    $0, SI
+        MOVL    $0, DI
+	MOVL	$SYS_fcntl, AX
+	INVOKE_SYSCALL
+	CMPL	AX, $0xfffff001
+	JLS	ok
+	MOVL	$-1, r+12(FP)
+	NEGL	AX
+	MOVL	AX, err+16(FP)
+	RET
+ok:
+	MOVL	AX, r+12(FP)
+	MOVL	$0, err+16(FP)
 	RET

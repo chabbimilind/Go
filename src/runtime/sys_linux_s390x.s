@@ -17,6 +17,7 @@
 #define SYS_getpid               20
 #define SYS_kill                 37
 #define SYS_brk			 45
+#define SYS_ioctl		 54
 #define SYS_fcntl                55
 #define SYS_mmap                 90
 #define SYS_munmap               91
@@ -40,6 +41,7 @@
 #define SYS_epoll_wait          251
 #define SYS_clock_gettime       260
 #define SYS_epoll_create1       327
+#define SYS_perf_event_open 	331
 
 TEXT runtime·exit(SB),NOSPLIT|NOFRAME,$0-4
 	MOVW	code+0(FP), R2
@@ -463,4 +465,90 @@ TEXT runtime·connect(SB),$0-28
 TEXT runtime·socket(SB),$0-20
 	MOVD	$0, 2(R0) // unimplemented, only needed for android; declared in stubs_linux.go
 	MOVW	R0, ret+16(FP)
+	RET
+
+// psu: not tested
+TEXT runtime·perfEventOpen(SB),NOSPLIT,$0
+	MOVD	attr+0(FP), R2
+	MOVD	pid+8(FP), R3
+	MOVD	cpu+16(FP), R4
+	MOVD	groupFd+24(FP), R5
+	MOVD	flags+32(FP), R6
+	MOVD	dummy+40(FP), R7
+	MOVD	SYS_perf_event_open, R1	
+	SYSCALL
+	MOVD	$0xfffffffffffff001, R8
+	CMPUBLT	R2, R8, ok
+	MOVW	$-1, r+48(FP)
+	MOVD	$0, r2+56(FP)
+	NEG	R2, R2
+	MOVD	R2, err+64(FP)
+	RET
+ok:
+	MOVW	R2, r+48(FP)
+	MOVD	R3, r2+56(FP)
+	MOVD	$0, err+64(FP)
+	RET
+
+// psu: not tested
+TEXT runtime·ioctl(SB),NOSPLIT,$0
+	MOVW	fd+0(FP), R2
+	MOVD	req+8(FP), R3
+	MOVD	arg+16(FP), R4
+	MOVD	$0, R5
+	MOVD	$0, R6
+	MOVD	$0, R7
+	MOVD	$SYS_ioctl, R1
+	SYSCALL
+	MOVD	$0xfffffffffffff001, R8
+	CMPUBLT	R2, R8, ok
+	MOVD	$-1, r+24(FP)
+	NEG	R2, R2
+	MOVD	R2, err+32(FP)
+	RET
+ok:
+	MOVD	R2, r+24(FP)
+	MOVD	$0, err+32(FP)
+	RET
+
+// psu: not tested
+TEXT runtime·fcntl(SB),NOSPLIT,$0
+	MOVW	fd+0(FP), R2
+	MOVD	cmd+8(FP), R3
+	MOVD	arg+16(FP), R4
+	MOVD	$0, R5
+	MOVD	$0, R6
+	MOVD	$0, R7
+	MOVD	$SYS_fcntl, R1
+	SYSCALL
+	MOVD	$0xfffffffffffff001, R8
+	CMPUBLT	R2, R8, ok
+	MOVD	$-1, r+24(FP)
+	NEG	R2, R2
+	MOVD	R2, err+32(FP)
+	RET
+ok:
+	MOVD	R2, r+24(FP)
+	MOVD	$0, err+32(FP)
+	RET
+
+// psu: not tested
+TEXT runtime·fcntl2(SB),NOSPLIT,$0
+	MOVW	fd+0(FP), R2
+	MOVD	cmd+8(FP), R3
+	MOVD	arg+16(FP), R4
+	MOVD	$0, R5
+	MOVD	$0, R6
+	MOVD	$0, R7
+	MOVD	$SYS_fcntl, R1
+	SYSCALL
+	MOVD	$0xfffffffffffff001, R8
+	CMPUBLT	R2, R8, ok
+	MOVD	$-1, r+24(FP)
+	NEG	R2, R2
+	MOVD	R2, err+32(FP)
+	RET
+ok:
+	MOVD	R2, r+24(FP)
+	MOVD	$0, err+32(FP)
 	RET

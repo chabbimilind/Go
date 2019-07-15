@@ -89,6 +89,132 @@ const (
 	_EPOLL_CTL_MOD = 0x3
 )
 
+const (
+	_PERF_TYPE_HARDWARE   = 0x0
+	_PERF_TYPE_SOFTWARE   = 0x1
+	_PERF_TYPE_TRACEPOINT = 0x2
+	_PERF_TYPE_HW_CACHE   = 0x3
+	_PERF_TYPE_RAW        = 0x4
+	_PERF_TYPE_BREAKPOINT = 0x5
+         
+	_PERF_COUNT_HW_CPU_CYCLES              = 0x0
+	_PERF_COUNT_HW_INSTRUCTIONS            = 0x1
+	_PERF_COUNT_HW_CACHE_REFERENCES        = 0x2
+	_PERF_COUNT_HW_CACHE_MISSES            = 0x3
+	_PERF_COUNT_HW_BRANCH_INSTRUCTIONS     = 0x4
+	_PERF_COUNT_HW_BRANCH_MISSES           = 0x5
+	_PERF_COUNT_HW_BUS_CYCLES              = 0x6
+	_PERF_COUNT_HW_STALLED_CYCLES_FRONTEND = 0x7
+	_PERF_COUNT_HW_STALLED_CYCLES_BACKEND  = 0x8
+	_PERF_COUNT_HW_REF_CPU_CYCLES          = 0x9
+         
+	_PERF_COUNT_HW_CACHE_L1D  = 0x0
+	_PERF_COUNT_HW_CACHE_L1I  = 0x1
+	_PERF_COUNT_HW_CACHE_LL   = 0x2
+	_PERF_COUNT_HW_CACHE_DTLB = 0x3
+	_PERF_COUNT_HW_CACHE_ITLB = 0x4
+	_PERF_COUNT_HW_CACHE_BPU  = 0x5
+	_PERF_COUNT_HW_CACHE_NODE = 0x6
+         
+	_PERF_COUNT_HW_CACHE_OP_READ     = 0x0
+	_PERF_COUNT_HW_CACHE_OP_WRITE    = 0x1
+	_PERF_COUNT_HW_CACHE_OP_PREFETCH = 0x2
+         
+	_PERF_COUNT_HW_CACHE_RESULT_ACCESS = 0x0
+	_PERF_COUNT_HW_CACHE_RESULT_MISS   = 0x1
+         
+	_PERF_COUNT_SW_CPU_CLOCK        = 0x0
+	_PERF_COUNT_SW_TASK_CLOCK       = 0x1
+	_PERF_COUNT_SW_PAGE_FAULTS      = 0x2
+	_PERF_COUNT_SW_CONTEXT_SWITCHES = 0x3
+	_PERF_COUNT_SW_CPU_MIGRATIONS   = 0x4
+	_PERF_COUNT_SW_PAGE_FAULTS_MIN  = 0x5
+	_PERF_COUNT_SW_PAGE_FAULTS_MAJ  = 0x6
+	_PERF_COUNT_SW_ALIGNMENT_FAULTS = 0x7
+	_PERF_COUNT_SW_EMULATION_FAULTS = 0x8
+	_PERF_COUNT_SW_DUMMY            = 0x9
+	_PERF_COUNT_SW_BPF_OUTPUT       = 0xa
+         
+	_PERF_SAMPLE_IP           = 0x1
+	_PERF_SAMPLE_TID          = 0x2
+	_PERF_SAMPLE_TIME         = 0x4
+	_PERF_SAMPLE_ADDR         = 0x8
+	_PERF_SAMPLE_READ         = 0x10
+	_PERF_SAMPLE_CALLCHAIN    = 0x20
+	_PERF_SAMPLE_ID           = 0x40
+	_PERF_SAMPLE_CPU          = 0x80
+	_PERF_SAMPLE_PERIOD       = 0x100
+	_PERF_SAMPLE_STREAM_ID    = 0x200
+	_PERF_SAMPLE_RAW          = 0x400
+	_PERF_SAMPLE_BRANCH_STACK = 0x800
+         
+	_PERF_SAMPLE_BRANCH_USER       = 0x1
+	_PERF_SAMPLE_BRANCH_KERNEL     = 0x2
+	_PERF_SAMPLE_BRANCH_HV         = 0x4
+	_PERF_SAMPLE_BRANCH_ANY        = 0x8
+	_PERF_SAMPLE_BRANCH_ANY_CALL   = 0x10
+	_PERF_SAMPLE_BRANCH_ANY_RETURN = 0x20
+	_PERF_SAMPLE_BRANCH_IND_CALL   = 0x40
+	_PERF_SAMPLE_BRANCH_ABORT_TX   = 0x80
+	_PERF_SAMPLE_BRANCH_IN_TX      = 0x100
+	_PERF_SAMPLE_BRANCH_NO_TX      = 0x200
+	_PERF_SAMPLE_BRANCH_COND       = 0x400
+	_PERF_SAMPLE_BRANCH_CALL_STACK = 0x800
+	_PERF_SAMPLE_BRANCH_IND_JUMP   = 0x1000
+	_PERF_SAMPLE_BRANCH_CALL       = 0x2000
+	_PERF_SAMPLE_BRANCH_NO_FLAGS   = 0x4000
+	_PERF_SAMPLE_BRANCH_NO_CYCLES  = 0x8000
+	_PERF_SAMPLE_BRANCH_TYPE_SAVE  = 0x10000
+         
+	_PERF_FORMAT_TOTAL_TIME_ENABLED = 0x1
+	_PERF_FORMAT_TOTAL_TIME_RUNNING = 0x2
+	_PERF_FORMAT_ID                 = 0x4
+	_PERF_FORMAT_GROUP              = 0x8
+         
+	_PERF_RECORD_MMAP            = 0x1
+	_PERF_RECORD_LOST            = 0x2
+	_PERF_RECORD_COMM            = 0x3
+	_PERF_RECORD_EXIT            = 0x4
+	_PERF_RECORD_THROTTLE        = 0x5
+	_PERF_RECORD_UNTHROTTLE      = 0x6
+	_PERF_RECORD_FORK            = 0x7
+	_PERF_RECORD_READ            = 0x8
+	_PERF_RECORD_SAMPLE          = 0x9
+	_PERF_RECORD_MMAP2           = 0xa
+	_PERF_RECORD_AUX             = 0xb
+	_PERF_RECORD_ITRACE_START    = 0xc
+	_PERF_RECORD_LOST_SAMPLES    = 0xd
+	_PERF_RECORD_SWITCH          = 0xe
+	_PERF_RECORD_SWITCH_CPU_WIDE = 0xf
+	_PERF_RECORD_NAMESPACES      = 0x10
+         
+	_PERF_CONTEXT_HV     = -0x20
+	_PERF_CONTEXT_KERNEL = -0x80
+	_PERF_CONTEXT_USER   = -0x200
+         
+	_PERF_CONTEXT_GUEST        = -0x800
+	_PERF_CONTEXT_GUEST_KERNEL = -0x880
+	_PERF_CONTEXT_GUEST_USER   = -0xa00
+         
+	_PERF_FLAG_FD_NO_GROUP = 0x1
+	_PERF_FLAG_FD_OUTPUT   = 0x2
+	_PERF_FLAG_PID_CGROUP  = 0x4
+	_PERF_FLAG_FD_CLOEXEC  = 0x8
+         
+	_PERF_EVENT_IOC_DISABLE               = 0x20002401
+	_PERF_EVENT_IOC_ENABLE                = 0x20002400
+	_PERF_EVENT_IOC_ID                    = 0x40082407
+	_PERF_EVENT_IOC_MODIFY_ATTRIBUTES     = 0x8008240b
+	_PERF_EVENT_IOC_PAUSE_OUTPUT          = 0x80042409
+	_PERF_EVENT_IOC_PERIOD                = 0x80082404
+	_PERF_EVENT_IOC_QUERY_BPF             = 0xc008240a
+	_PERF_EVENT_IOC_REFRESH               = 0x20002402
+	_PERF_EVENT_IOC_RESET                 = 0x20002403
+	_PERF_EVENT_IOC_SET_BPF               = 0x80042408
+	_PERF_EVENT_IOC_SET_FILTER            = 0x80082406
+	_PERF_EVENT_IOC_SET_OUTPUT            = 0x20002405
+)
+
 //struct Sigset {
 //	uint64	sig[1];
 //};
@@ -130,6 +256,9 @@ type siginfo struct {
 	__pad0   [1]int32
 	// below here is a union; si_addr is the only field we use
 	si_addr uint64
+	// psu: an unreliable workaround and need to figure out a better solution
+	// psu: only tested on amd64
+	si_fd    int32
 }
 
 type itimerval struct {
@@ -180,3 +309,32 @@ type ucontext struct {
 	uc_mcontext sigcontext
 	uc_sigmask  uint64
 }
+
+type perfEventAttr struct {
+	Type               uint32
+	Size               uint32
+	Config             uint64
+	Sample             uint64
+	Sample_type        uint64
+	Read_format        uint64
+	Bits               uint64
+	Wakeup             uint32
+	Bp_type            uint32
+	Ext1               uint64
+	Ext2               uint64
+	Branch_sample_type uint64
+	Sample_regs_user   uint64
+	Sample_stack_user  uint32
+	Clockid            int32
+	Sample_regs_intr   uint64
+	Aux_watermark      uint32
+	Sample_max_stack   uint16
+	_                  uint16
+}
+
+// psu: only test it on amd64 
+type fOwnerEx struct {
+	Type int32
+	Pid  int32
+}
+
