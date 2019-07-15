@@ -726,7 +726,7 @@ TEXT runtime·sbrk0(SB),NOSPLIT,$0-8
 	MOVQ	AX, ret+0(FP)
 	RET
 
-TEXT runtime·perfEventOpen(SB),NOSPLIT,$0
+TEXT runtime·perfEventOpen(SB),NOSPLIT,$0-72
 	MOVQ	attr+0(FP), DI
 	MOVQ	pid+8(FP), SI
 	MOVQ	cpu+16(FP), DX
@@ -748,7 +748,7 @@ ok:
 	MOVQ	$0, err+64(FP)
 	RET
 
-TEXT runtime·ioctl(SB),NOSPLIT,$0
+TEXT runtime·ioctl(SB),NOSPLIT,$0-40
 	MOVL	fd+0(FP), DI
 	MOVQ	req+8(FP), SI
 	MOVQ	arg+16(FP), DX
@@ -768,7 +768,7 @@ ok:
 	MOVQ	$0, err+32(FP)
 	RET
 
-TEXT runtime·fcntl(SB),NOSPLIT,$0
+TEXT runtime·fcntl(SB),NOSPLIT,$0-40
 	MOVL	fd+0(FP), DI
 	MOVQ	cmd+8(FP), SI
 	MOVQ	arg+16(FP), DX
@@ -788,7 +788,7 @@ ok:
 	MOVQ	$0, err+32(FP)
 	RET
 
-TEXT runtime·fcntl2(SB),NOSPLIT,$0
+TEXT runtime·fcntl2(SB),NOSPLIT,$0-40
 	MOVL	fd+0(FP), DI
 	MOVQ	cmd+8(FP), SI
 	MOVQ	arg+16(FP), DX

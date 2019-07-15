@@ -482,7 +482,7 @@ TEXT runtime·socket(SB),$0-20
 	RET
 
 // psu: not tested
-TEXT runtime·perfEventOpen(SB),NOSPLIT,$0
+TEXT runtime·perfEventOpen(SB),NOSPLIT,$0-72
 	MOVV	attr+0(FP), R4
 	MOVV	pid+8(FP), R5
 	MOVV	cpu+16(FP), R6
@@ -504,7 +504,7 @@ ok:
 	RET
 
 // psu: not tested
-TEXT runtime·ioctl,NOSPLIT,$0
+TEXT runtime·ioctl,NOSPLIT,$0-40
 	MOVV	fd+0(FP), R4
 	MOVV	req+8(FP), R5
 	MOVV	arg+16(FP), R6
@@ -524,7 +524,7 @@ ok:
 	RET
 
 // psu: not tested
-TEXT runtime·fcntl,NOSPLIT,$0
+TEXT runtime·fcntl,NOSPLIT,$0-40
 	MOVV	fd+0(FP), R4
 	MOVV	cmd+8(FP), R5
 	MOVV	arg+16(FP), R6
@@ -544,7 +544,7 @@ ok:
 	RET
 
 // psu: not tested
-TEXT runtime·fcntl2,NOSPLIT,$0
+TEXT runtime·fcntl2,NOSPLIT,$0-40
 	MOVV	fd+0(FP), R4
 	MOVV	cmd+8(FP), R5
 	MOVV	arg+16(FP), R6

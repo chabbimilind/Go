@@ -613,7 +613,7 @@ TEXT runtime·sigreturn(SB),NOSPLIT,$0-0
 	RET
 
 // psu: not tested
-TEXT runtime·perfEventOpen(SB),NOSPLIT,$0
+TEXT runtime·perfEventOpen(SB),NOSPLIT,$0-36
 	MOVW	attr+0(FP), R0
 	MOVW	pid+4((FP), R1
 	MOVW	cpu+8(FP), R2
@@ -640,7 +640,7 @@ ok:
 	RET
 
 // psu: not tested
-TEXT runtime·ioctl(SB),NOSPLIT,$0
+TEXT runtime·ioctl(SB),NOSPLIT,$0-20
 	MOVW	fd+0(FP), R0
 	MOVW	req+4(FP), R1
 	MOVW	arg+8(FP), R2
@@ -664,7 +664,7 @@ ok:
 	RET
 
 // psu: not tested
-TEXT runtime·fcntl(SB),NOSPLIT,$0
+TEXT runtime·fcntl(SB),NOSPLIT,$0-20
 	MOVW	fd+0(FP), R0
 	MOVW	cmd+4(FP), R1
 	MOVW	arg+8(FP), R2
@@ -688,7 +688,7 @@ ok:
 	RET
 
 // psu: not tested
-TEXT runtime·fcntl2(SB),NOSPLIT,$0
+TEXT runtime·fcntl2(SB),NOSPLIT,$0-20
 	MOVW	fd+0(FP), R0
 	MOVW	cmd+4(FP), R1
 	MOVW	arg+8(FP), R2

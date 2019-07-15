@@ -738,7 +738,7 @@ TEXT runtime·sbrk0(SB),NOSPLIT,$0-4
 	RET
 
 // psu: not tested
-TEXT runtime·perfEventOpen(SB),NOSPLIT,$0
+TEXT runtime·perfEventOpen(SB),NOSPLIT,$0-36
 	MOVL	attr+0(FP), BX
 	MOVL	pid+4(FP), CX
 	MOVL	cpu+8(FP), DX
@@ -761,7 +761,7 @@ ok:
 	RET
 
 // psu: not tested
-TEXT runtime·ioctl(SB),NOSPLIT,$0
+TEXT runtime·ioctl(SB),NOSPLIT,$0-20
 	MOVL	fd+0(FP), BX
 	MOVL	req+4(FP), CX
 	MOVL	arg+8(FP), DX
@@ -781,7 +781,7 @@ ok:
 	RET
 
 // psu: not tested
-TEXT runtime·fcntl(SB),NOSPLIT,$0
+TEXT runtime·fcntl(SB),NOSPLIT,$0-20
 	MOVL	fd+0(FP), BX
 	MOVL	cmd+4(FP), CX
 	MOVL	arg+8(FP), DX
@@ -801,7 +801,7 @@ ok:
 	RET
 
 // psu: not tested
-TEXT runtime·fcntl2(SB),NOSPLIT,$0
+TEXT runtime·fcntl2(SB),NOSPLIT,$0-20
 	MOVL	fd+0(FP), BX
 	MOVL	cmd+4(FP), CX
 	MOVL	arg+8(FP), DX
