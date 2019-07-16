@@ -722,10 +722,16 @@ type runtimeProfile []runtime.StackRecord
 func (p runtimeProfile) Len() int              { return len(p) }
 func (p runtimeProfile) Stack(i int) []uintptr { return p[i].Stack() }
 
+var mux sync.Mutex
+
 var cpu struct {
-	sync.Mutex
 	profiling bool
 	done      chan bool
+}
+var pmu struct {
+	profiling bool
+	eventOn   [runtime.MaxPMUEvent]bool
+	wg        sync.WaitGroup
 }
 
 // StartCPUProfile enables CPU profiling for the current process.
@@ -740,12 +746,12 @@ var cpu struct {
 // for syscall.SIGPROF, but note that doing so may break any profiling
 // being done by the main program.
 func StartCPUProfile(w io.Writer, profileHz ...int) error {
-	pmu.Lock()
+	mux.Lock()
+	defer mux.Unlock()
+
 	if pmu.profiling {
-		pmu.Unlock()
 		return errors.New("Please disable pmu profiling before enabling cpu profiling")
 	}
-	pmu.Unlock()
 
 	// The runtime routines allow a variable profiling rate,
 	// but in practice operating systems cannot trigger signals
@@ -761,8 +767,6 @@ func StartCPUProfile(w io.Writer, profileHz ...int) error {
 		hz = profileHz[0]
 	}
 
-	cpu.Lock()
-	defer cpu.Unlock()
 	if cpu.done == nil {
 		cpu.done = make(chan bool)
 	}
@@ -776,28 +780,17 @@ func StartCPUProfile(w io.Writer, profileHz ...int) error {
 	return nil
 	}
 
-const maxPMUEvent = 10
-var pmu struct {
-	sync.Mutex
-	profiling bool
-	eventOn   [maxPMUEvent]bool
-	wg        sync.WaitGroup
-}
-
 func StartPMUProfile(opts ...ProfilingOption) error {
-	if runtime.GOOS != "linux" || runtime.GOARCH != "amd64" {
+	if runtime.GOOS != "linux" || runtime.GOARCH != "amd64" { // enabling only on Linux AMD64
 		return errors.New("not implemented")
 	}
+	mux.Lock()
+	defer mux.Unlock()
 
-	cpu.Lock()
 	if cpu.profiling {
-		cpu.Unlock()
 		return errors.New("Please disable cpu profiling before enabling pmu profiling")
 	}
-	cpu.Unlock()
 
-	pmu.Lock()
-	defer pmu.Unlock()
 	pmu.wg.Add(len(opts))
 	// Double-check.
 	if pmu.profiling {
@@ -831,7 +824,7 @@ func getPreciseIP(preciseIP int8) uint8 {
 	return uint8(preciseIP)
 }
 
-func helper(w io.Writer, eventConfig *PMUEventConfig, eventId int, eventName string) {
+func populatePMUProfiler(w io.Writer, eventConfig *PMUEventConfig, eventId int, eventName string) {
         pmu.eventOn[eventId] = true
         eventAttr := runtime.PMUEventAttr{
 		Period: uint64(eventConfig.Period),
@@ -843,56 +836,60 @@ func helper(w io.Writer, eventConfig *PMUEventConfig, eventId int, eventName str
         go pmuProfileWriter(w, eventId, eventName)
 }
 
-func WithProfilingCycle(w io.Writer, eventConfig *PMUEventConfig) ProfilingOption {
+func WithProfilingPMUCycles(w io.Writer, eventConfig *PMUEventConfig) ProfilingOption {
 	return profilingOptionFunc(func() error {
 		if eventConfig.Period <= 0 {
 			return errors.New("Period should be > 0")
 		}
+		// TODO: create a table of standard clamp values
 		// Clamp period to something reasonable
-		if eventConfig.Period < 300 {
-			eventConfig.Period = 300
+		if eventConfig.Period < 1000 {
+			eventConfig.Period = 1000
 		}
 
-		helper(w, eventConfig, /* event ID */ runtime.GO_COUNT_HW_CPU_CYCLES, /* event name */ "cycles")
+		populatePMUProfiler(w, eventConfig, /* event ID */ runtime.GO_COUNT_HW_CPU_CYCLES, /* event name */ "cycles")
 		return nil
 	})
 }
 
-func WithProfilingInstr(w io.Writer, eventConfig *PMUEventConfig) ProfilingOption {
+func WithProfilingPMUInstructions(w io.Writer, eventConfig *PMUEventConfig) ProfilingOption {
 	return profilingOptionFunc(func() error {
 		if eventConfig.Period <= 0 {
 			return errors.New("Period should be > 0")
 		}
+		// TODO: create a table of standard clamp values
 		// Clamp period to something reasonable
-		if eventConfig.Period < 300 {
-			eventConfig.Period = 300
+		if eventConfig.Period < 1000 {
+			eventConfig.Period = 1000
 		}
 
-		helper(w, eventConfig, /* event ID */ runtime.GO_COUNT_HW_INSTRUCTIONS, /* event name */ "instructions")
+		populatePMUProfiler(w, eventConfig, /* event ID */ runtime.GO_COUNT_HW_INSTRUCTIONS, /* event name */ "instructions")
 			return nil
 	})
 }
 
-func WithProfilingCacheRef(w io.Writer, eventConfig *PMUEventConfig) ProfilingOption {
+func WithProfilingPMUCacheReferences(w io.Writer, eventConfig *PMUEventConfig) ProfilingOption {
 	return profilingOptionFunc(func() error {
 		if eventConfig.Period <= 0 {
 			return errors.New("Period should be > 0")
 		}
-		// TODO: Clamp period to something reasonable
+		// TODO: create a table of standard clamp values
+		// TODO: clamp period to something reasonable
 
-		helper(w, eventConfig, /* event ID */ runtime.GO_COUNT_HW_CACHE_REFERENCES, /* event name */ "cache references")
+		populatePMUProfiler(w, eventConfig, /* event ID */ runtime.GO_COUNT_HW_CACHE_REFERENCES, /* event name */ "cache references")
 		return nil
 	})
 }
 
-func WithProfilingCacheMiss(w io.Writer, eventConfig *PMUEventConfig) ProfilingOption {
+func WithProfilingPMUCacheMisses(w io.Writer, eventConfig *PMUEventConfig) ProfilingOption {
 	return profilingOptionFunc(func() error {
 		if eventConfig.Period <= 0 {
 			return errors.New("Period should be > 0")
 		}
-		// TODO: Clamp period to something reasonable
+		// TODO: create a table of standard clamp values
+		// TODO: clamp period to something reasonable
 
-		helper(w, eventConfig, /* event ID */ runtime.GO_COUNT_HW_CACHE_MISSES, /* event name */ "cache misses")
+		populatePMUProfiler(w, eventConfig, /* event ID */ runtime.GO_COUNT_HW_CACHE_MISSES, /* event name */ "cache misses")
 		return nil
 	})
 }
@@ -958,8 +955,8 @@ func pmuProfileWriter(w io.Writer, eventId int, eventName string) {
 // StopCPUProfile only returns after all the writes for the
 // profile have completed.
 func StopCPUProfile() {
-	cpu.Lock()
-	defer cpu.Unlock()
+	mux.Lock()
+	defer mux.Unlock()
 
 	if !cpu.profiling {
 		return
@@ -970,15 +967,15 @@ func StopCPUProfile() {
 }
 
 func StopPMUProfile() {
-	pmu.Lock()
-	defer pmu.Unlock()
+	mux.Lock()
+	defer mux.Unlock()
 
 	if !pmu.profiling {
 		return
 	}
 	pmu.profiling = false
 
-	for i := 0; i < maxPMUEvent; i++ {
+	for i := 0; i < runtime.MaxPMUEvent; i++ {
 		if pmu.eventOn[i] {
 			runtime.SetPMUProfile(i, nil)
 		}

@@ -19,7 +19,8 @@ import (
 )
 
 const maxCPUProfStack = 64
-const maxPMUEvent  = 10
+// MaxPMUEvent is a small number and cannot be >= 10 because we do a linear search on it
+const MaxPMUEvent = 10
 
 type profile struct {
 	lock mutex
@@ -43,7 +44,7 @@ type profile struct {
 }
 
 var cpuprof profile
-var pmuprof [maxPMUEvent]profile
+var pmuprof [MaxPMUEvent]profile
 
 // SetCPUProfileRate sets the CPU profiling rate to hz samples per second.
 // If hz <= 0, SetCPUProfileRate turns off profiling.
@@ -105,7 +106,7 @@ func SetPMUProfile(eventId int, eventAttr *PMUEventAttr) {
 }
 
 //go:nowritebarrierrec
-func (p *profile) addImpl(gp *g, stk []uintptr, prof *profile) {
+func (p *profile) addImpl(gp *g, stk []uintptr, cpuorpmuprof *profile) {
 	if p.numExtra > 0 || p.lostExtra > 0 {
 		p.addExtra()
 	}
@@ -114,7 +115,7 @@ func (p *profile) addImpl(gp *g, stk []uintptr, prof *profile) {
 	// because otherwise its write barrier behavior may not
 	// be correct. See the long comment there before
 	// changing the argument here.
-	prof.log.write(&gp.labels, nanotime(), hdr[:], stk)
+	cpuorpmuprof.log.write(&gp.labels, nanotime(), hdr[:], stk)
 }
 
 // add adds the stack trace to the profile.
@@ -125,13 +126,13 @@ func (p *profile) addImpl(gp *g, stk []uintptr, prof *profile) {
 //go:nowritebarrierrec
 func (p *profile) add(gp *g, stk []uintptr, eventIds ...int) {
 	if len(eventIds) == 0 {
-		for !atomic.Cas(&itimer.signalLock, 0, 1) {
+		for !atomic.Cas(&prof.signalLock, 0, 1) {
 			osyield()
 		}
-		if itimer.hz != 0 { // implies cpuprof.log != nil
+		if prof.hz != 0 { // implies cpuprof.log != nil
 			p.addImpl(gp, stk, &cpuprof)
 		}
-		atomic.Store(&itimer.signalLock, 0)
+		atomic.Store(&prof.signalLock, 0)
 	} else {
 		eventId := eventIds[0]
 		for !atomic.Cas(&pmuEvent[eventId].signalLock, 0, 1) {
@@ -172,11 +173,11 @@ func (p *profile) addNonGo(stk []uintptr, eventIds ...int) {
 		// (Other calls to add or addNonGo should be blocked out
 		// by the fact that only one SIGPROF can be handled by the
 		// process at a time. If not, this lock will serialize those too.)
-		for !atomic.Cas(&itimer.signalLock, 0, 1) {
+		for !atomic.Cas(&prof.signalLock, 0, 1) {
 			osyield()
 		}
 		p.addNonGoImpl(stk, &cpuprof)
-		atomic.Store(&itimer.signalLock, 0)
+		atomic.Store(&prof.signalLock, 0)
 	} else {
 		eventId := eventIds[0]
 		// Only one SIGPROF for each PMU event can be handled by the process at a time.

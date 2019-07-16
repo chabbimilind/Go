@@ -463,30 +463,19 @@ func rt_sigaction(sig uintptr, new, old *sigactiont, size uintptr) int32
 
 func setProcessPMUProfiler(eventAttr *PMUEventAttr) {
 	if eventAttr != nil {
-		oldVal := atomic.Load(&handlingSig[_SIGPROF])
-		if oldVal != _PMU_INSTALLED {
-			// Enable the Go signal handler if not enabled.
-			if atomic.Cas(&handlingSig[_SIGPROF], oldVal, _PMU_INSTALLED) {
-				atomic.Storeuintptr(&fwdSig[_SIGPROF], getsig(_SIGPROF))
-				setsig(_SIGPROF, funcPC(sighandler))
-			} else {
-				racyUpdatedVal := atomic.Load(&handlingSig[_SIGPROF])
-				if racyUpdatedVal != _UNINSTALLED {
-					panic("never reach here since pprof should have protected us")
-				} else {
-					// Sombody else did the job for us
-				}
-			}
+		atomic.Cas(&cpuorpmuprofiler, _UNINSTALLED, _PMU_INSTALLED)
+		// Enable the Go signal handler if not enabled.
+		if atomic.Cas(&handlingSig[_SIGPROF], _UNINSTALLED, _PMU_INSTALLED) {
+			atomic.Storeuintptr(&fwdSig[_SIGPROF], getsig(_SIGPROF))
+			setsig(_SIGPROF, funcPC(sighandler))
 		}
 	} else {
+		atomic.Cas(&cpuorpmuprofiler, _PMU_INSTALLED, _UNINSTALLED)
 		// If the Go signal handler should be disabled by default,
 		// disable it if it is enabled.
 		if !sigInstallGoHandler(_SIGPROF) {
 			if atomic.Cas(&handlingSig[_SIGPROF], _PMU_INSTALLED, _UNINSTALLED) {
 				setsig(_SIGPROF, atomic.Loaduintptr(&fwdSig[_SIGPROF]))
-			} else {
-				// Some other thread already replaced _PMU_INSTALLED with some other value.
-				// Ideally this should not happen in correctly written user code.
 			}
 		}
 	}
