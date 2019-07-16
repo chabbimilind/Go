@@ -133,13 +133,13 @@ func pmuProfile(w http.ResponseWriter, r *http.Request) error {
 
 	switch eventName := r.FormValue("event"); eventName {
 		case "cycles":
-			err = pprof.StartPMUProfile(pprof.WithProfilingCycle(w, &eventConfig))
+			err = pprof.StartPMUProfile(pprof.WithProfilingPMUCycles(w, &eventConfig))
 		case "instructions":
-			err = pprof.StartPMUProfile(pprof.WithProfilingInstr(w, &eventConfig))
+			err = pprof.StartPMUProfile(pprof.WithProfilingPMUInstructions(w, &eventConfig))
 		case "cacheReferences":
-			err = pprof.StartPMUProfile(pprof.WithProfilingCacheRef(w, &eventConfig))
+			err = pprof.StartPMUProfile(pprof.WithProfilingPMUCacheReferences(w, &eventConfig))
 		case "cacheMisses":
-			err = pprof.StartPMUProfile(pprof.WithProfilingCacheMiss(w, &eventConfig))
+			err = pprof.StartPMUProfile(pprof.WithProfilingPMUCacheMisses(w, &eventConfig))
 		default:
 			return errors.New("unknown or not yet implemented event")
 	}
