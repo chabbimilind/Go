@@ -8,6 +8,7 @@ import (
 	"runtime/internal/atomic"
 	"runtime/internal/sys"
 	"unsafe"
+	// "sync/atomic"
 )
 
 type mOS struct{}
@@ -290,10 +291,12 @@ func getHugePageSize() uintptr {
 func osinit() {
 	ncpu = getproccount()
 	physHugePageSize = getHugePageSize()
-
-	register_setProcessPMUProfiler = setProcessPMUProfiler
-	register_setThreadPMUProfiler = setThreadPMUProfiler
-	register_sigpmuhandler = sigpmuhandler
+	
+	// following the same convention as other write once variables in this function and 
+	// assuming that there exists a memory fence before anybody reads these values
+	setProcessPMUProfilerFptr = setProcessPMUProfiler
+	setThreadPMUProfilerFptr = setThreadPMUProfiler
+	sigprofPMUHandlerFptr = sigprofPMUHandler
 }
 
 var urandom_dev = []byte("/dev/urandom\x00")
@@ -471,7 +474,7 @@ func setProcessPMUProfiler(eventAttr *PMUEventAttr) {
 				if racyUpdatedVal != _UNINSTALLED {
 					panic("never reach here since pprof should have protected us")
 				} else {
-					println("sombody else did the job for us")
+					// Sombody else did the job for us
 				}
 			}
 		}
@@ -481,6 +484,9 @@ func setProcessPMUProfiler(eventAttr *PMUEventAttr) {
 		if !sigInstallGoHandler(_SIGPROF) {
 			if atomic.Cas(&handlingSig[_SIGPROF], _PMU_INSTALLED, _UNINSTALLED) {
 				setsig(_SIGPROF, atomic.Loaduintptr(&fwdSig[_SIGPROF]))
+			} else {
+				// Some other thread already replaced _PMU_INSTALLED with some other value.
+				// Ideally this should not happen in correctly written user code.
 			}
 		}
 	}
@@ -513,13 +519,36 @@ func setThreadPMUProfiler(eventId int32, eventAttr *PMUEventAttr) {
 			perfAttr.Bits += 0b1000000
 		}
 
-		fd, _, _ := perfEventOpen(&perfAttr, 0, -1, -1, 0, /* dummy */ 0)
-		_g_.m.eventFds[eventId] = fd
-		r, _ := fcntl(fd, /* F_GETFL */ 0x3, 0)
-		fcntl(fd, /* F_SETFL */ 0x4, r | /* O_ASYNC */ 0x2000)
-		fcntl(fd, /* F_SETSIG */ 0xa, _SIGPROF)
+		fd, _, err := perfEventOpen(&perfAttr, 0, -1, -1, 0, /* dummy */ 0)
+		if err != 0 {
+			println("Linux perf event open failed")
+			return
+		}
+
+		flag, _ := fcntl(fd, /* F_GETFL */ 0x3, 0)
+		_, err = fcntl(fd, /* F_SETFL */ 0x4, flag | /* O_ASYNC */ 0x2000)
+		if err != 0 {
+			println("Failed to set notification for the PMU event")
+			closefd(fd)
+			return
+		}
+
+		_, err = fcntl(fd, /* F_SETSIG */ 0xa, _SIGPROF)
+		if err != 0 {
+			println("Failed to set signal for the PMU event")
+			closefd(fd)
+			return
+		}
+
 		fOwnEx := fOwnerEx{/* F_OWNER_TID */ 0, int32(gettid())}
-		fcntl2(fd, /* F_SETOWN_EX */ 0xf, &fOwnEx)
+		_, err = fcntl2(fd, /* F_SETOWN_EX */ 0xf, &fOwnEx)
+		if err != 0 {
+			println("Failed to set the owner of the perf event file")
+			closefd(fd)
+			return
+		}
+
+		_g_.m.eventFds[eventId] = fd
 	}
 
 	_g_.m.eventAttrs[eventId] = eventAttr
@@ -528,21 +557,23 @@ func setThreadPMUProfiler(eventId int32, eventAttr *PMUEventAttr) {
 func ioctl(fd int32, req, arg int) (r, err int)
 
 //go:nowritebarrierrec
-func sigpmuhandler(info *siginfo, c *sigctxt, gp *g, _g_ *g) {
+func sigprofPMUHandler(info *siginfo, c *sigctxt, gp *g, _g_ *g) {
 	fd := info.si_fd
-	ioctl(fd, _PERF_EVENT_IOC_DISABLE, 0)
+	ioctl(fd, _PERF_EVENT_IOC_DISABLE, 0) // we don't care about failing ioctl
 
 	var eventId int = -1
-	for i := 0; i < maxPMUEvent; i++ {
+	for i := 0; i < MaxPMUEvent; i++ {
 		if _g_.m.eventFds[i] == fd {
 			eventId = i
 			break
 		}
 	}
 	if eventId != -1 {
-		sigpmu(c.sigpc(), c.sigsp(), c.siglr(), gp, _g_.m, eventId)
+		sigprofPMU(c.sigpc(), c.sigsp(), c.siglr(), gp, _g_.m, eventId)
+	} else {
+		println("should never reach here")
 	}
 
-	ioctl(fd, _PERF_EVENT_IOC_ENABLE, 0)
+	ioctl(fd, _PERF_EVENT_IOC_ENABLE, 0) // we don't care about failing ioctl
 	return
 }
