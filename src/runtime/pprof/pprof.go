@@ -75,7 +75,6 @@ package pprof
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"runtime"
@@ -750,7 +749,7 @@ func StartCPUProfile(w io.Writer, profileHz ...int) error {
 	defer mux.Unlock()
 
 	if pmu.profiling {
-		return errors.New("Please disable pmu profiling before enabling cpu profiling")
+		return fmt.Errorf("Please disable pmu profiling before enabling cpu profiling")
 	}
 
 	// The runtime routines allow a variable profiling rate,
@@ -782,19 +781,19 @@ func StartCPUProfile(w io.Writer, profileHz ...int) error {
 
 func StartPMUProfile(opts ...ProfilingOption) error {
 	if runtime.GOOS != "linux" || runtime.GOARCH != "amd64" { // enabling only on Linux AMD64
-		return errors.New("not implemented")
+		return fmt.Errorf("not implemented")
 	}
 	mux.Lock()
 	defer mux.Unlock()
 
 	if cpu.profiling {
-		return errors.New("Please disable cpu profiling before enabling pmu profiling")
+		return fmt.Errorf("Please disable cpu profiling before enabling pmu profiling")
 	}
 
 	pmu.wg.Add(len(opts))
 	// Double-check.
 	if pmu.profiling {
-		return errors.New("pmu profiling already in use")
+		return fmt.Errorf("pmu profiling already in use")
 	}
 	pmu.profiling = true
 
@@ -839,7 +838,7 @@ func populatePMUProfiler(w io.Writer, eventConfig *PMUEventConfig, eventId int, 
 func WithProfilingPMUCycles(w io.Writer, eventConfig *PMUEventConfig) ProfilingOption {
 	return profilingOptionFunc(func() error {
 		if eventConfig.Period <= 0 {
-			return errors.New("Period should be > 0")
+			return fmt.Errorf("Period should be > 0")
 		}
 		// TODO: create a table of standard clamp values
 		// Clamp period to something reasonable
@@ -855,7 +854,7 @@ func WithProfilingPMUCycles(w io.Writer, eventConfig *PMUEventConfig) ProfilingO
 func WithProfilingPMUInstructions(w io.Writer, eventConfig *PMUEventConfig) ProfilingOption {
 	return profilingOptionFunc(func() error {
 		if eventConfig.Period <= 0 {
-			return errors.New("Period should be > 0")
+			return fmt.Errorf("Period should be > 0")
 		}
 		// TODO: create a table of standard clamp values
 		// Clamp period to something reasonable
@@ -871,7 +870,7 @@ func WithProfilingPMUInstructions(w io.Writer, eventConfig *PMUEventConfig) Prof
 func WithProfilingPMUCacheReferences(w io.Writer, eventConfig *PMUEventConfig) ProfilingOption {
 	return profilingOptionFunc(func() error {
 		if eventConfig.Period <= 0 {
-			return errors.New("Period should be > 0")
+			return fmt.Errorf("Period should be > 0")
 		}
 		// TODO: create a table of standard clamp values
 		// TODO: clamp period to something reasonable
@@ -884,7 +883,7 @@ func WithProfilingPMUCacheReferences(w io.Writer, eventConfig *PMUEventConfig) P
 func WithProfilingPMUCacheMisses(w io.Writer, eventConfig *PMUEventConfig) ProfilingOption {
 	return profilingOptionFunc(func() error {
 		if eventConfig.Period <= 0 {
-			return errors.New("Period should be > 0")
+			return fmt.Errorf("Period should be > 0")
 		}
 		// TODO: create a table of standard clamp values
 		// TODO: clamp period to something reasonable
