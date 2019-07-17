@@ -54,7 +54,6 @@ package pprof
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -141,7 +140,7 @@ func pmuProfile(w http.ResponseWriter, r *http.Request) error {
 		case "cacheMisses":
 			err = pprof.StartPMUProfile(pprof.WithProfilingPMUCacheMisses(w, &eventConfig))
 		default:
-			return errors.New("unknown or not yet implemented event")
+			return fmt.Errorf("unknown or not yet implemented event")
 	}
 
 	return err
