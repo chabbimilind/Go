@@ -8,7 +8,6 @@ import (
 	"runtime/internal/atomic"
 	"runtime/internal/sys"
 	"unsafe"
-	// "sync/atomic"
 )
 
 type mOS struct{}
