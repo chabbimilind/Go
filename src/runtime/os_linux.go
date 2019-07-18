@@ -556,7 +556,7 @@ func sigprofPMUHandler(info *siginfo, c *sigctxt, gp *g, _g_ *g) {
 	ioctl(fd, _PERF_EVENT_IOC_DISABLE, 0) // we don't care about failing ioctl
 
 	var eventId int = -1
-	for i := 0; i < MaxPMUEvent; i++ {
+	for i := 0; i < GO_COUNT_PMU_EVENTS_MAX; i++ {
 		if _g_.m.eventFds[i] == fd {
 			eventId = i
 			break

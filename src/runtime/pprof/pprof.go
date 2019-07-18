@@ -730,7 +730,7 @@ var cpu struct {
 }
 var pmu struct {
 	profiling bool
-	eventOn   [runtime.MaxPMUEvent]bool
+	eventOn   [runtime.GO_COUNT_PMU_EVENTS_MAX]bool
 	wg        sync.WaitGroup
 }
 
@@ -991,7 +991,7 @@ func StopPMUProfile() {
 	}
 	pmu.profiling = false
 
-	for i := 0; i < runtime.MaxPMUEvent; i++ {
+	for i := 0; i < runtime.GO_COUNT_PMU_EVENTS_MAX; i++ {
 		if pmu.eventOn[i] {
 			runtime.SetPMUProfile(i, nil)
 		}

@@ -19,8 +19,6 @@ import (
 )
 
 const maxCPUProfStack = 64
-// MaxPMUEvent is a small number and cannot be >= 10 because we do a linear search on it
-const MaxPMUEvent = 10
 
 type profile struct {
 	lock mutex
@@ -44,7 +42,7 @@ type profile struct {
 }
 
 var cpuprof profile
-var pmuprof [MaxPMUEvent]profile
+var pmuprof [GO_COUNT_PMU_EVENTS_MAX]profile
 
 // SetCPUProfileRate sets the CPU profiling rate to hz samples per second.
 // If hz <= 0, SetCPUProfileRate turns off profiling.
