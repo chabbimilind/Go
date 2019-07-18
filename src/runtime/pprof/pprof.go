@@ -808,7 +808,7 @@ func StartPMUProfile(opts ...ProfilingOption) error {
 
 type PMUEventConfig struct {
 	Period           int64
-	RawEvent 	 uint64
+	RawEvent	 int64
 	PreciseIP        int8
 	IsKernelIncluded bool
 	IsHvIncluded     bool
@@ -904,7 +904,11 @@ func WithProfilingPMURaw(w io.Writer, eventConfig *PMUEventConfig) ProfilingOpti
 		// TODO: create a table of standard clamp values
 		// TODO: clamp period to something reasonable
 
-		populatePMUProfiler(w, eventConfig, /* event ID */ runtime.GO_COUNT_HW_RAW, /* event name */ "r" + strconv.FormatUint(eventConfig.RawEvent, 16))
+		if  eventConfig.RawEvent < 0 {
+			return fmt.Errorf("RawEvent should be >= 0")
+		}
+
+		populatePMUProfiler(w, eventConfig, /* event ID */ runtime.GO_COUNT_HW_RAW, /* event name */ "r" + strconv.FormatInt(eventConfig.RawEvent, 16))
 		return nil
 	})
 }

@@ -6,7 +6,7 @@ const (
 	GO_COUNT_HW_CACHE_REFERENCES        = 0x2
 	GO_COUNT_HW_CACHE_MISSES            = 0x3
 	GO_COUNT_HW_RAW			    = 0x4
-	GO_COUNT_PMU_EVENTS_MAX 	    = 0x5
+	GO_COUNT_PMU_EVENTS_MAX		    = 0x5
 )
 
 type PMUEventAttr struct {
