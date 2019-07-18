@@ -313,7 +313,7 @@ profile the tests during execution:
 	    Write a CPU profile to the specified file before exiting.
 	    Writes test binary as -c would.
 	
-	-pmurofile pmu.out
+	-pmuprofile pmu.out
 	    Write a PMU profile to the specified file before exiting.
 	    Writes test binary as -c would.
 	

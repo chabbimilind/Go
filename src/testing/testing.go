@@ -321,7 +321,7 @@ var (
 	pmuEvent	     *string
 	pmuPeriod            *int64
 	pmuPreciseIP         *int
-	pmuKernelIncluded   *bool
+	pmuKernelIncluded    *bool
 	pmuHvIncluded	     *bool
 	blockProfile         *string
 	blockProfileRate     *int
