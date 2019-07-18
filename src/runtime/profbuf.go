@@ -253,9 +253,6 @@ func (b *profBuf) canWriteRecord(nstk int) bool {
 		// Skip over that and start over at beginning of slice.
 		nd -= len(b.data) - i
 	}
-	if nd < want {
-		println("there")
-	}
 	return nd >= want
 }
 
