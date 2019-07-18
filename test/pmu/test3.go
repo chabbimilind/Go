@@ -1,4 +1,5 @@
 // run
+// Example of usage: go run test3.go
 
 package main
 

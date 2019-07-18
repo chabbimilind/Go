@@ -1,4 +1,5 @@
 // run
+// Example of usage: go run test2.go
 
 package main
 
@@ -217,7 +218,7 @@ func run() error {
 	defer cacheRefFile.Close()
 
 	var cacheRef pprof.PMUEventConfig
-	cacheRef.Period =  1000000
+	cacheRef.Period = 1000000
 	// cacheRef.PreciseIP = 2
 
 

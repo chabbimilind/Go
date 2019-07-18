@@ -1,5 +1,7 @@
 // run
-// Example of Usage: go tool pprof http://localhost:6060/debug/pprof/profile?seconds=6\&pmu=true\&event=cycles\&period=10000000
+// Example of usage: 
+// 1. go run test2.go
+// 2. go tool pprof http://localhost:6060/debug/pprof/profile?seconds=6\&pmu=true\&event=instructions\&period=10000000
 
 package main
 

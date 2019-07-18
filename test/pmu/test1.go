@@ -1,4 +1,5 @@
 // run
+// Example of usage: go run test1.go
 
 package main
 
@@ -165,7 +166,7 @@ func run() error {
 	cycle.IsKernelIncluded = false
 	cycle.IsHvIncluded = false
 
-	f err := pprof.StartPMUProfile(pprof.WithProfilingPMUCycles(cycleFile, &cycle)); err != nil {
+	if err := pprof.StartPMUProfile(pprof.WithProfilingPMUCycles(cycleFile, &cycle)); err != nil {
 		return err
 	}
 	defer pprof.StopPMUProfile()
