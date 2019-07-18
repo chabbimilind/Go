@@ -140,9 +140,18 @@ func pmuProfile(w http.ResponseWriter, r *http.Request) error {
 		case "cacheMisses":
 			err = pprof.StartPMUProfile(pprof.WithProfilingPMUCacheMisses(w, &eventConfig))
 		default:
-			return fmt.Errorf("unknown or not yet implemented event")
-	}
-
+			// is this a Raw event?
+			if strings.HasPrefix(eventName, "r") {
+				rawHexEvent, err := strconv.ParseUint(eventName[1:], 16, 64)
+				if err != nil {
+					return fmt.Errorf("Incorrect hex format for raw event")
+				}
+				eventConfig.RawEvent = rawHexEvent
+				err = pprof.StartPMUProfile(pprof.WithProfilingPMURaw(w, &eventConfig))
+			} else {
+				return fmt.Errorf("unknown or not yet implemented event")
+			}
+		}
 	return err
 }
 

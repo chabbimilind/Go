@@ -84,6 +84,7 @@ import (
 	"text/tabwriter"
 	"time"
 	"unsafe"
+	"strconv"
 )
 
 // BUG(rsc): Profiles are only as good as the kernel support used to generate them.
@@ -729,7 +730,7 @@ var cpu struct {
 }
 var pmu struct {
 	profiling bool
-	eventOn   [runtime.MaxPMUEvent]bool
+	eventOn   [runtime.GO_COUNT_PMU_EVENTS_MAX]bool
 	wg        sync.WaitGroup
 }
 
@@ -807,6 +808,7 @@ func StartPMUProfile(opts ...ProfilingOption) error {
 
 type PMUEventConfig struct {
 	Period           int64
+	RawEvent 	 uint64
 	PreciseIP        int8
 	IsKernelIncluded bool
 	IsHvIncluded     bool
@@ -827,6 +829,7 @@ func populatePMUProfiler(w io.Writer, eventConfig *PMUEventConfig, eventId int, 
         pmu.eventOn[eventId] = true
         eventAttr := runtime.PMUEventAttr {
 		Period: uint64(eventConfig.Period),
+		RawEvent: uint64(eventConfig.RawEvent),
 		PreciseIP: getPreciseIP(eventConfig.PreciseIP),
 		IsKernelIncluded: eventConfig.IsKernelIncluded,
 		IsHvIncluded: eventConfig.IsHvIncluded,
@@ -892,6 +895,20 @@ func WithProfilingPMUCacheMisses(w io.Writer, eventConfig *PMUEventConfig) Profi
 		return nil
 	})
 }
+
+func WithProfilingPMURaw(w io.Writer, eventConfig *PMUEventConfig) ProfilingOption {
+	return profilingOptionFunc(func() error {
+		if eventConfig.Period <= 0 {
+			return fmt.Errorf("Period should be > 0")
+		}
+		// TODO: create a table of standard clamp values
+		// TODO: clamp period to something reasonable
+
+		populatePMUProfiler(w, eventConfig, /* event ID */ runtime.GO_COUNT_HW_RAW, /* event name */ "r" + strconv.FormatUint(eventConfig.RawEvent, 16))
+		return nil
+	})
+}
+
 
 type ProfilingOption interface {
 	apply() error
@@ -974,7 +991,7 @@ func StopPMUProfile() {
 	}
 	pmu.profiling = false
 
-	for i := 0; i < runtime.MaxPMUEvent; i++ {
+	for i := 0; i < runtime.GO_COUNT_PMU_EVENTS_MAX; i++ {
 		if pmu.eventOn[i] {
 			runtime.SetPMUProfile(i, nil)
 		}

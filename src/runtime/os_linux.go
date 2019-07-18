@@ -501,7 +501,11 @@ func setThreadPMUProfiler(eventId int32, eventAttr *PMUEventAttr) {
 		var perfAttr perfEventAttr
 		perfAttr.Size = uint32(unsafe.Sizeof(perfAttr))
 		perfAttr.Type = perfEventOpt[eventId].Type
-		perfAttr.Config = perfEventOpt[eventId].Config
+		if (eventId == GO_COUNT_HW_RAW) {
+			perfAttr.Config = eventAttr.RawEvent
+		} else {
+			perfAttr.Config = perfEventOpt[eventId].Config
+		}
 		perfAttr.Sample = eventAttr.Period
 		perfAttr.Bits = uint64(eventAttr.PreciseIP) << 15 // precise ip
 		if !eventAttr.IsKernelIncluded { // don't count kernel
@@ -552,7 +556,7 @@ func sigprofPMUHandler(info *siginfo, c *sigctxt, gp *g, _g_ *g) {
 	ioctl(fd, _PERF_EVENT_IOC_DISABLE, 0) // we don't care about failing ioctl
 
 	var eventId int = -1
-	for i := 0; i < MaxPMUEvent; i++ {
+	for i := 0; i < GO_COUNT_PMU_EVENTS_MAX; i++ {
 		if _g_.m.eventFds[i] == fd {
 			eventId = i
 			break

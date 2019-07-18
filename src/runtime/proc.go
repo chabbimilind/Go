@@ -2158,7 +2158,7 @@ func execute(gp *g, inheritTime bool) {
 
 	if setThreadPMUProfilerFptr != nil {
 		eventAttrs := sched.eventAttrs
-		for eventId := 0; eventId < MaxPMUEvent; eventId++ {
+		for eventId := 0; eventId < GO_COUNT_PMU_EVENTS_MAX; eventId++ {
 			if _g_.m.eventAttrs[eventId] != eventAttrs[eventId] {
 				setThreadPMUProfilerFptr(int32(eventId), eventAttrs[eventId])
 			}
@@ -3632,7 +3632,7 @@ var prof struct {
 	hz         int32
 }
 
-var pmuEvent [MaxPMUEvent]struct {
+var pmuEvent [GO_COUNT_PMU_EVENTS_MAX]struct {
 	signalLock uint32
 	eventAttr  *PMUEventAttr
 }
@@ -3815,7 +3815,7 @@ func sigprof(pc, sp, lr uintptr, gp *g, mp *m) {
 	getg().m.mallocing--
 }
 
-var lostPMUAtomic64Count[MaxPMUEvent] uint64
+var lostPMUAtomic64Count[GO_COUNT_PMU_EVENTS_MAX] uint64
 
 // Called if we receive a SIGPROF signal and PMU is enabled.
 // Called by the signal handler, may run during STW.
