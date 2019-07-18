@@ -7,20 +7,28 @@ import (
 	"log"
 	"os"
 	"sync"
+	"sync/atomic"
+	_"time"
 	"runtime/pprof"
 )
 
 var wg sync.WaitGroup
 
+var racy int32
+
 func f1() {
 	defer wg.Done()
 
 	var sum int
-	for i := 0; i < 500000000; i++ {
+	for i := 0; i < 50000000; i++ {
 		sum -= i / 2
 		sum *= i
 		sum /= i/3 + 1
 		sum -= i / 4
+		/*if i % 100 == 0 {
+			time.Sleep(time.Nanosecond)
+		}*/
+		atomic.StoreInt32(&racy, 42)
 	}
 
 	fmt.Println(sum)
@@ -30,11 +38,15 @@ func f2() {
 	defer wg.Done()
 
 	var sum int
-	for i := 0; i < 500000000; i++ {
+	for i := 0; i < 50000000; i++ {
 		sum -= i / 2
 		sum *= i
 		sum /= i/3 + 1
 		sum -= i / 4
+		/*if i % 100 == 0 {
+			time.Sleep(time.Nanosecond)
+		}*/
+		atomic.StoreInt32(&racy, 42)
 	}
 
 	fmt.Println(sum)
@@ -44,11 +56,15 @@ func f3() {
 	defer wg.Done()
 
 	var sum int
-	for i := 0; i < 500000000; i++ {
+	for i := 0; i < 50000000; i++ {
 		sum -= i / 2
 		sum *= i
 		sum /= i/3 + 1
 		sum -= i / 4
+		/*if i % 100 == 0 {
+			time.Sleep(time.Nanosecond)
+		}*/
+		atomic.StoreInt32(&racy, 42)
 	}
 
 	fmt.Println(sum)
@@ -58,11 +74,15 @@ func f4() {
 	defer wg.Done()
 
 	var sum int
-	for i := 0; i < 500000000; i++ {
+	for i := 0; i < 50000000; i++ {
 		sum -= i / 2
 		sum *= i
 		sum /= i/3 + 1
 		sum -= i / 4
+		/*if i % 100 == 0 {
+			time.Sleep(time.Nanosecond)
+		}*/
+		atomic.StoreInt32(&racy, 42)
 	}
 
 	fmt.Println(sum)
@@ -72,11 +92,12 @@ func f5() {
 	defer wg.Done()
 
 	var sum int
-	for i := 0; i < 500000000; i++ {
+	for i := 0; i < 50000000; i++ {
 		sum -= i / 2
 		sum *= i
 		sum /= i/3 + 1
 		sum -= i / 4
+		atomic.StoreInt32(&racy, 42)
 	}
 
 	fmt.Println(sum)
@@ -86,11 +107,12 @@ func f6() {
 	defer wg.Done()
 
 	var sum int
-	for i := 0; i < 500000000; i++ {
+	for i := 0; i < 50000000; i++ {
 		sum -= i / 2
 		sum *= i
 		sum /= i/3 + 1
 		sum -= i / 4
+		atomic.StoreInt32(&racy, 42)
 	}
 
 	fmt.Println(sum)
@@ -100,11 +122,12 @@ func f7() {
 	defer wg.Done()
 
 	var sum int
-	for i := 0; i < 500000000; i++ {
+	for i := 0; i < 50000000; i++ {
 		sum -= i / 2
 		sum *= i
 		sum /= i/3 + 1
 		sum -= i / 4
+		atomic.StoreInt32(&racy, 42)
 	}
 
 	fmt.Println(sum)
@@ -114,11 +137,12 @@ func f8() {
 	defer wg.Done()
 
 	var sum int
-	for i := 0; i < 500000000; i++ {
+	for i := 0; i < 50000000; i++ {
 		sum -= i / 2
 		sum *= i
 		sum /= i/3 + 1
 		sum -= i / 4
+		atomic.StoreInt32(&racy, 42)
 	}
 
 	fmt.Println(sum)
@@ -128,11 +152,12 @@ func f9() {
 	defer wg.Done()
 
 	var sum int
-	for i := 0; i < 500000000; i++ {
+	for i := 0; i < 50000000; i++ {
 		sum -= i / 2
 		sum *= i
 		sum /= i/3 + 1
 		sum -= i / 4
+		atomic.StoreInt32(&racy, 42)
 	}
 
 	fmt.Println(sum)
@@ -142,11 +167,12 @@ func f10() {
 	defer wg.Done()
 
 	var sum int
-	for i := 0; i < 500000000; i++ {
+	for i := 0; i < 50000000; i++ {
 		sum -= i / 2
 		sum *= i
 		sum /= i/3 + 1
 		sum -= i / 4
+		atomic.StoreInt32(&racy, 42)
 	}
 
 	fmt.Println(sum)
@@ -160,7 +186,7 @@ func run() error {
 	defer cycleFile.Close()
 
 	var cycle pprof.PMUEventConfig
-	cycle.Period =  15000000
+	cycle.Period =  1000000
 	// cycle.PreciseIP = 2
 
 	instrFile, err := os.Create("instr_profile")
@@ -170,18 +196,8 @@ func run() error {
 	defer instrFile.Close()
 
 	var instr pprof.PMUEventConfig
-	instr.Period =  10000000
+	instr.Period =  1000000
 	// instr.PreciseIP = 2
-
-	cacheRefFile, err := os.Create("cacheRef_profile")
-	if err != nil {
-		return err
-	}
-	defer cacheRefFile.Close()
-
-	var cacheRef pprof.PMUEventConfig
-	cacheRef.Period =  200
-	// cacheRef.PreciseIP = 2
 
 	cacheMissFile, err := os.Create("cacheMiss_profile")
 	if err != nil {
@@ -190,13 +206,26 @@ func run() error {
 	defer cacheMissFile.Close()
 
 	var cacheMiss pprof.PMUEventConfig
-	cacheMiss.Period =  1
+	cacheMiss.Period = 10
 	// cacheMiss.PreciseIP = 2
 
-	if err := pprof.StartPMUProfile(pprof.WithProfilingCycle(cycleFile, &cycle), pprof.WithProfilingInstr(instrFile, &instr), pprof.WithProfilingCacheRef(cacheRefFile, &cacheRef), pprof.WithProfilingCacheMiss(cacheMissFile, &cacheMiss)); err != nil {
+
+	cacheRefFile, err := os.Create("cacheRef_profile")
+	if err != nil {
+		return err
+	}
+	defer cacheRefFile.Close()
+
+	var cacheRef pprof.PMUEventConfig
+	cacheRef.Period =  1000000
+	// cacheRef.PreciseIP = 2
+
+
+	if err := pprof.StartPMUProfile(pprof.WithProfilingPMUCycles(cycleFile, &cycle), pprof.WithProfilingPMUInstructions(instrFile, &instr), pprof.WithProfilingPMUCacheReferences(cacheRefFile, &cacheRef), pprof.WithProfilingPMUCacheMisses(cacheMissFile, &cacheMiss)); err != nil {
 		return err
 	 }
-	 defer pprof.StopPMUProfile()
+
+	defer pprof.StopPMUProfile()
 
 	wg.Add(10)
 	defer wg.Wait()
