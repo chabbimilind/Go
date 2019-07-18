@@ -31,10 +31,12 @@ const (
 	GO_COUNT_SW_TASK_CLOCK       = 0x17
 	GO_COUNT_SW_PAGE_FAULTS      = 0x18
 	GO_COUNT_SW_CONTEXT_SWITCHES = 0x19
+	GO_COUNT_HW_RAW= 0x1a
 )
 
 type PMUEventAttr struct {
 	Period           uint64
+	RawEvent         uint64
 	PreciseIP        uint8
 	IsKernelIncluded bool
 	IsHvIncluded     bool
