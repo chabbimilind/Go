@@ -18,9 +18,9 @@ import (
 	"unsafe"
 )
 
-const maxCPUProfStack = 64
 // MaxPMUEvent is a small number and cannot be >= 10 because we do a linear search on it
 const MaxPMUEvent = 10
+const maxCPUProfStack = 64
 
 type profile struct {
 	lock mutex

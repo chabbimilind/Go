@@ -312,6 +312,26 @@ profile the tests during execution:
 	-cpuprofile cpu.out
 	    Write a CPU profile to the specified file before exiting.
 	    Writes test binary as -c would.
+	
+	-pmurofile pmu.out
+	    Write a PMU profile to the specified file before exiting.
+	    Writes test binary as -c would.
+	
+    	-pmuevent event
+	    Specify which pmu event to sample.
+	    To sample PMU cycles, use -test.memprofilerate=1.  
+    	
+	-pmuperiod n
+	    Set the sampling period for the pmu event specified by -pmuevent.
+	
+	-pmupreciseip n
+	    Set the precise ip level for the pmu event specified by -pmuevent.
+	
+	-pmukernelincl 
+	    Count the kernel or not.
+
+	-pmuhvincl 
+	    Count the hypervisor or not.
 
 	-memprofile mem.out
 	    Write an allocation profile to the file after all tests have passed.

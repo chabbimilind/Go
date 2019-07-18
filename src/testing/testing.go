@@ -285,6 +285,12 @@ func Init() {
 	memProfile = flag.String("test.memprofile", "", "write an allocation profile to `file`")
 	memProfileRate = flag.Int("test.memprofilerate", 0, "set memory allocation profiling `rate` (see runtime.MemProfileRate)")
 	cpuProfile = flag.String("test.cpuprofile", "", "write a cpu profile to `file`")
+	pmuProfile = flag.String("test.pmuprofile", "", "write a pmu profile to `file`")
+	pmuEvent = flag.String("test.pmuevent", "cycle", "select a pmu event from the events: cycles, instructions, cacheReferences, cacheMisses")
+	pmuPeriod = flag.Int64("test.pmuperiod", 10000000, "specify the sampling period for a PMU event")
+	pmuPreciseIP = flag.Int("test.pmupreciseip", 0, "specify the precise IP level (0-3) for a PMU event")
+	pmuKernelIncluded = flag.Bool("test.pmukernelincl", false, "count the kernel")
+	pmuHvIncluded = flag.Bool("test.pmuhvincl", false, "count the hypervisor")
 	blockProfile = flag.String("test.blockprofile", "", "write a goroutine blocking profile to `file`")
 	blockProfileRate = flag.Int("test.blockprofilerate", 1, "set blocking profile `rate` (see runtime.SetBlockProfileRate)")
 	mutexProfile = flag.String("test.mutexprofile", "", "write a mutex contention profile to the named file after execution")
@@ -311,6 +317,12 @@ var (
 	memProfile           *string
 	memProfileRate       *int
 	cpuProfile           *string
+	pmuProfile	     *string
+	pmuEvent	     *string
+	pmuPeriod            *int64
+	pmuPreciseIP         *int
+	pmuKernelIncluded   *bool
+	pmuHvIncluded	     *bool
 	blockProfile         *string
 	blockProfileRate     *int
 	mutexProfile         *string
@@ -1029,6 +1041,8 @@ type matchStringOnly func(pat, str string) (bool, error)
 func (f matchStringOnly) MatchString(pat, str string) (bool, error)   { return f(pat, str) }
 func (f matchStringOnly) StartCPUProfile(w io.Writer) error           { return errMain }
 func (f matchStringOnly) StopCPUProfile()                             {}
+func (f matchStringOnly) StartPMUProfile(w io.Writer, event string, period int64, preciseIP int8, isKernelIncluded bool, isHvIncluded bool) error { return errMain }
+func (f matchStringOnly) StopPMUProfile()                             {}
 func (f matchStringOnly) WriteProfileTo(string, io.Writer, int) error { return errMain }
 func (f matchStringOnly) ImportPath() string                          { return "" }
 func (f matchStringOnly) StartTestLog(io.Writer)                      {}
@@ -1066,6 +1080,8 @@ type testDeps interface {
 	MatchString(pat, str string) (bool, error)
 	StartCPUProfile(io.Writer) error
 	StopCPUProfile()
+	StartPMUProfile(io.Writer, string, int64, int8, bool, bool) error
+	StopPMUProfile()
 	StartTestLog(io.Writer)
 	StopTestLog() error
 	WriteProfileTo(string, io.Writer, int) error
@@ -1236,6 +1252,19 @@ func (m *M) before() {
 		}
 		// Could save f so after can call f.Close; not worth the effort.
 	}
+	if *pmuProfile != "" {
+		f, err := os.Create(toOutputDir(*pmuProfile))
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "testing: %s\n", err)
+			return
+		}
+		if err := m.deps.StartPMUProfile(f, *pmuEvent, *pmuPeriod, int8(*pmuPreciseIP), *pmuKernelIncluded, *pmuHvIncluded); err != nil {
+			fmt.Fprintf(os.Stderr, "testing: can't start pmu profile: %s\n", err)
+			f.Close()
+			return
+		}
+		// Could save f so after can call f.Close; not worth the effort.
+	}
 	if *traceFile != "" {
 		f, err := os.Create(toOutputDir(*traceFile))
 		if err != nil {
@@ -1302,6 +1331,9 @@ func (m *M) writeProfiles() {
 	if *cpuProfile != "" {
 		m.deps.StopCPUProfile() // flushes profile to disk
 	}
+	if *pmuProfile != "" {
+		m.deps.StopPMUProfile() // flushes profile to disk
+	} 
 	if *traceFile != "" {
 		trace.Stop() // flushes trace to disk
 	}

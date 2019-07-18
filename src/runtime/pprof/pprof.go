@@ -825,7 +825,7 @@ func getPreciseIP(preciseIP int8) uint8 {
 
 func populatePMUProfiler(w io.Writer, eventConfig *PMUEventConfig, eventId int, eventName string) {
         pmu.eventOn[eventId] = true
-        eventAttr := runtime.PMUEventAttr{
+        eventAttr := runtime.PMUEventAttr {
 		Period: uint64(eventConfig.Period),
 		PreciseIP: getPreciseIP(eventConfig.PreciseIP),
 		IsKernelIncluded: eventConfig.IsKernelIncluded,
