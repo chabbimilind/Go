@@ -22,6 +22,7 @@ func run() error {
 		cycle.Period =  100000
 		cycle.IsKernelIncluded = false
 		cycle.IsHvIncluded = false
+
 		if err = pprof.StartPMUProfile(pprof.WithProfilingPMUCycles(cycleFile, &cycle)); err != nil {
 			return err
 		}
