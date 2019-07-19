@@ -21,7 +21,7 @@ func f1() {
 	defer wg.Done()
 
 	var sum int
-	for i := 0; i < 50000000; i++ {
+	for i := 0; i < 500000000; i++ {
 		sum -= i / 2
 		sum *= i
 		sum /= i/3 + 1
@@ -29,7 +29,6 @@ func f1() {
 		/*if i % 100 == 0 {
 			time.Sleep(time.Nanosecond)
 		}*/
-		atomic.StoreInt32(&racy, 42)
 	}
 
 	fmt.Println(sum)
@@ -39,7 +38,7 @@ func f2() {
 	defer wg.Done()
 
 	var sum int
-	for i := 0; i < 50000000; i++ {
+	for i := 0; i < 500000000; i++ {
 		sum -= i / 2
 		sum *= i
 		sum /= i/3 + 1
@@ -47,7 +46,6 @@ func f2() {
 		/*if i % 100 == 0 {
 			time.Sleep(time.Nanosecond)
 		}*/
-		atomic.StoreInt32(&racy, 42)
 	}
 
 	fmt.Println(sum)
@@ -57,7 +55,7 @@ func f3() {
 	defer wg.Done()
 
 	var sum int
-	for i := 0; i < 50000000; i++ {
+	for i := 0; i < 500000000; i++ {
 		sum -= i / 2
 		sum *= i
 		sum /= i/3 + 1
@@ -65,7 +63,6 @@ func f3() {
 		/*if i % 100 == 0 {
 			time.Sleep(time.Nanosecond)
 		}*/
-		atomic.StoreInt32(&racy, 42)
 	}
 
 	fmt.Println(sum)
@@ -75,7 +72,7 @@ func f4() {
 	defer wg.Done()
 
 	var sum int
-	for i := 0; i < 50000000; i++ {
+	for i := 0; i < 500000000; i++ {
 		sum -= i / 2
 		sum *= i
 		sum /= i/3 + 1
@@ -83,7 +80,6 @@ func f4() {
 		/*if i % 100 == 0 {
 			time.Sleep(time.Nanosecond)
 		}*/
-		atomic.StoreInt32(&racy, 42)
 	}
 
 	fmt.Println(sum)
@@ -93,12 +89,11 @@ func f5() {
 	defer wg.Done()
 
 	var sum int
-	for i := 0; i < 50000000; i++ {
+	for i := 0; i < 500000000; i++ {
 		sum -= i / 2
 		sum *= i
 		sum /= i/3 + 1
 		sum -= i / 4
-		atomic.StoreInt32(&racy, 42)
 	}
 
 	fmt.Println(sum)
@@ -108,7 +103,7 @@ func f6() {
 	defer wg.Done()
 
 	var sum int
-	for i := 0; i < 50000000; i++ {
+	for i := 0; i < 500000000; i++ {
 		sum -= i / 2
 		sum *= i
 		sum /= i/3 + 1
@@ -123,7 +118,7 @@ func f7() {
 	defer wg.Done()
 
 	var sum int
-	for i := 0; i < 50000000; i++ {
+	for i := 0; i < 500000000; i++ {
 		sum -= i / 2
 		sum *= i
 		sum /= i/3 + 1
@@ -138,7 +133,7 @@ func f8() {
 	defer wg.Done()
 
 	var sum int
-	for i := 0; i < 50000000; i++ {
+	for i := 0; i < 500000000; i++ {
 		sum -= i / 2
 		sum *= i
 		sum /= i/3 + 1
@@ -153,7 +148,7 @@ func f9() {
 	defer wg.Done()
 
 	var sum int
-	for i := 0; i < 50000000; i++ {
+	for i := 0; i < 500000000; i++ {
 		sum -= i / 2
 		sum *= i
 		sum /= i/3 + 1
@@ -168,7 +163,7 @@ func f10() {
 	defer wg.Done()
 
 	var sum int
-	for i := 0; i < 50000000; i++ {
+	for i := 0; i < 500000000; i++ {
 		sum -= i / 2
 		sum *= i
 		sum /= i/3 + 1
