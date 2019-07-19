@@ -1,5 +1,6 @@
 package runtime
 
+// Convert platform-agnostic pmu events to Linux perf events
 var perfEventOpt = map[int32]struct {
 	Type    uint32 // type of event
 	Config  uint64 // event

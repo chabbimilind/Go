@@ -89,6 +89,7 @@ const (
 	_EPOLL_CTL_MOD = 0x3
 )
 
+// The replication is because constants could be different on different architecture
 const (
 	_PERF_TYPE_HARDWARE   = 0x0
 	_PERF_TYPE_SOFTWARE   = 0x1
@@ -252,9 +253,8 @@ type siginfo struct {
 	si_errno int32
 	si_code  int32
 	// below here is a union; si_addr is the only field we use
-	si_addr uint64
-	// psu: an unreliable workaround and need to figure out a better solution
-	// psu: only tested on amd64
+	si_addr  uint64
+	// si_fd is the field right after the union
 	si_fd    int32
 }
 

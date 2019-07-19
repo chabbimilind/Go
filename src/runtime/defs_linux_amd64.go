@@ -94,6 +94,7 @@ const (
 	_SOCK_DGRAM = 0x2
 )
 
+// The replication is because constants could be different on different architecture
 const (
 	_PERF_TYPE_HARDWARE   = 0x0
 	_PERF_TYPE_SOFTWARE   = 0x1
@@ -253,7 +254,7 @@ type siginfo struct {
 	si_code  int32
 	// below here is a union; si_addr is the only field we use
 	si_addr  uint64
-	// psu: an unreliable workaround and need to figure out a better solution
+	// si_fd is the field right after the union
 	si_fd    int32
 }
 

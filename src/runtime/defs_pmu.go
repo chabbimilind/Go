@@ -1,5 +1,7 @@
 package runtime
 
+// These Constants are platform agnostic and exposed to pprof.
+// We use perfEventOpt to map these to the underlying OS and HW.
 const (
 	GO_COUNT_HW_CPU_CYCLES              = 0x0
 	GO_COUNT_HW_INSTRUCTIONS            = 0x1
