@@ -286,7 +286,7 @@ func Init() {
 	memProfileRate = flag.Int("test.memprofilerate", 0, "set memory allocation profiling `rate` (see runtime.MemProfileRate)")
 	cpuProfile = flag.String("test.cpuprofile", "", "write a cpu profile to `file`")
 	pmuProfile = flag.String("test.pmuprofile", "", "write a pmu profile to `file`")
-	pmuEvent = flag.String("test.pmuevent", "cycle", "select a pmu event from the events: cycles, instructions, cacheReferences, cacheMisses")
+	pmuEvent = flag.String("test.pmuevent", "cycles", "select a pmu event from the events: cycles, instructions, cacheReferences, cacheMisses")
 	pmuPeriod = flag.Int64("test.pmuperiod", 10000000, "specify the sampling period for a PMU event")
 	pmuPreciseIP = flag.Int("test.pmupreciseip", 0, "specify the precise IP level (0-3) for a PMU event")
 	pmuKernelIncluded = flag.Bool("test.pmukernelincl", false, "count the kernel")
