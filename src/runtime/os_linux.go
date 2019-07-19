@@ -514,7 +514,6 @@ func setThreadPMUProfiler(eventId int32, eventAttr *PMUEventAttr) {
 		if !eventAttr.IsHvIncluded { // don't count hypervisor
 			perfAttr.Bits += 0b1000000
 		}
-
 		fd, _, err := perfEventOpen(&perfAttr, 0, -1, -1, 0, /* dummy */ 0)
 		if err != 0 {
 			println("Linux perf event open failed")

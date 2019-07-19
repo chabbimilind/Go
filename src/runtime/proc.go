@@ -3803,8 +3803,8 @@ func sigprof(pc, sp, lr uintptr, gp *g, mp *m) {
 	// In fact mp may not even be stopped.
 	// See golang.org/issue/17165.
 	getg().m.mallocing++
-	stk := make([]uintptr, maxCPUProfStack)
-	n := stackUnwinding(pc, sp, lr, gp, mp, stk)
+	var stk [maxCPUProfStack]uintptr
+	n := stackUnwinding(pc, sp, lr, gp, mp, stk[:])
 	if prof.hz != 0 {
 		if (GOARCH == "mips" || GOARCH == "mipsle" || GOARCH == "arm") && lostAtomic64Count > 0 {
 			cpuprof.addLostAtomic64(lostAtomic64Count)
@@ -3834,8 +3834,8 @@ func sigprofPMU(pc, sp, lr uintptr, gp *g, mp *m, eventId int) {
 	}
 
 	getg().m.mallocing++
-	stk := make([]uintptr, maxCPUProfStack)
-	n := stackUnwinding(pc, sp, lr, gp, mp, stk)
+	var stk [maxCPUProfStack]uintptr
+	n := stackUnwinding(pc, sp, lr, gp, mp, stk[:])
 	if pmuEvent[eventId].eventAttr != nil {
 		if (GOARCH == "mips" || GOARCH == "mipsle" || GOARCH == "arm") && lostPMUAtomic64Count[eventId] > 0 {
 			pmuprof[eventId].addLostAtomic64(lostPMUAtomic64Count[eventId], eventId)
