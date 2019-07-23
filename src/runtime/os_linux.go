@@ -400,9 +400,6 @@ func setsig(i uint32, fn uintptr) {
 	}
 	sa.sa_handler = fn
 	sigaction(i, &sa, nil)
-	if i == _SIGPROF {
-		unblocksig(i)
-	}
 }
 
 //go:nosplit
