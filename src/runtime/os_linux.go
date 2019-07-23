@@ -400,6 +400,9 @@ func setsig(i uint32, fn uintptr) {
 	}
 	sa.sa_handler = fn
 	sigaction(i, &sa, nil)
+	if i == _SIGPROF {
+		unblocksig(i)
+	}
 }
 
 //go:nosplit
@@ -501,7 +504,7 @@ func setThreadPMUProfiler(eventId int32, eventAttr *PMUEventAttr) {
 		var perfAttr perfEventAttr
 		perfAttr.Size = uint32(unsafe.Sizeof(perfAttr))
 		perfAttr.Type = perfEventOpt[eventId].Type
-		if (eventId == GO_COUNT_HW_RAW) {
+		if eventId == GO_COUNT_HW_RAW {
 			perfAttr.Config = eventAttr.RawEvent
 		} else {
 			perfAttr.Config = perfEventOpt[eventId].Config
