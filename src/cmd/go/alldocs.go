@@ -2964,7 +2964,9 @@
 //
 //     	-pmuevent event
 // 	    Specify which pmu event to sample.
-// 	    To sample PMU cycles, use -test.memprofilerate=1.
+// 	    To sample PMU cycles, use -test.pmuevent=cycles.
+// 	    To sample PMU instructions, use -test.pmuevent=instructions.
+// 	    To sample PMU cache misses, use -test.pmuevent=cacheMisses.
 //
 // 	-pmuperiod n
 // 	    Set the sampling period for the pmu event specified by -pmuevent.
