@@ -17,6 +17,7 @@ import (
 	"io"
 	"regexp"
 	"runtime/pprof"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -64,7 +65,16 @@ func (TestDeps) StartPMUProfile(w io.Writer, event string, period int64, precise
 		case "cacheMisses":
 			return pprof.StartPMUProfile(pprof.WithProfilingPMUCacheMisses(w, &eventConfig))
 		default:
-			return fmt.Errorf("unknown or not yet implemented event")
+			// Is this a raw event?
+			if strings.HasPrefix(event, "r") {
+				if rawHexEvent, err := strconv.ParseInt(event[1:], 16, 64); err == nil {
+					eventConfig.RawEvent = rawHexEvent
+					return pprof.StartPMUProfile(pprof.WithProfilingPMURaw(w, &eventConfig))
+				}
+				return fmt.Errorf("Incorrect hex format for raw event")
+			} else {
+				return fmt.Errorf("Unknown or not yet implemented event")
+			}
 	}
 }
 

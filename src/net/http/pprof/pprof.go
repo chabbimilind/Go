@@ -113,20 +113,20 @@ func serveError(w http.ResponseWriter, status int, txt string) {
 func pmuProfile(w http.ResponseWriter, r *http.Request) error {
 	var eventConfig pprof.PMUEventConfig
 
-	if period, err := strconv.ParseInt(r.FormValue("period"), 10, 64); err == nil {
+	if period, err := strconv.ParseInt(r.FormValue("pmuperiod"), 10, 64); err == nil {
 		eventConfig.Period = period
 	}
-	if preciseIP, err := strconv.ParseInt(r.FormValue("preciseIP"), 10, 8); err == nil {
+	if preciseIP, err := strconv.ParseInt(r.FormValue("pmupreciseip"), 10, 8); err == nil {
 		eventConfig.PreciseIP = int8(preciseIP)
 	}
-	if isKernelIncluded, err := strconv.ParseBool(r.FormValue("kernel")); err == nil {
+	if isKernelIncluded, err := strconv.ParseBool(r.FormValue("pmukernelincl")); err == nil {
 		eventConfig.IsKernelIncluded = isKernelIncluded
 	}
-	if isHvIncluded, err := strconv.ParseBool(r.FormValue("hv")); err == nil {
+	if isHvIncluded, err := strconv.ParseBool(r.FormValue("pmuhvincl")); err == nil {
 		eventConfig.IsHvIncluded = isHvIncluded
 	}
 
-	switch eventName := r.FormValue("event"); eventName {
+	switch eventName := r.FormValue("pmuevent"); eventName {
 		case "cycles":
 			return pprof.StartPMUProfile(pprof.WithProfilingPMUCycles(w, &eventConfig))
 		case "instructions":
