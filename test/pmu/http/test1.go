@@ -1,14 +1,14 @@
 // run
 // Example of usage: 
 // 1. go run test1.go
-// 2. go tool pprof http://localhost:6060/debug/pprof/profile?seconds=6\&pmu=true\&event=cycles\&period=10000000
+// 2. go tool pprof http://localhost:6060/debug/pprof/profile?seconds=6\&pmu=true\&pmuevent=cycles\&pmuperiod=10000000
 
 package main
 
 import (
 	"fmt"
 	"log"
-	// "time"
+	_"time"
 	"net/http"
 	_ "net/http/pprof"
 )

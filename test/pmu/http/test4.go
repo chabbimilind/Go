@@ -1,7 +1,7 @@
 // run
 // Example of Usage: 
 // 1. go run test4.go
-// 2. go tool pprof http://localhost:6060/debug/pprof/profile?seconds=6\&pmu=true\&event=r53010e\&period=1000000
+// 2. go tool pprof http://localhost:6060/debug/pprof/profile?seconds=6\&pmu=true\&pmuevent=r53010e\&pmuperiod=1000000
 
 package main
 
