@@ -896,6 +896,32 @@ func WithProfilingPMUCacheMisses(w io.Writer, eventConfig *PMUEventConfig) Profi
 	})
 }
 
+func WithProfilingPMUCacheLLReadAccesses(w io.Writer, eventConfig *PMUEventConfig) ProfilingOption {
+	return profilingOptionFunc(func() error {
+		if eventConfig.Period <= 0 {
+			return fmt.Errorf("Period should be > 0")
+		}
+		// TODO: create a table of standard clamp values
+		// TODO: clamp period to something reasonable
+
+		populatePMUProfiler(w, eventConfig, /* event ID */ runtime.GO_COUNT_HW_CACHE_LL_READ_ACCESSES, /* event name */ "last-level cache read accesses")
+		return nil
+	})
+}
+
+func WithProfilingPMUCacheLLReadMisses(w io.Writer, eventConfig *PMUEventConfig) ProfilingOption {
+	return profilingOptionFunc(func() error {
+		if eventConfig.Period <= 0 {
+			return fmt.Errorf("Period should be > 0")
+		}
+		// TODO: create a table of standard clamp values
+		// TODO: clamp period to something reasonable
+
+		populatePMUProfiler(w, eventConfig, /* event ID */ runtime.GO_COUNT_HW_CACHE_LL_READ_MISSES, /* event name */ "last-level cache read misses")
+		return nil
+	})
+}
+
 func WithProfilingPMURaw(w io.Writer, eventConfig *PMUEventConfig) ProfilingOption {
 	return profilingOptionFunc(func() error {
 		if eventConfig.Period <= 0 {

@@ -112,6 +112,7 @@ func serveError(w http.ResponseWriter, status int, txt string) {
 
 func pmuProfile(w http.ResponseWriter, r *http.Request) error {
 	var eventConfig pprof.PMUEventConfig
+	eventConfig.Period = 1e7 // default value
 
 	if period, err := strconv.ParseInt(r.FormValue("pmuperiod"), 10, 64); err == nil {
 		eventConfig.Period = period
@@ -127,6 +128,8 @@ func pmuProfile(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	switch eventName := r.FormValue("pmuevent"); eventName {
+		case "":
+			return pprof.StartPMUProfile(pprof.WithProfilingPMUCycles(w, &eventConfig))
 		case "cycles":
 			return pprof.StartPMUProfile(pprof.WithProfilingPMUCycles(w, &eventConfig))
 		case "instructions":
@@ -135,6 +138,10 @@ func pmuProfile(w http.ResponseWriter, r *http.Request) error {
 			return pprof.StartPMUProfile(pprof.WithProfilingPMUCacheReferences(w, &eventConfig))
 		case "cacheMisses":
 			return pprof.StartPMUProfile(pprof.WithProfilingPMUCacheMisses(w, &eventConfig))
+		case "cacheLLReadAccesses":
+			return pprof.StartPMUProfile(pprof.WithProfilingPMUCacheLLReadAccesses(w, &eventConfig))
+		case "cacheLLReadMisses":
+			return pprof.StartPMUProfile(pprof.WithProfilingPMUCacheLLReadMisses(w, &eventConfig))
 		default:
 			// Is this a raw event?
 			if strings.HasPrefix(eventName, "r") {

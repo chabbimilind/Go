@@ -2967,6 +2967,8 @@
 // 	    To sample PMU cycles, use -test.pmuevent=cycles.
 // 	    To sample PMU instructions, use -test.pmuevent=instructions.
 // 	    To sample PMU cache misses, use -test.pmuevent=cacheMisses.
+// 	    To sample PMU last-level cache read accesses, use -test.pmuevent=cacheLLReadAccesses.
+// 	    To sample PMU last-level cache read misses, use -test.pmuevent=cacheLLReadMisses.
 //
 // 	-pmuperiod n
 // 	    Set the sampling period for the pmu event specified by -pmuevent.

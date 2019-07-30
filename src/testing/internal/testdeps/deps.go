@@ -64,6 +64,10 @@ func (TestDeps) StartPMUProfile(w io.Writer, event string, period int64, precise
 			return pprof.StartPMUProfile(pprof.WithProfilingPMUCacheReferences(w, &eventConfig))
 		case "cacheMisses":
 			return pprof.StartPMUProfile(pprof.WithProfilingPMUCacheMisses(w, &eventConfig))
+		case "cacheLLReadAccesses":
+			return pprof.StartPMUProfile(pprof.WithProfilingPMUCacheLLReadAccesses(w, &eventConfig))
+		case "cacheLLReadMisses":
+			return pprof.StartPMUProfile(pprof.WithProfilingPMUCacheLLReadMisses(w, &eventConfig))
 		default:
 			// Is this a raw event?
 			if strings.HasPrefix(event, "r") {
