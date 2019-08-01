@@ -1,6 +1,6 @@
 // run
 // Example of usage: go run test1.go
-
+// Flamegraph: go tool pprof -relative_percentages -http=":8081" cycle_profile 
 package main
 
 import (

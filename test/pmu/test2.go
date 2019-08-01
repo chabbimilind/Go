@@ -8,7 +8,6 @@ import (
 	"log"
 	"os"
 	"sync"
-	"sync/atomic"
 	_"time"
 	"runtime/pprof"
 )
@@ -108,7 +107,6 @@ func f6() {
 		sum *= i
 		sum /= i/3 + 1
 		sum -= i / 4
-		atomic.StoreInt32(&racy, 42)
 	}
 
 	fmt.Println(sum)
@@ -123,7 +121,6 @@ func f7() {
 		sum *= i
 		sum /= i/3 + 1
 		sum -= i / 4
-		atomic.StoreInt32(&racy, 42)
 	}
 
 	fmt.Println(sum)
@@ -138,7 +135,6 @@ func f8() {
 		sum *= i
 		sum /= i/3 + 1
 		sum -= i / 4
-		atomic.StoreInt32(&racy, 42)
 	}
 
 	fmt.Println(sum)
@@ -153,7 +149,6 @@ func f9() {
 		sum *= i
 		sum /= i/3 + 1
 		sum -= i / 4
-		atomic.StoreInt32(&racy, 42)
 	}
 
 	fmt.Println(sum)
@@ -168,7 +163,6 @@ func f10() {
 		sum *= i
 		sum /= i/3 + 1
 		sum -= i / 4
-		atomic.StoreInt32(&racy, 42)
 	}
 
 	fmt.Println(sum)
@@ -182,7 +176,7 @@ func run() error {
 	defer cycleFile.Close()
 
 	var cycle pprof.PMUEventConfig
-	cycle.Period =  1000000
+	cycle.Period =  100000000
 	// cycle.PreciseIP = 2
 
 	instrFile, err := os.Create("instr_profile")
@@ -192,7 +186,7 @@ func run() error {
 	defer instrFile.Close()
 
 	var instr pprof.PMUEventConfig
-	instr.Period =  1000000
+	instr.Period =  100000000
 	// instr.PreciseIP = 2
 
 	cacheMissFile, err := os.Create("cacheMiss_profile")
@@ -213,7 +207,7 @@ func run() error {
 	defer cacheRefFile.Close()
 
 	var cacheRef pprof.PMUEventConfig
-	cacheRef.Period = 1000000
+	cacheRef.Period = 10000
 	// cacheRef.PreciseIP = 2
 
 
