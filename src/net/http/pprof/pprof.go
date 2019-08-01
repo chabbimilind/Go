@@ -178,25 +178,20 @@ func Profile(w http.ResponseWriter, r *http.Request) {
 
 	isPMUEnabled, err := strconv.ParseBool(r.FormValue("pmu"))
 
-	if err != nil {
+	if (err != nil)  || (!isPMUEnabled) {
 		if err = pprof.StartCPUProfile(w); err != nil {
 			serveError(w, http.StatusInternalServerError,
 				fmt.Sprintf("Could not enable CPU profiling: %s", err))
 			return
 		}
-	} else if isPMUEnabled {
+	} else {
+		// err == nil and isPMUEnabled == true 
 		if err = pmuProfile(w, r); err != nil {
 			serveError(w, http.StatusInternalServerError,
 				fmt.Sprintf("Could not enable PMU profiling: %s", err))
 			return
 		}
-	} else {
-		if err = pprof.StartCPUProfile(w); err != nil {
-			serveError(w, http.StatusInternalServerError,
-				fmt.Sprintf("Could not enable CPU profiling: %s", err))
-			return
-		}
-	}
+	} 
 
 	sleep(w, time.Duration(sec)*time.Second)
 
