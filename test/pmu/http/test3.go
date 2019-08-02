@@ -1,5 +1,5 @@
 // run
-// Example of usage: 
+// Example of usage:
 // 1. go run test3.go
 // 2. go tool pprof http://localhost:6060/debug/pprof/profile?seconds=6\&pmu=true\&pmuevent=cacheMisses\&pmuperiod=10000000
 
@@ -8,10 +8,10 @@ package main
 import (
 	"fmt"
 	"log"
-	"sync"
-	"time"
 	"net/http"
 	_ "net/http/pprof"
+	"sync"
+	"time"
 )
 
 var wg sync.WaitGroup
@@ -21,10 +21,10 @@ var sum int
 func f(i int) {
 	defer wg.Done()
 	for j := i; j < 100000000; j++ {
-        sum -= j / 2
-        sum *= j
-        time.Sleep(time.Microsecond)
-    }
+		sum -= j / 2
+		sum *= j
+		time.Sleep(time.Microsecond)
+	}
 }
 
 func run() error {

@@ -3815,7 +3815,7 @@ func sigprof(pc, sp, lr uintptr, gp *g, mp *m) {
 	getg().m.mallocing--
 }
 
-var lostPMUAtomic64Count[GO_COUNT_PMU_EVENTS_MAX] uint64
+var lostPMUAtomic64Count [GO_COUNT_PMU_EVENTS_MAX]uint64
 
 // Called if we receive a SIGPROF signal and PMU is enabled.
 // Called by the signal handler, may run during STW.
@@ -3974,9 +3974,9 @@ func setcpuprofilerate(hz int32) {
 }
 
 func setpmuprofile(eventId int32, eventAttr *PMUEventAttr) {
-	// setProcessPMUProfilerFptr and setProcessPMUProfilerFptr are write once variables. 
+	// setProcessPMUProfilerFptr and setProcessPMUProfilerFptr are write once variables.
 	// Hence, there cannot be any race from checking non-nil to invoking them.
-	if  setProcessPMUProfilerFptr == nil || setThreadPMUProfilerFptr == nil {
+	if setProcessPMUProfilerFptr == nil || setThreadPMUProfilerFptr == nil {
 		return
 	}
 
@@ -4008,7 +4008,7 @@ func setpmuprofile(eventId int32, eventAttr *PMUEventAttr) {
 	}
 
 	_g_.m.locks--
- }
+}
 
 // init initializes pp, which may be a freshly allocated p or a
 // previously destroyed p, and transitions it to status _Pgcstop.

@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"sync"
 	"runtime/pprof"
+	"sync"
 )
 
 var wg sync.WaitGroup
@@ -153,7 +153,6 @@ func f10() {
 	fmt.Println(sum)
 }
 
-
 func run() error {
 	rawFile, err := os.Create("raw_profile")
 	if err != nil {
@@ -163,7 +162,7 @@ func run() error {
 
 	var raw pprof.PMUEventConfig
 	raw.RawEvent = /* UOPS_ISSUED */ 0x53010e
-	raw.Period =  1000000
+	raw.Period = 1000000
 	raw.IsKernelIncluded = false
 	raw.IsHvIncluded = false
 

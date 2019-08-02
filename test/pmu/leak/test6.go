@@ -5,8 +5,8 @@ package main
 import (
 	"fmt"
 	"os"
-	"time"
 	"runtime/pprof"
+	"time"
 )
 
 var sum int

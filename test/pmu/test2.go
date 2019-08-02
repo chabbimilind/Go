@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"sync"
-	_"time"
 	"runtime/pprof"
+	"sync"
+	_ "time"
 )
 
 var wg sync.WaitGroup
@@ -176,7 +176,7 @@ func run() error {
 	defer cycleFile.Close()
 
 	var cycle pprof.PMUEventConfig
-	cycle.Period =  100000000
+	cycle.Period = 100000000
 	// cycle.PreciseIP = 2
 
 	instrFile, err := os.Create("instr_profile")
@@ -186,7 +186,7 @@ func run() error {
 	defer instrFile.Close()
 
 	var instr pprof.PMUEventConfig
-	instr.Period =  100000000
+	instr.Period = 100000000
 	// instr.PreciseIP = 2
 
 	cacheMissFile, err := os.Create("cacheMiss_profile")
@@ -199,7 +199,6 @@ func run() error {
 	cacheMiss.Period = 10
 	// cacheMiss.PreciseIP = 2
 
-
 	cacheRefFile, err := os.Create("cacheRef_profile")
 	if err != nil {
 		return err
@@ -210,10 +209,9 @@ func run() error {
 	cacheRef.Period = 10000
 	// cacheRef.PreciseIP = 2
 
-
 	if err := pprof.StartPMUProfile(pprof.WithProfilingPMUCycles(cycleFile, &cycle), pprof.WithProfilingPMUInstructions(instrFile, &instr), pprof.WithProfilingPMUCacheReferences(cacheRefFile, &cacheRef), pprof.WithProfilingPMUCacheMisses(cacheMissFile, &cacheMiss)); err != nil {
 		return err
-	 }
+	}
 
 	defer pprof.StopPMUProfile()
 

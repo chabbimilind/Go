@@ -1,14 +1,14 @@
 // run
 // Example of usage: go run test1.go
-// Flamegraph: go tool pprof -relative_percentages -http=":8081" cycle_profile 
+// Flamegraph: go tool pprof -relative_percentages -http=":8081" cycle_profile
 package main
 
 import (
 	"fmt"
 	"log"
 	"os"
-	"sync"
 	"runtime/pprof"
+	"sync"
 )
 
 var wg sync.WaitGroup
@@ -153,7 +153,6 @@ func f10() {
 	fmt.Println(sum)
 }
 
-
 func run() error {
 	cycleFile, err := os.Create("cycle_profile")
 	if err != nil {
@@ -162,7 +161,7 @@ func run() error {
 	defer cycleFile.Close()
 
 	var cycle pprof.PMUEventConfig
-	cycle.Period =  10000000
+	cycle.Period = 10000000
 	cycle.IsKernelIncluded = false
 	cycle.IsHvIncluded = false
 

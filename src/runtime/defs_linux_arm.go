@@ -20,40 +20,40 @@ const (
 	_MADV_HUGEPAGE   = 0xe
 	_MADV_NOHUGEPAGE = 0xf
 
-	_SA_RESTART     = 0x10000000
-	_SA_ONSTACK     = 0x8000000
-	_SA_RESTORER    = 0 // unused on ARM
-	_SA_SIGINFO     = 0x4
-	_SIGHUP         = 0x1
-	_SIGINT         = 0x2
-	_SIGQUIT        = 0x3
-	_SIGILL         = 0x4
-	_SIGTRAP        = 0x5
-	_SIGABRT        = 0x6
-	_SIGBUS         = 0x7
-	_SIGFPE         = 0x8
-	_SIGKILL        = 0x9
-	_SIGUSR1        = 0xa
-	_SIGSEGV        = 0xb
-	_SIGUSR2        = 0xc
-	_SIGPIPE        = 0xd
-	_SIGALRM        = 0xe
-	_SIGSTKFLT      = 0x10
-	_SIGCHLD        = 0x11
-	_SIGCONT        = 0x12
-	_SIGSTOP        = 0x13
-	_SIGTSTP        = 0x14
-	_SIGTTIN        = 0x15
-	_SIGTTOU        = 0x16
-	_SIGURG         = 0x17
-	_SIGXCPU        = 0x18
-	_SIGXFSZ        = 0x19
-	_SIGVTALRM      = 0x1a
-	_SIGPROF        = 0x1b
-	_SIGWINCH       = 0x1c
-	_SIGIO          = 0x1d
-	_SIGPWR         = 0x1e
-	_SIGSYS         = 0x1f
+	_SA_RESTART  = 0x10000000
+	_SA_ONSTACK  = 0x8000000
+	_SA_RESTORER = 0 // unused on ARM
+	_SA_SIGINFO  = 0x4
+	_SIGHUP      = 0x1
+	_SIGINT      = 0x2
+	_SIGQUIT     = 0x3
+	_SIGILL      = 0x4
+	_SIGTRAP     = 0x5
+	_SIGABRT     = 0x6
+	_SIGBUS      = 0x7
+	_SIGFPE      = 0x8
+	_SIGKILL     = 0x9
+	_SIGUSR1     = 0xa
+	_SIGSEGV     = 0xb
+	_SIGUSR2     = 0xc
+	_SIGPIPE     = 0xd
+	_SIGALRM     = 0xe
+	_SIGSTKFLT   = 0x10
+	_SIGCHLD     = 0x11
+	_SIGCONT     = 0x12
+	_SIGSTOP     = 0x13
+	_SIGTSTP     = 0x14
+	_SIGTTIN     = 0x15
+	_SIGTTOU     = 0x16
+	_SIGURG      = 0x17
+	_SIGXCPU     = 0x18
+	_SIGXFSZ     = 0x19
+	_SIGVTALRM   = 0x1a
+	_SIGPROF     = 0x1b
+	_SIGWINCH    = 0x1c
+	_SIGIO       = 0x1d
+	_SIGPWR      = 0x1e
+	_SIGSYS      = 0x1f
 
 	_FPE_INTDIV     = 0x1
 	_FPE_INTOVF     = 0x2
@@ -203,18 +203,18 @@ const (
 	_PERF_FLAG_PID_CGROUP  = 0x4
 	_PERF_FLAG_FD_CLOEXEC  = 0x8
 
-	_PERF_EVENT_IOC_DISABLE               = 0x2401
-	_PERF_EVENT_IOC_ENABLE                = 0x2400
-	_PERF_EVENT_IOC_ID                    = 0x80042407
-	_PERF_EVENT_IOC_MODIFY_ATTRIBUTES     = 0x4004240b
-	_PERF_EVENT_IOC_PAUSE_OUTPUT          = 0x40042409
-	_PERF_EVENT_IOC_PERIOD                = 0x40082404
-	_PERF_EVENT_IOC_QUERY_BPF             = 0xc004240a
-	_PERF_EVENT_IOC_REFRESH               = 0x2402
-	_PERF_EVENT_IOC_RESET                 = 0x2403
-	_PERF_EVENT_IOC_SET_BPF               = 0x40042408
-	_PERF_EVENT_IOC_SET_FILTER            = 0x40042406
-	_PERF_EVENT_IOC_SET_OUTPUT            = 0x2405
+	_PERF_EVENT_IOC_DISABLE           = 0x2401
+	_PERF_EVENT_IOC_ENABLE            = 0x2400
+	_PERF_EVENT_IOC_ID                = 0x80042407
+	_PERF_EVENT_IOC_MODIFY_ATTRIBUTES = 0x4004240b
+	_PERF_EVENT_IOC_PAUSE_OUTPUT      = 0x40042409
+	_PERF_EVENT_IOC_PERIOD            = 0x40082404
+	_PERF_EVENT_IOC_QUERY_BPF         = 0xc004240a
+	_PERF_EVENT_IOC_REFRESH           = 0x2402
+	_PERF_EVENT_IOC_RESET             = 0x2403
+	_PERF_EVENT_IOC_SET_BPF           = 0x40042408
+	_PERF_EVENT_IOC_SET_FILTER        = 0x40042406
+	_PERF_EVENT_IOC_SET_OUTPUT        = 0x2405
 )
 
 type timespec struct {
@@ -286,9 +286,9 @@ type siginfo struct {
 	si_errno int32
 	si_code  int32
 	// below here is a union; si_addr is the only field we use
-	si_addr  uint32
+	si_addr uint32
 	// si_fd is the field right after the union
-	si_fd    int32
+	si_fd int32
 }
 
 type sigactiont struct {

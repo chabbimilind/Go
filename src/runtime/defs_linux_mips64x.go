@@ -202,18 +202,18 @@ const (
 	_PERF_FLAG_PID_CGROUP  = 0x4
 	_PERF_FLAG_FD_CLOEXEC  = 0x8
 
-	_PERF_EVENT_IOC_DISABLE               = 0x20002401
-	_PERF_EVENT_IOC_ENABLE                = 0x20002400
-	_PERF_EVENT_IOC_ID                    = 0x40082407
-	_PERF_EVENT_IOC_MODIFY_ATTRIBUTES     = 0x8008240b
-	_PERF_EVENT_IOC_PAUSE_OUTPUT          = 0x80042409
-	_PERF_EVENT_IOC_PERIOD                = 0x80082404
-	_PERF_EVENT_IOC_QUERY_BPF             = 0xc008240a
-	_PERF_EVENT_IOC_REFRESH               = 0x20002402
-	_PERF_EVENT_IOC_RESET                 = 0x20002403
-	_PERF_EVENT_IOC_SET_BPF               = 0x80042408
-	_PERF_EVENT_IOC_SET_FILTER            = 0x80082406
-	_PERF_EVENT_IOC_SET_OUTPUT            = 0x20002405
+	_PERF_EVENT_IOC_DISABLE           = 0x20002401
+	_PERF_EVENT_IOC_ENABLE            = 0x20002400
+	_PERF_EVENT_IOC_ID                = 0x40082407
+	_PERF_EVENT_IOC_MODIFY_ATTRIBUTES = 0x8008240b
+	_PERF_EVENT_IOC_PAUSE_OUTPUT      = 0x80042409
+	_PERF_EVENT_IOC_PERIOD            = 0x80082404
+	_PERF_EVENT_IOC_QUERY_BPF         = 0xc008240a
+	_PERF_EVENT_IOC_REFRESH           = 0x20002402
+	_PERF_EVENT_IOC_RESET             = 0x20002403
+	_PERF_EVENT_IOC_SET_BPF           = 0x80042408
+	_PERF_EVENT_IOC_SET_FILTER        = 0x80082406
+	_PERF_EVENT_IOC_SET_OUTPUT        = 0x20002405
 )
 
 //struct Sigset {
@@ -256,9 +256,9 @@ type siginfo struct {
 	si_errno int32
 	__pad0   [1]int32
 	// below here is a union; si_addr is the only field we use
-	si_addr  uint64
+	si_addr uint64
 	// si_fd is the field right after the union
-	si_fd    int32
+	si_fd int32
 }
 
 type itimerval struct {

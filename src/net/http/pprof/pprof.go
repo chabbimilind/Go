@@ -128,31 +128,31 @@ func pmuProfile(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	switch eventName := r.FormValue("pmuevent"); eventName {
-		case "":
-			return pprof.StartPMUProfile(pprof.WithProfilingPMUCycles(w, &eventConfig))
-		case "cycles":
-			return pprof.StartPMUProfile(pprof.WithProfilingPMUCycles(w, &eventConfig))
-		case "instructions":
-			return pprof.StartPMUProfile(pprof.WithProfilingPMUInstructions(w, &eventConfig))
-		case "cacheReferences":
-			return pprof.StartPMUProfile(pprof.WithProfilingPMUCacheReferences(w, &eventConfig))
-		case "cacheMisses":
-			return pprof.StartPMUProfile(pprof.WithProfilingPMUCacheMisses(w, &eventConfig))
-		case "cacheLLReadAccesses":
-			return pprof.StartPMUProfile(pprof.WithProfilingPMUCacheLLReadAccesses(w, &eventConfig))
-		case "cacheLLReadMisses":
-			return pprof.StartPMUProfile(pprof.WithProfilingPMUCacheLLReadMisses(w, &eventConfig))
-		default:
-			// Is this a raw event?
-			if strings.HasPrefix(eventName, "r") {
-				if rawHexEvent, err := strconv.ParseInt(eventName[1:], 16, 64); err == nil {
-					eventConfig.RawEvent = rawHexEvent
-					return pprof.StartPMUProfile(pprof.WithProfilingPMURaw(w, &eventConfig))
-				}
-				return fmt.Errorf("Incorrect hex format for raw event")
-			} else {
-				return fmt.Errorf("Unknown or not yet implemented event")
+	case "":
+		return pprof.StartPMUProfile(pprof.WithProfilingPMUCycles(w, &eventConfig))
+	case "cycles":
+		return pprof.StartPMUProfile(pprof.WithProfilingPMUCycles(w, &eventConfig))
+	case "instructions":
+		return pprof.StartPMUProfile(pprof.WithProfilingPMUInstructions(w, &eventConfig))
+	case "cacheReferences":
+		return pprof.StartPMUProfile(pprof.WithProfilingPMUCacheReferences(w, &eventConfig))
+	case "cacheMisses":
+		return pprof.StartPMUProfile(pprof.WithProfilingPMUCacheMisses(w, &eventConfig))
+	case "cacheLLReadAccesses":
+		return pprof.StartPMUProfile(pprof.WithProfilingPMUCacheLLReadAccesses(w, &eventConfig))
+	case "cacheLLReadMisses":
+		return pprof.StartPMUProfile(pprof.WithProfilingPMUCacheLLReadMisses(w, &eventConfig))
+	default:
+		// Is this a raw event?
+		if strings.HasPrefix(eventName, "r") {
+			if rawHexEvent, err := strconv.ParseInt(eventName[1:], 16, 64); err == nil {
+				eventConfig.RawEvent = rawHexEvent
+				return pprof.StartPMUProfile(pprof.WithProfilingPMURaw(w, &eventConfig))
 			}
+			return fmt.Errorf("Incorrect hex format for raw event")
+		} else {
+			return fmt.Errorf("Unknown or not yet implemented event")
+		}
 	}
 }
 
@@ -178,20 +178,20 @@ func Profile(w http.ResponseWriter, r *http.Request) {
 
 	isPMUEnabled, err := strconv.ParseBool(r.FormValue("pmu"))
 
-	if (err != nil)  || (!isPMUEnabled) {
+	if (err != nil) || (!isPMUEnabled) {
 		if err = pprof.StartCPUProfile(w); err != nil {
 			serveError(w, http.StatusInternalServerError,
 				fmt.Sprintf("Could not enable CPU profiling: %s", err))
 			return
 		}
 	} else {
-		// err == nil and isPMUEnabled == true 
+		// err == nil and isPMUEnabled == true
 		if err = pmuProfile(w, r); err != nil {
 			serveError(w, http.StatusInternalServerError,
 				fmt.Sprintf("Could not enable PMU profiling: %s", err))
 			return
 		}
-	} 
+	}
 
 	sleep(w, time.Duration(sec)*time.Second)
 

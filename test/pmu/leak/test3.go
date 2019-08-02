@@ -33,7 +33,7 @@ func run() error {
 		}
 
 		var cycle pprof.PMUEventConfig
-		cycle.Period =  100000
+		cycle.Period = 100000
 		cycle.IsKernelIncluded = false
 		cycle.IsHvIncluded = false
 

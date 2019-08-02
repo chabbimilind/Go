@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"sync"
 	"runtime/pprof"
+	"sync"
 )
 
 var wg sync.WaitGroup
@@ -164,7 +164,6 @@ func run() error {
 		return err
 	}
 	defer pprof.StopCPUProfile()
-
 
 	wg.Add(10)
 	defer wg.Wait()

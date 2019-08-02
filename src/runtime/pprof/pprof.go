@@ -79,12 +79,12 @@ import (
 	"io"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"text/tabwriter"
 	"time"
 	"unsafe"
-	"strconv"
 )
 
 // BUG(rsc): Profiles are only as good as the kernel support used to generate them.
@@ -778,7 +778,7 @@ func StartCPUProfile(w io.Writer, profileHz ...int) error {
 	runtime.SetCPUProfileRate(hz)
 	go profileWriter(w)
 	return nil
-	}
+}
 
 func StartPMUProfile(opts ...ProfilingOption) error {
 	if runtime.GOOS != "linux" || runtime.GOARCH != "amd64" { // enabling only on Linux AMD64
@@ -808,7 +808,7 @@ func StartPMUProfile(opts ...ProfilingOption) error {
 
 type PMUEventConfig struct {
 	Period           int64
-	RawEvent	 int64
+	RawEvent         int64
 	PreciseIP        int8
 	IsKernelIncluded bool
 	IsHvIncluded     bool
@@ -826,16 +826,16 @@ func getPreciseIP(preciseIP int8) uint8 {
 }
 
 func populatePMUProfiler(w io.Writer, eventConfig *PMUEventConfig, eventId int, eventName string) {
-        pmu.eventOn[eventId] = true
-        eventAttr := runtime.PMUEventAttr {
-		Period: uint64(eventConfig.Period),
-		RawEvent: uint64(eventConfig.RawEvent),
-		PreciseIP: getPreciseIP(eventConfig.PreciseIP),
+	pmu.eventOn[eventId] = true
+	eventAttr := runtime.PMUEventAttr{
+		Period:           uint64(eventConfig.Period),
+		RawEvent:         uint64(eventConfig.RawEvent),
+		PreciseIP:        getPreciseIP(eventConfig.PreciseIP),
 		IsKernelIncluded: eventConfig.IsKernelIncluded,
-		IsHvIncluded: eventConfig.IsHvIncluded,
+		IsHvIncluded:     eventConfig.IsHvIncluded,
 	}
-        runtime.SetPMUProfile(eventId, &eventAttr)
-        go pmuProfileWriter(w, eventId, eventName)
+	runtime.SetPMUProfile(eventId, &eventAttr)
+	go pmuProfileWriter(w, eventId, eventName)
 }
 
 func WithProfilingPMUCycles(w io.Writer, eventConfig *PMUEventConfig) ProfilingOption {
@@ -849,7 +849,7 @@ func WithProfilingPMUCycles(w io.Writer, eventConfig *PMUEventConfig) ProfilingO
 			eventConfig.Period = 1000
 		}
 
-		populatePMUProfiler(w, eventConfig, /* event ID */ runtime.GO_COUNT_HW_CPU_CYCLES, /* event name */ "cycles")
+		populatePMUProfiler(w, eventConfig /* event ID */, runtime.GO_COUNT_HW_CPU_CYCLES /* event name */, "cycles")
 		return nil
 	})
 }
@@ -865,8 +865,8 @@ func WithProfilingPMUInstructions(w io.Writer, eventConfig *PMUEventConfig) Prof
 			eventConfig.Period = 1000
 		}
 
-		populatePMUProfiler(w, eventConfig, /* event ID */ runtime.GO_COUNT_HW_INSTRUCTIONS, /* event name */ "instructions")
-			return nil
+		populatePMUProfiler(w, eventConfig /* event ID */, runtime.GO_COUNT_HW_INSTRUCTIONS /* event name */, "instructions")
+		return nil
 	})
 }
 
@@ -878,7 +878,7 @@ func WithProfilingPMUCacheReferences(w io.Writer, eventConfig *PMUEventConfig) P
 		// TODO: create a table of standard clamp values
 		// TODO: clamp period to something reasonable
 
-		populatePMUProfiler(w, eventConfig, /* event ID */ runtime.GO_COUNT_HW_CACHE_REFERENCES, /* event name */ "cache references")
+		populatePMUProfiler(w, eventConfig /* event ID */, runtime.GO_COUNT_HW_CACHE_REFERENCES /* event name */, "cache references")
 		return nil
 	})
 }
@@ -891,7 +891,7 @@ func WithProfilingPMUCacheMisses(w io.Writer, eventConfig *PMUEventConfig) Profi
 		// TODO: create a table of standard clamp values
 		// TODO: clamp period to something reasonable
 
-		populatePMUProfiler(w, eventConfig, /* event ID */ runtime.GO_COUNT_HW_CACHE_MISSES, /* event name */ "cache misses")
+		populatePMUProfiler(w, eventConfig /* event ID */, runtime.GO_COUNT_HW_CACHE_MISSES /* event name */, "cache misses")
 		return nil
 	})
 }
@@ -904,7 +904,7 @@ func WithProfilingPMUCacheLLReadAccesses(w io.Writer, eventConfig *PMUEventConfi
 		// TODO: create a table of standard clamp values
 		// TODO: clamp period to something reasonable
 
-		populatePMUProfiler(w, eventConfig, /* event ID */ runtime.GO_COUNT_HW_CACHE_LL_READ_ACCESSES, /* event name */ "last-level cache read accesses")
+		populatePMUProfiler(w, eventConfig /* event ID */, runtime.GO_COUNT_HW_CACHE_LL_READ_ACCESSES /* event name */, "last-level cache read accesses")
 		return nil
 	})
 }
@@ -917,7 +917,7 @@ func WithProfilingPMUCacheLLReadMisses(w io.Writer, eventConfig *PMUEventConfig)
 		// TODO: create a table of standard clamp values
 		// TODO: clamp period to something reasonable
 
-		populatePMUProfiler(w, eventConfig, /* event ID */ runtime.GO_COUNT_HW_CACHE_LL_READ_MISSES, /* event name */ "last-level cache read misses")
+		populatePMUProfiler(w, eventConfig /* event ID */, runtime.GO_COUNT_HW_CACHE_LL_READ_MISSES /* event name */, "last-level cache read misses")
 		return nil
 	})
 }
@@ -930,15 +930,14 @@ func WithProfilingPMURaw(w io.Writer, eventConfig *PMUEventConfig) ProfilingOpti
 		// TODO: create a table of standard clamp values
 		// TODO: clamp period to something reasonable
 
-		if  eventConfig.RawEvent < 0 {
+		if eventConfig.RawEvent < 0 {
 			return fmt.Errorf("RawEvent should be >= 0")
 		}
 
-		populatePMUProfiler(w, eventConfig, /* event ID */ runtime.GO_COUNT_HW_RAW, /* event name */ "r" + strconv.FormatInt(eventConfig.RawEvent, 16))
+		populatePMUProfiler(w, eventConfig /* event ID */, runtime.GO_COUNT_HW_RAW /* event name */, "r"+strconv.FormatInt(eventConfig.RawEvent, 16))
 		return nil
 	})
 }
-
 
 type ProfilingOption interface {
 	apply() error
@@ -991,7 +990,7 @@ func pmuProfileWriter(w io.Writer, eventId int, eventName string) {
 		}
 	}
 	if err != nil {
-	    panic("runtime/pprof: converting profile: " + err.Error())
+		panic("runtime/pprof: converting profile: " + err.Error())
 	}
 	b.pmuBuild(eventName)
 	pmu.wg.Done()

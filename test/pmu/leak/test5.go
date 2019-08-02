@@ -4,10 +4,10 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"log"
-	"sync"
+	"os"
 	"runtime/pprof"
+	"sync"
 )
 
 var wg sync.WaitGroup
@@ -54,8 +54,8 @@ func main() {
 	cacheMiss.Period = 1
 
 	if err := pprof.StartPMUProfile(pprof.WithProfilingPMUCycles(cycleFile, &cycle), pprof.WithProfilingPMUInstructions(instrFile, &instr), pprof.WithProfilingPMUCacheReferences(cacheRefFile, &cacheRef), pprof.WithProfilingPMUCacheMisses(cacheMissFile, &cacheMiss)); err != nil {
-			log.Fatal(err)
-		}
+		log.Fatal(err)
+	}
 
 	for i := 0; i < 1000; i++ {
 		go run()

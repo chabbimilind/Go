@@ -37,14 +37,14 @@ type profileBuilder struct {
 	m            profMap
 
 	// encoding state
-	w            io.Writer
-	zw           *gzip.Writer
-	pb           protobuf
-	strings      []string
-	stringMap    map[string]int
-	locs         map[uintptr]int
-	funcs        map[string]int // Package path-qualified function name to Function.ID
-	mem          []memMap
+	w         io.Writer
+	zw        *gzip.Writer
+	pb        protobuf
+	strings   []string
+	stringMap map[string]int
+	locs      map[uintptr]int
+	funcs     map[string]int // Package path-qualified function name to Function.ID
+	mem       []memMap
 }
 
 type memMap struct {
@@ -376,7 +376,7 @@ func (b *profileBuilder) addCPUData(data []uint64, tags []unsafe.Pointer) error 
 		data = data[3:]
 	}
 
-    return b.addData(data, tags)
+	return b.addData(data, tags)
 }
 
 func (b *profileBuilder) addPMUData(data []uint64, tags []unsafe.Pointer) error {
@@ -393,7 +393,7 @@ func (b *profileBuilder) addPMUData(data []uint64, tags []unsafe.Pointer) error 
 		data = data[3:]
 	}
 
-    return b.addData(data, tags)
+	return b.addData(data, tags)
 }
 
 func (b *profileBuilder) profileBuild() {

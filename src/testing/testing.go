@@ -317,12 +317,12 @@ var (
 	memProfile           *string
 	memProfileRate       *int
 	cpuProfile           *string
-	pmuProfile	     *string
-	pmuEvent	     *string
+	pmuProfile           *string
+	pmuEvent             *string
 	pmuPeriod            *int64
 	pmuPreciseIP         *int
 	pmuKernelIncluded    *bool
-	pmuHvIncluded	     *bool
+	pmuHvIncluded        *bool
 	blockProfile         *string
 	blockProfileRate     *int
 	mutexProfile         *string
@@ -1038,10 +1038,12 @@ var errMain = errors.New("testing: unexpected use of func Main")
 
 type matchStringOnly func(pat, str string) (bool, error)
 
-func (f matchStringOnly) MatchString(pat, str string) (bool, error)   { return f(pat, str) }
-func (f matchStringOnly) StartCPUProfile(w io.Writer) error           { return errMain }
-func (f matchStringOnly) StopCPUProfile()                             {}
-func (f matchStringOnly) StartPMUProfile(w io.Writer, event string, period int64, preciseIP int8, isKernelIncluded bool, isHvIncluded bool) error { return errMain }
+func (f matchStringOnly) MatchString(pat, str string) (bool, error) { return f(pat, str) }
+func (f matchStringOnly) StartCPUProfile(w io.Writer) error         { return errMain }
+func (f matchStringOnly) StopCPUProfile()                           {}
+func (f matchStringOnly) StartPMUProfile(w io.Writer, event string, period int64, preciseIP int8, isKernelIncluded bool, isHvIncluded bool) error {
+	return errMain
+}
 func (f matchStringOnly) StopPMUProfile()                             {}
 func (f matchStringOnly) WriteProfileTo(string, io.Writer, int) error { return errMain }
 func (f matchStringOnly) ImportPath() string                          { return "" }
@@ -1333,7 +1335,7 @@ func (m *M) writeProfiles() {
 	}
 	if *pmuProfile != "" {
 		m.deps.StopPMUProfile() // flushes profile to disk
-	} 
+	}
 	if *traceFile != "" {
 		trace.Stop() // flushes trace to disk
 	}

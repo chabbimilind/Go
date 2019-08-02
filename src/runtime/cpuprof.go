@@ -69,8 +69,8 @@ func SetCPUProfileRate(hz int) {
 		}
 
 		cpuprof.on = true
-		// Enlarging the buffer words and tags reduces the number of samples lost at the cost of larger amounts of memory 
-		cpuprof.log = newProfBuf(/* header size */ 1, /* buffer words */ 1<<17, /* tags */ 1<<14)
+		// Enlarging the buffer words and tags reduces the number of samples lost at the cost of larger amounts of memory
+		cpuprof.log = newProfBuf( /* header size */ 1 /* buffer words */, 1<<17 /* tags */, 1<<14)
 		hdr := [1]uint64{uint64(hz)}
 		cpuprof.log.write(nil, nanotime(), hdr[:], nil)
 		setcpuprofilerate(int32(hz))
@@ -92,8 +92,8 @@ func SetPMUProfile(eventId int, eventAttr *PMUEventAttr) {
 		}
 
 		pmuprof[eventId].on = true
-		// Enlarging the buffer words and tags reduces the number of samples lost at the cost of larger amounts of memory 
-		pmuprof[eventId].log = newProfBuf(/* header size */ 1, /* buffer words */ 1<<17, /* tags */ 1<<14)
+		// Enlarging the buffer words and tags reduces the number of samples lost at the cost of larger amounts of memory
+		pmuprof[eventId].log = newProfBuf( /* header size */ 1 /* buffer words */, 1<<17 /* tags */, 1<<14)
 		hdr := [1]uint64{eventAttr.Period}
 		pmuprof[eventId].log.write(nil, nanotime(), hdr[:], nil)
 		setpmuprofile(int32(eventId), eventAttr)

@@ -51,7 +51,7 @@ var testFlagDefn = []*cmdflag.Defn{
 	{Name: "pmuperiod", PassToTest: true},
 	{Name: "pmupreciseip", PassToTest: true},
 	{Name: "pmukernelincl", BoolVar: new(bool), PassToTest: true},
-	{Name: "pmuhvincl", BoolVar: new(bool),PassToTest: true},
+	{Name: "pmuhvincl", BoolVar: new(bool), PassToTest: true},
 	{Name: "failfast", BoolVar: new(bool), PassToTest: true},
 	{Name: "list", PassToTest: true},
 	{Name: "memprofile", PassToTest: true},
