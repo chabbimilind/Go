@@ -807,13 +807,19 @@ func StartPMUProfile(opts ...ProfilingOption) error {
 }
 
 type PMUEventConfig struct {
-	Period           int64
-	RawEvent         int64
-	PreciseIP        int8
-	IsKernelIncluded bool
-	IsHvIncluded     bool
-	// TODO: IsMmapEnabled bool
-	// TODO: IsLBREnabled bool
+	Period                    int64
+	RawEvent                  int64
+	PreciseIP	          int8
+	IsSampleIPIncluded        bool
+	IsSampleAddrIncluded	  bool
+	IsSampleCallchainIncluded bool
+	IsSampleThreadIDIncluded  bool
+	IsKernelIncluded          bool
+	IsHvIncluded              bool
+	IsIdleIncluded            bool
+	IsCallchainKernelIncluded bool
+	IsCallchainUserIncluded   bool
+	// TODO: IsLBREnabled     bool
 }
 
 func getPreciseIP(preciseIP int8) uint8 {
@@ -828,11 +834,18 @@ func getPreciseIP(preciseIP int8) uint8 {
 func populatePMUProfiler(w io.Writer, eventConfig *PMUEventConfig, eventId int, eventName string) {
 	pmu.eventOn[eventId] = true
 	eventAttr := runtime.PMUEventAttr{
-		Period:           uint64(eventConfig.Period),
-		RawEvent:         uint64(eventConfig.RawEvent),
-		PreciseIP:        getPreciseIP(eventConfig.PreciseIP),
-		IsKernelIncluded: eventConfig.IsKernelIncluded,
-		IsHvIncluded:     eventConfig.IsHvIncluded,
+		Period:                    uint64(eventConfig.Period),
+		RawEvent:                  uint64(eventConfig.RawEvent),
+		PreciseIP:                 getPreciseIP(eventConfig.PreciseIP),
+		IsSampleIPIncluded:        eventConfig.IsSampleIPIncluded,
+		IsSampleAddrIncluded:      eventConfig.IsSampleAddrIncluded,
+		IsSampleCallchainIncluded: eventConfig.IsSampleCallchainIncluded,
+		IsSampleThreadIDIncluded:  eventConfig.IsSampleThreadIDIncluded,
+		IsKernelIncluded:          eventConfig.IsKernelIncluded,
+		IsHvIncluded:              eventConfig.IsHvIncluded,
+		IsIdleIncluded:            eventConfig.IsIdleIncluded,
+		IsCallchainKernelIncluded: eventConfig.IsCallchainKernelIncluded,
+		IsCallchainUserIncluded:   eventConfig.IsCallchainUserIncluded,
 	}
 	runtime.SetPMUProfile(eventId, &eventAttr)
 	go pmuProfileWriter(w, eventId, eventName)

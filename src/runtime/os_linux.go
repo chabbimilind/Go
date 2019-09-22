@@ -480,8 +480,6 @@ func setProcessPMUProfiler(eventAttr *PMUEventAttr) {
 	}
 }
 
-//go:noescape
-func perfEventOpen(attr *perfEventAttr, pid, cpu, groupFd, flags, dummy int) (r int32, r2, err int)
 func fcntl(fd int32, cmd, arg int) (r, err int)
 //go:noescape
 func fcntl2(fd int32, cmd int, arg *fOwnerEx) (r, err int)
@@ -492,40 +490,44 @@ func setThreadPMUProfiler(eventId int32, eventAttr *PMUEventAttr) {
 	if eventAttr == nil {
 		if _g_.m.eventAttrs[eventId] != nil {
 			closefd(_g_.m.eventFds[eventId])
+			_g_.m.eventAttrs[eventId] = nil
+		}
+		if _g_.m.eventMmapBufs[eventId] != nil {
+			perfUnsetMmap(_g_.m.eventMmapBufs[eventId])
+			_g_.m.eventMmapBufs[eventId] = nil
 		}
 	} else {
 		if _g_.m.eventAttrs[eventId] != nil {
 			closefd(_g_.m.eventFds[eventId])
+			_g_.m.eventAttrs[eventId] = nil
+		}
+		if _g_.m.eventMmapBufs[eventId] != nil {
+			perfUnsetMmap(_g_.m.eventMmapBufs[eventId])
+			_g_.m.eventMmapBufs[eventId] = nil
 		}
 
 		var perfAttr perfEventAttr
-		perfAttr.Size = uint32(unsafe.Sizeof(perfAttr))
-		perfAttr.Type = perfEventOpt[eventId].Type
-		if eventId == GO_COUNT_HW_RAW {
-			perfAttr.Config = eventAttr.RawEvent
-		} else {
-			perfAttr.Config = perfEventOpt[eventId].Config
-		}
-		perfAttr.Sample = eventAttr.Period
-		perfAttr.Bits = uint64(eventAttr.PreciseIP) << 15 // precise ip
-		if !eventAttr.IsKernelIncluded { // don't count kernel
-			perfAttr.Bits += 0b100000
-		}
-		if !eventAttr.IsHvIncluded { // don't count hypervisor
-			perfAttr.Bits += 0b1000000
-		}
+		perfAttrInit(eventId, eventAttr, &perfAttr)
 
 		fd, _, err := perfEventOpen(&perfAttr, 0, -1, -1, 0, /* dummy */ 0)
 		if err != 0 {
 			println("Linux perf event open failed")
 			return
 		}
-		_g_.m.eventFds[eventId] = fd
+
+		// create mmap buffer for this file 
+		perfMmap := perfSetMmap(fd)
+		if perfMmap == nil {
+			println("Fail to set perf mmap")
+			closefd(fd)
+			return
+		}
 
 		flag, _ := fcntl(fd, /* F_GETFL */ 0x3, 0)
 		_, err = fcntl(fd, /* F_SETFL */ 0x4, flag | /* O_ASYNC */ 0x2000)
 		if err != 0 {
 			println("Failed to set notification for the PMU event")
+			perfUnsetMmap(perfMmap)
 			closefd(fd)
 			return
 		}
@@ -533,6 +535,7 @@ func setThreadPMUProfiler(eventId int32, eventAttr *PMUEventAttr) {
 		_, err = fcntl(fd, /* F_SETSIG */ 0xa, _SIGPROF)
 		if err != 0 {
 			println("Failed to set signal for the PMU event")
+			perfUnsetMmap(perfMmap)
 			closefd(fd)
 			return
 		}
@@ -541,19 +544,39 @@ func setThreadPMUProfiler(eventId int32, eventAttr *PMUEventAttr) {
 		_, err = fcntl2(fd, /* F_SETOWN_EX */ 0xf, &fOwnEx)
 		if err != 0 {
 			println("Failed to set the owner of the perf event file")
+			perfUnsetMmap(perfMmap)
+			closefd(fd)
+			return
+		}
+
+		_g_.m.eventAttrs[eventId] = eventAttr
+		_g_.m.eventMmapBufs[eventId] = perfMmap
+		_g_.m.eventFds[eventId] = fd
+
+		if !perfResetCounter(fd) {
+			_g_.m.eventAttrs[eventId] = nil
+			perfUnsetMmap(perfMmap)
+			_g_.m.eventMmapBufs[eventId] = nil
+			closefd(fd)
+			return
+		}
+		if !perfStartCounter(fd) {
+			_g_.m.eventAttrs[eventId] = nil
+			perfUnsetMmap(perfMmap)
+			_g_.m.eventMmapBufs[eventId] = nil
 			closefd(fd)
 			return
 		}
 	}
-	_g_.m.eventAttrs[eventId] = eventAttr
 }
-
-func ioctl(fd int32, req, arg int) (r, err int)
 
 //go:nowritebarrierrec
 func sigprofPMUHandler(info *siginfo, c *sigctxt, gp *g, _g_ *g) {
 	fd := info.si_fd
-	ioctl(fd, _PERF_EVENT_IOC_DISABLE, 0) // we don't care about failing ioctl
+
+	if !perfStopCounter(fd) {
+		return
+	}
 
 	var eventId int = -1
 	for i := 0; i < GO_COUNT_PMU_EVENTS_MAX; i++ {
@@ -563,11 +586,36 @@ func sigprofPMUHandler(info *siginfo, c *sigctxt, gp *g, _g_ *g) {
 		}
 	}
 	if eventId != -1 {
-		sigprofPMU(c.sigpc(), c.sigsp(), c.siglr(), gp, _g_.m, eventId)
+		mmapBuf := _g_.m.eventMmapBufs[eventId]
+		remains := mmapBuf.data_head - mmapBuf.data_tail
+		for remains > 0 {
+			var hdr perfEventHeader
+			if remains < uint64(unsafe.Sizeof(hdr)) {
+				perfSkipAll(mmapBuf)
+				break
+			}
+			if !perfReadHeader(mmapBuf, &hdr) {
+				println("Failed to read the mmap header")
+				break
+			}
+			if hdr.Type == _PERF_RECORD_SAMPLE {
+				var sampleData perfSampleData
+				// sampleData.isPrecise = (hdr.misc & _PERF_RECORD_MISC_EXACT_IP) ? true : false
+				perfRecordSample(mmapBuf, _g_.m.eventAttrs[eventId], &sampleData)
+				sigprofPMU(c.sigpc(), c.sigsp(), c.siglr(), gp, _g_.m, eventId, &sampleData)
+			} else if hdr.size == 0 {
+				perfSkipAll(mmapBuf)
+			} else {
+				perfSkipRecord(mmapBuf, &hdr)
+			}
+			remains = mmapBuf.data_head - mmapBuf.data_tail
+		}
+
 	} else { // should never be taken
 		println("File descriptor ", fd, " not found in _g_.m.eventFds")
 	}
 
-	ioctl(fd, _PERF_EVENT_IOC_ENABLE, 0) // we don't care about failing ioctl
-	return
+	if !perfStartCounter(fd) {
+		return
+	}
 }

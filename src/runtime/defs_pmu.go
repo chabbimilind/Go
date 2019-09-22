@@ -14,9 +14,16 @@ const (
 )
 
 type PMUEventAttr struct {
-	Period           uint64
-	RawEvent         uint64
-	PreciseIP        uint8
-	IsKernelIncluded bool
-	IsHvIncluded     bool
+	Period                    uint64
+	RawEvent                  uint64
+	PreciseIP                 uint8
+	IsSampleIPIncluded        bool
+	IsSampleAddrIncluded	  bool
+	IsSampleCallchainIncluded bool
+	IsSampleThreadIDIncluded  bool
+	IsKernelIncluded          bool
+	IsHvIncluded              bool
+	IsIdleIncluded            bool
+	IsCallchainKernelIncluded bool
+	IsCallchainUserIncluded   bool
 }

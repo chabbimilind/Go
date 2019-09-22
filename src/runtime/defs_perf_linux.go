@@ -2,8 +2,9 @@ package runtime
 
 // Convert platform-agnostic pmu events to Linux perf events
 var perfEventOpt = map[int32]struct {
+	// The lower-case type is reserved for Go
 	Type   uint32 // type of event
-	Config uint64 // event
+	config uint64 // event
 }{
 	GO_COUNT_HW_CPU_CYCLES:             {_PERF_TYPE_HARDWARE, _PERF_COUNT_HW_CPU_CYCLES},
 	GO_COUNT_HW_INSTRUCTIONS:           {_PERF_TYPE_HARDWARE, _PERF_COUNT_HW_INSTRUCTIONS},
@@ -16,23 +17,65 @@ var perfEventOpt = map[int32]struct {
 }
 
 type perfEventAttr struct {
+	// The lower-case type is reserved for Go
 	Type               uint32
-	Size               uint32
-	Config             uint64
-	Sample             uint64
-	Sample_type        uint64
-	Read_format        uint64
-	Bits               uint64
-	Wakeup             uint32
-	Bp_type            uint32
-	Ext1               uint64
-	Ext2               uint64
-	Branch_sample_type uint64
-	Sample_regs_user   uint64
-	Sample_stack_user  uint32
-	Clockid            int32
-	Sample_regs_intr   uint64
-	Aux_watermark      uint32
-	Sample_max_stack   uint16
+	size               uint32
+	config             uint64
+	sample             uint64
+	sample_type        uint64
+	read_format        uint64
+	bits               uint64
+	wakeup             uint32
+	bp_type            uint32
+	ext1               uint64
+	ext2               uint64
+	branch_sample_type uint64
+	sample_regs_user   uint64
+	sample_stack_user  uint32
+	clockid            int32
+	sample_regs_intr   uint64
+	aux_watermark      uint32
+	sample_max_stack   uint16
 	_                  uint16
+}
+
+type perfEventMmapPage struct {
+	version        uint32
+	compat_version uint32
+	lock           uint32
+	index          uint32
+	offset         int64
+	time_enabled   uint64
+	Time_running   uint64
+	capabilities   uint64
+	pmc_width      uint16
+	time_shift     uint16
+	time_mult      uint32
+	time_offset    uint64
+	time_zero      uint64
+	size           uint32
+	_              [948]uint8
+	data_head      uint64
+	data_tail      uint64
+	data_offset    uint64
+	data_size      uint64
+	aux_head       uint64
+	aux_tail       uint64
+	aux_offset     uint64
+	aux_size       uint64
+}
+
+type perfEventHeader struct {
+	// The lower-case type is reserved for Go
+	Type uint32
+	misc uint16
+	size uint16
+}
+
+type perfSampleData struct {
+	ip   uint64 // if _PERF_SAMPLE_IP
+	addr uint64 // if _PERF_SAMPLE_ADDR
+	pid  uint32 // if _PERF_SAMPLE_TID 
+	tid  uint32 // if _PERF_SAMPLE_TID
+	// TODO: More fields can be added if needed
 }

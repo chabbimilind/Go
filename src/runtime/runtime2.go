@@ -475,6 +475,7 @@ type m struct {
 	profilehz     int32
 	eventFds      [GO_COUNT_PMU_EVENTS_MAX]int32
 	eventAttrs    [GO_COUNT_PMU_EVENTS_MAX]*PMUEventAttr
+	eventMmapBufs [GO_COUNT_PMU_EVENTS_MAX]*perfEventMmapPage
 	spinning      bool // m is out of work and is actively looking for work
 	blocked       bool // m is blocked on a note
 	newSigstack   bool // minit on C thread called sigaltstack
