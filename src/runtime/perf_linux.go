@@ -57,7 +57,6 @@ func perfAttrInit(eventId int32, eventAttr *PMUEventAttr, perfAttr *perfEventAtt
 	if !eventAttr.IsCallchainUserIncluded {
 		perfAttr.bits |= 1 << 22
 	}
-
 }
 
 func perfMmapInit() {
