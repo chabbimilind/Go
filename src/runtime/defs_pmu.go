@@ -18,9 +18,9 @@ type PMUEventAttr struct {
 	RawEvent                  uint64
 	PreciseIP                 uint8
 	IsSampleIPIncluded        bool
+	IsSampleThreadIDIncluded  bool
 	IsSampleAddrIncluded	  bool
 	IsSampleCallchainIncluded bool
-	IsSampleThreadIDIncluded  bool
 	IsKernelIncluded          bool
 	IsHvIncluded              bool
 	IsIdleIncluded            bool

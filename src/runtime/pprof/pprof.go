@@ -811,9 +811,9 @@ type PMUEventConfig struct {
 	RawEvent                  int64
 	PreciseIP	          int8
 	IsSampleIPIncluded        bool
+	IsSampleThreadIDIncluded  bool
 	IsSampleAddrIncluded	  bool
 	IsSampleCallchainIncluded bool
-	IsSampleThreadIDIncluded  bool
 	IsKernelIncluded          bool
 	IsHvIncluded              bool
 	IsIdleIncluded            bool
@@ -838,9 +838,9 @@ func populatePMUProfiler(w io.Writer, eventConfig *PMUEventConfig, eventId int, 
 		RawEvent:                  uint64(eventConfig.RawEvent),
 		PreciseIP:                 getPreciseIP(eventConfig.PreciseIP),
 		IsSampleIPIncluded:        eventConfig.IsSampleIPIncluded,
+		IsSampleThreadIDIncluded:  eventConfig.IsSampleThreadIDIncluded,
 		IsSampleAddrIncluded:      eventConfig.IsSampleAddrIncluded,
 		IsSampleCallchainIncluded: eventConfig.IsSampleCallchainIncluded,
-		IsSampleThreadIDIncluded:  eventConfig.IsSampleThreadIDIncluded,
 		IsKernelIncluded:          eventConfig.IsKernelIncluded,
 		IsHvIncluded:              eventConfig.IsHvIncluded,
 		IsIdleIncluded:            eventConfig.IsIdleIncluded,

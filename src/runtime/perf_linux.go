@@ -8,7 +8,7 @@ func ioctl(fd int32, req, arg int) (r, err int)
 //go:noescape
 func perfEventOpen(attr *perfEventAttr, pid, cpu, groupFd, flags, dummy int) (r int32, r2, err int)
 
-const perfDataPages = 2
+const perfDataPages = 2 // use 2^n data pages
 var perfPageSize uint64
 var perfPageMask uint64
 
@@ -174,16 +174,17 @@ func perfReadHeader(mmapBuf *perfEventMmapPage, hdr *perfEventHeader) bool {
 	return perfReadNbytes(mmapBuf, unsafe.Pointer(hdr), uint64(unsafe.Sizeof(*hdr)))
 }
 
+// The order where values are read has to match the ring-buffer mmap layout
 func perfRecordSample(mmapBuf *perfEventMmapPage, eventAttr *PMUEventAttr, sampleData *perfSampleData) {
 	if eventAttr.IsSampleIPIncluded {
 		perfReadNbytes(mmapBuf, unsafe.Pointer(&(sampleData.ip)), uint64(unsafe.Sizeof(sampleData.ip)))
 	}
-	if eventAttr.IsSampleAddrIncluded {
-		perfReadNbytes(mmapBuf, unsafe.Pointer(&(sampleData.addr)), uint64(unsafe.Sizeof(sampleData.addr)))
-	}
 	if eventAttr.IsSampleThreadIDIncluded {
 		perfReadNbytes(mmapBuf, unsafe.Pointer(&(sampleData.pid)), uint64(unsafe.Sizeof(sampleData.pid)))
 		perfReadNbytes(mmapBuf, unsafe.Pointer(&(sampleData.tid)), uint64(unsafe.Sizeof(sampleData.tid)))
+	}
+	if eventAttr.IsSampleAddrIncluded {
+		perfReadNbytes(mmapBuf, unsafe.Pointer(&(sampleData.addr)), uint64(unsafe.Sizeof(sampleData.addr)))
 	}
 }
 
