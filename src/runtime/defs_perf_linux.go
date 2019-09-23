@@ -72,10 +72,14 @@ type perfEventHeader struct {
 	size uint16
 }
 
+// The order where values are saved in a sample has to match the ring-buffer mmap layout
 type perfSampleData struct {
 	ip   uint64 // if _PERF_SAMPLE_IP
-	addr uint64 // if _PERF_SAMPLE_ADDR
 	pid  uint32 // if _PERF_SAMPLE_TID 
 	tid  uint32 // if _PERF_SAMPLE_TID
-	// TODO: More fields can be added if needed
+	addr uint64 // if _PERF_SAMPLE_ADDR
+	// TODO: More fields can be added in order if needed
+
+	/*********** auxiliary fields ***********/
+	isPrecise bool // whether the obtained ip is precise or not
 }
