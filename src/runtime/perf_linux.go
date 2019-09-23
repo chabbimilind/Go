@@ -57,6 +57,8 @@ func perfAttrInit(eventId int32, eventAttr *PMUEventAttr, perfAttr *perfEventAtt
 	if !eventAttr.IsCallchainUserIncluded {
 		perfAttr.bits |= 1 << 22
 	}
+
+	perfAttr.wakeup = 1 // counter overflow notifications happen after wakeup_events samples
 }
 
 func perfMmapInit() {
@@ -174,7 +176,7 @@ func perfReadHeader(mmapBuf *perfEventMmapPage, hdr *perfEventHeader) bool {
 	return perfReadNbytes(mmapBuf, unsafe.Pointer(hdr), uint64(unsafe.Sizeof(*hdr)))
 }
 
-// The order where values are read has to match the ring-buffer mmap layout
+// The order where values are read has to match the mmap ring buffer layout
 func perfRecordSample(mmapBuf *perfEventMmapPage, eventAttr *PMUEventAttr, sampleData *perfSampleData) {
 	if eventAttr.IsSampleIPIncluded {
 		perfReadNbytes(mmapBuf, unsafe.Pointer(&(sampleData.ip)), uint64(unsafe.Sizeof(sampleData.ip)))
