@@ -109,7 +109,7 @@ func perfSkipRecord(mmapBuf *perfEventMmapPage, hdr *perfEventHeader) {
 	if mmapBuf == nil {
 		return
 	}
-	remains := uint64(hdr.size) - uint64(unsafe.Sizeof(hdr))
+	remains := uint64(hdr.size) - uint64(unsafe.Sizeof(*hdr))
 	if remains > 0 {
 		perfSkipNBytes(mmapBuf, remains)
 	}
@@ -171,7 +171,7 @@ func perfReadNbytes(mmapBuf *perfEventMmapPage, buf unsafe.Pointer, n uint64) bo
 }
 
 func perfReadHeader(mmapBuf *perfEventMmapPage, hdr *perfEventHeader) bool {
-	return perfReadNbytes(mmapBuf, unsafe.Pointer(hdr), uint64(unsafe.Sizeof(hdr)))
+	return perfReadNbytes(mmapBuf, unsafe.Pointer(hdr), uint64(unsafe.Sizeof(*hdr)))
 }
 
 func perfRecordSample(mmapBuf *perfEventMmapPage, eventAttr *PMUEventAttr, sampleData *perfSampleData) {
@@ -212,4 +212,8 @@ func perfResetCounter(fd int32) bool {
 		return false
 	}
 	return true
+}
+
+func perfReadCounter(fd int32, val *uint64) bool {
+	return read(fd, unsafe.Pointer(val), int32(unsafe.Sizeof(*val))) != -1
 }
