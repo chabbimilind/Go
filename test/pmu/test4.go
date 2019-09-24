@@ -163,8 +163,6 @@ func run() error {
 	var raw pprof.PMUEventConfig
 	raw.RawEvent = /* UOPS_ISSUED */ 0x53010e
 	raw.Period = 1000000
-	raw.IsKernelIncluded = false
-	raw.IsHvIncluded = false
 
 	if err := pprof.StartPMUProfile(pprof.WithProfilingPMURaw(rawFile, &raw)); err != nil {
 		return err

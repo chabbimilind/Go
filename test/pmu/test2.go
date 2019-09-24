@@ -177,7 +177,6 @@ func run() error {
 
 	var cycle pprof.PMUEventConfig
 	cycle.Period = 100000000
-	// cycle.PreciseIP = 2
 
 	instrFile, err := os.Create("instr_profile")
 	if err != nil {
@@ -187,7 +186,6 @@ func run() error {
 
 	var instr pprof.PMUEventConfig
 	instr.Period = 100000000
-	// instr.PreciseIP = 2
 
 	cacheMissFile, err := os.Create("cacheMiss_profile")
 	if err != nil {
@@ -197,7 +195,6 @@ func run() error {
 
 	var cacheMiss pprof.PMUEventConfig
 	cacheMiss.Period = 10
-	// cacheMiss.PreciseIP = 2
 
 	cacheRefFile, err := os.Create("cacheRef_profile")
 	if err != nil {
@@ -206,8 +203,7 @@ func run() error {
 	defer cacheRefFile.Close()
 
 	var cacheRef pprof.PMUEventConfig
-	cacheRef.Period = 10000
-	// cacheRef.PreciseIP = 2
+	cacheRef.Period = 1000
 
 	if err := pprof.StartPMUProfile(pprof.WithProfilingPMUCycles(cycleFile, &cycle), pprof.WithProfilingPMUInstructions(instrFile, &instr), pprof.WithProfilingPMUCacheReferences(cacheRefFile, &cacheRef), pprof.WithProfilingPMUCacheMisses(cacheMissFile, &cacheMiss)); err != nil {
 		return err
