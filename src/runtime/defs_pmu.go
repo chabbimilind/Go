@@ -19,7 +19,7 @@ type PMUEventAttr struct {
 	PreciseIP                 uint8
 	IsSampleIPIncluded        bool
 	IsSampleThreadIDIncluded  bool
-	IsSampleAddrIncluded	  bool
+	IsSampleAddrIncluded      bool
 	IsSampleCallchainIncluded bool
 	IsKernelIncluded          bool
 	IsHvIncluded              bool

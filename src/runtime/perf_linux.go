@@ -5,6 +5,7 @@ import (
 )
 
 func ioctl(fd int32, req, arg int) (r, err int)
+
 //go:noescape
 func perfEventOpen(attr *perfEventAttr, pid, cpu, groupFd, flags, dummy int) (r int32, r2, err int)
 
@@ -40,9 +41,9 @@ func perfAttrInit(eventId int32, eventAttr *PMUEventAttr, perfAttr *perfEventAtt
 		perfAttr.sample_type |= _PERF_SAMPLE_TID
 	}
 
-	perfAttr.bits = 1 // the counter is disabled and will be enabled later
+	perfAttr.bits = 1                                  // the counter is disabled and will be enabled later
 	perfAttr.bits |= uint64(eventAttr.PreciseIP) << 15 // precise ip
-	if !eventAttr.IsKernelIncluded { // don't count kernel
+	if !eventAttr.IsKernelIncluded {                   // don't count kernel
 		perfAttr.bits |= 1 << 5
 	}
 	if !eventAttr.IsHvIncluded { // don't count hypervisor
@@ -63,7 +64,7 @@ func perfAttrInit(eventId int32, eventAttr *PMUEventAttr, perfAttr *perfEventAtt
 
 func perfMmapInit() {
 	perfPageSize = uint64(physPageSize)
-	perfPageMask = perfPageSize * perfDataPages - 1
+	perfPageMask = perfPageSize*perfDataPages - 1
 }
 
 func perfMmapSize() uintptr {
@@ -79,10 +80,10 @@ func perfSetMmap(fd int32) *perfEventMmapPage {
 	}
 
 	size := perfMmapSize()
-	r, err := mmap(nil, size, _PROT_WRITE | _PROT_READ, _MAP_SHARED, fd, /* page offset */ 0)
+	r, err := mmap(nil, size, _PROT_WRITE|_PROT_READ, _MAP_SHARED, fd /* page offset */, 0)
 	if err != 0 {
 		return nil
-        }
+	}
 
 	perfMmap := (*perfEventMmapPage)(r)
 	// There is no memset available in Go runime
@@ -98,7 +99,7 @@ func perfUnsetMmap(mmapBuf *perfEventMmapPage) {
 	munmap(unsafe.Pointer(mmapBuf), size)
 }
 
-func perfSkipNBytes(head uint64, mmapBuf *perfEventMmapPage, n uint64 ) {
+func perfSkipNBytes(head uint64, mmapBuf *perfEventMmapPage, n uint64) {
 	tail := mmapBuf.data_tail
 
 	remains := head - tail
@@ -136,7 +137,7 @@ func perfReadNbytes(head uint64, mmapBuf *perfEventMmapPage, buf unsafe.Pointer,
 		return false
 	}
 
-	// front of the circular data buffer	
+	// front of the circular data buffer
 	data := unsafe.Pointer(uintptr(unsafe.Pointer(mmapBuf)) + uintptr(perfPageSize))
 
 	tail := mmapBuf.data_tail
@@ -160,13 +161,13 @@ func perfReadNbytes(head uint64, mmapBuf *perfEventMmapPage, buf unsafe.Pointer,
 		right = n
 	}
 
-	// copy bytes from tail position 
-	memmove(buf, unsafe.Pointer(uintptr(data) + uintptr(tail)), uintptr(right))
+	// copy bytes from tail position
+	memmove(buf, unsafe.Pointer(uintptr(data)+uintptr(tail)), uintptr(right))
 
 	// if necessary, wrap and continue copy from left edge of buf
 	if n > right {
 		left := n - right
-		memmove(unsafe.Pointer(uintptr(buf) + uintptr(right)) , data, uintptr(left))
+		memmove(unsafe.Pointer(uintptr(buf)+uintptr(right)), data, uintptr(left))
 	}
 
 	// update tail after consuming n bytes

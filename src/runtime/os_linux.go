@@ -290,8 +290,8 @@ func getHugePageSize() uintptr {
 func osinit() {
 	ncpu = getproccount()
 	physHugePageSize = getHugePageSize()
-	
-	// following the same convention as other write once variables in this function and 
+
+	// following the same convention as other write once variables in this function and
 	// assuming that there exists a memory fence before anybody reads these values
 	setProcessPMUProfilerFptr = setProcessPMUProfiler
 	setThreadPMUProfilerFptr = setThreadPMUProfiler
@@ -481,6 +481,7 @@ func setProcessPMUProfiler(eventAttr *PMUEventAttr) {
 }
 
 func fcntl(fd int32, cmd, arg int) (r, err int)
+
 //go:noescape
 func fcntl2(fd int32, cmd int, arg *fOwnerEx) (r, err int)
 
@@ -509,13 +510,13 @@ func setThreadPMUProfiler(eventId int32, eventAttr *PMUEventAttr) {
 		var perfAttr perfEventAttr
 		perfAttrInit(eventId, eventAttr, &perfAttr)
 
-		fd, _, err := perfEventOpen(&perfAttr, 0, -1, -1, 0, /* dummy */ 0)
+		fd, _, err := perfEventOpen(&perfAttr, 0, -1, -1, 0 /* dummy */, 0)
 		if err != 0 {
 			println("Linux perf event open failed")
 			return
 		}
 
-		// create mmap buffer for this file 
+		// create mmap buffer for this file
 		perfMmap := perfSetMmap(fd)
 		if perfMmap == nil {
 			println("Fail to set perf mmap")
@@ -523,8 +524,8 @@ func setThreadPMUProfiler(eventId int32, eventAttr *PMUEventAttr) {
 			return
 		}
 
-		flag, _ := fcntl(fd, /* F_GETFL */ 0x3, 0)
-		_, err = fcntl(fd, /* F_SETFL */ 0x4, flag | /* O_ASYNC */ 0x2000)
+		flag, _ := fcntl(fd /* F_GETFL */, 0x3, 0)
+		_, err = fcntl(fd /* F_SETFL */, 0x4, flag| /* O_ASYNC */ 0x2000)
 		if err != 0 {
 			println("Failed to set notification for the PMU event")
 			perfUnsetMmap(perfMmap)
@@ -532,7 +533,7 @@ func setThreadPMUProfiler(eventId int32, eventAttr *PMUEventAttr) {
 			return
 		}
 
-		_, err = fcntl(fd, /* F_SETSIG */ 0xa, _SIGPROF)
+		_, err = fcntl(fd /* F_SETSIG */, 0xa, _SIGPROF)
 		if err != 0 {
 			println("Failed to set signal for the PMU event")
 			perfUnsetMmap(perfMmap)
@@ -540,8 +541,8 @@ func setThreadPMUProfiler(eventId int32, eventAttr *PMUEventAttr) {
 			return
 		}
 
-		fOwnEx := fOwnerEx{/* F_OWNER_TID */ 0, int32(gettid())}
-		_, err = fcntl2(fd, /* F_SETOWN_EX */ 0xf, &fOwnEx)
+		fOwnEx := fOwnerEx{ /* F_OWNER_TID */ 0, int32(gettid())}
+		_, err = fcntl2(fd /* F_SETOWN_EX */, 0xf, &fOwnEx)
 		if err != 0 {
 			println("Failed to set the owner of the perf event file")
 			perfUnsetMmap(perfMmap)
@@ -596,12 +597,12 @@ func sigprofPMUHandler(info *siginfo, c *sigctxt, gp *g, _g_ *g) {
 
 			remains := head - tail
 			if remains <= 0 {
-				break;
+				break
 			}
 
 			var hdr perfEventHeader
 
-			// the causes of passing 'mmapBuf.data_head' by value to functions 
+			// the causes of passing 'mmapBuf.data_head' by value to functions
 			// perfSkipAll, perfReadHeader, perfRecordSample, perfSkipAll and perfSkipRecord:
 			// 1. it remains unchanged across these function calls
 			// 2. more importantly, avoid frequenly reading it from the mmap ring buffer => avoid frequenly calling rmb()

@@ -75,7 +75,7 @@ type perfEventHeader struct {
 // The order where values are saved in a sample has to match the mmap ring buffer layout
 type perfSampleData struct {
 	ip   uint64 // if _PERF_SAMPLE_IP
-	pid  uint32 // if _PERF_SAMPLE_TID 
+	pid  uint32 // if _PERF_SAMPLE_TID
 	tid  uint32 // if _PERF_SAMPLE_TID
 	addr uint64 // if _PERF_SAMPLE_ADDR
 	// TODO: More fields can be added in order if needed

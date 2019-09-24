@@ -809,10 +809,10 @@ func StartPMUProfile(opts ...ProfilingOption) error {
 type PMUEventConfig struct {
 	Period                    int64
 	RawEvent                  int64
-	PreciseIP	          int8
+	PreciseIP                 int8
 	IsSampleIPIncluded        bool
 	IsSampleThreadIDIncluded  bool
-	IsSampleAddrIncluded	  bool
+	IsSampleAddrIncluded      bool
 	IsSampleCallchainIncluded bool
 	IsKernelIncluded          bool
 	IsHvIncluded              bool
