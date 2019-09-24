@@ -180,6 +180,8 @@ const (
 	_PERF_FORMAT_ID                 = 0x4
 	_PERF_FORMAT_GROUP              = 0x8
 
+	_PERF_RECORD_MISC_EXACT_IP = 0x4000
+
 	_PERF_RECORD_MMAP            = 0x1
 	_PERF_RECORD_LOST            = 0x2
 	_PERF_RECORD_COMM            = 0x3

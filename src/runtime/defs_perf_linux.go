@@ -81,5 +81,5 @@ type perfSampleData struct {
 	// TODO: More fields can be added in order if needed
 
 	/*********** auxiliary fields ***********/
-	isPrecise bool // whether the obtained ip is precise or not
+	isPreciseIP bool // whether the obtained ip is precise or not
 }

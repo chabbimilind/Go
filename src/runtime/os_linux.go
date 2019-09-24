@@ -590,27 +590,33 @@ func sigprofPMUHandler(info *siginfo, c *sigctxt, gp *g, _g_ *g) {
 		remains := mmapBuf.data_head - mmapBuf.data_tail
 		for remains > 0 {
 			var hdr perfEventHeader
+
 			if remains < uint64(unsafe.Sizeof(hdr)) {
 				perfSkipAll(mmapBuf)
 				break
 			}
+
 			if !perfReadHeader(mmapBuf, &hdr) {
 				println("Failed to read the mmap header")
 				break
 			}
+
 			if hdr.Type == _PERF_RECORD_SAMPLE {
 				var sampleData perfSampleData
-				// sampleData.isPrecise = (hdr.misc & _PERF_RECORD_MISC_EXACT_IP) ? true : false
+
+				sampleData.isPreciseIP = (hdr.misc & _PERF_RECORD_MISC_EXACT_IP) != 0
+
 				perfRecordSample(mmapBuf, _g_.m.eventAttrs[eventId], &sampleData)
+
 				sigprofPMU(c.sigpc(), c.sigsp(), c.siglr(), gp, _g_.m, eventId, &sampleData)
 			} else if hdr.size == 0 {
 				perfSkipAll(mmapBuf)
 			} else {
 				perfSkipRecord(mmapBuf, &hdr)
 			}
+
 			remains = mmapBuf.data_head - mmapBuf.data_tail
 		}
-
 	} else { // should never be taken
 		println("File descriptor ", fd, " not found in _g_.m.eventFds")
 	}
