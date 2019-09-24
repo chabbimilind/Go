@@ -71,13 +71,13 @@ func f2() {
 }
 
 func f3() {
-	var x int          // ERROR "moved to heap: x"
+	var x int // ERROR "moved to heap: x"
 	p := leaktoret(&x)
 	gp = p
 }
 
 func f4() {
-	var x int              // ERROR "moved to heap: x"
+	var x int // ERROR "moved to heap: x"
 	p, q := leaktoret2(&x)
 	gp = p
 	gp = q
@@ -89,7 +89,7 @@ func f5() {
 }
 
 func f6() {
-	var x int                               // ERROR "moved to heap: x"
+	var x int // ERROR "moved to heap: x"
 	px1, px2 := leaktoret22(leaktoret2(&x))
 	gp = px1
 	_ = px2

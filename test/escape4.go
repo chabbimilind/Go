@@ -42,7 +42,7 @@ func f5() *byte {
 	type T struct {
 		x [1]byte
 	}
-	t := new(T)    // ERROR "new.T. escapes to heap"
+	t := new(T) // ERROR "new.T. escapes to heap"
 	return &t.x[0]
 }
 
@@ -52,6 +52,6 @@ func f6() *byte {
 			y byte
 		}
 	}
-	t := new(T)   // ERROR "new.T. escapes to heap"
+	t := new(T) // ERROR "new.T. escapes to heap"
 	return &t.x.y
 }

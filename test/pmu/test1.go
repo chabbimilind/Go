@@ -162,6 +162,7 @@ func run() error {
 
 	var cycle pprof.PMUEventConfig
 	cycle.Period = 10000000
+	cycle.PreciseIP = 2
 
 	if err := pprof.StartPMUProfile(pprof.WithProfilingPMUCycles(cycleFile, &cycle)); err != nil {
 		return err

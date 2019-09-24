@@ -161,7 +161,7 @@ func run() error {
 	defer rawFile.Close()
 
 	var raw pprof.PMUEventConfig
-	raw.RawEvent = /* UOPS_ISSUED */ 0x53010e
+	raw.RawEvent = 0x53010e /* UOPS_ISSUED */
 	raw.Period = 1000000
 
 	if err := pprof.StartPMUProfile(pprof.WithProfilingPMURaw(rawFile, &raw)); err != nil {

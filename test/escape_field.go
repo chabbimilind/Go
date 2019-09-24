@@ -39,7 +39,7 @@ func field3() {
 	i := 0 // ERROR "moved to heap: i$"
 	var x X
 	x.p1 = &i
-	sink = x  // ERROR "x escapes to heap"
+	sink = x // ERROR "x escapes to heap"
 }
 
 func field4() {
@@ -113,16 +113,16 @@ func field10() {
 }
 
 func field11() {
-	i := 0         // ERROR "moved to heap: i$"
+	i := 0 // ERROR "moved to heap: i$"
 	x := X{p1: &i}
-	sink = x.p1    // ERROR "x\.p1 escapes to heap"
+	sink = x.p1 // ERROR "x\.p1 escapes to heap"
 }
 
 func field12() {
 	i := 0 // ERROR "moved to heap: i$"
 	// BAD: &i should not escape
 	x := X{p1: &i}
-	sink = x.p2    // ERROR "x\.p2 escapes to heap"
+	sink = x.p2 // ERROR "x\.p2 escapes to heap"
 }
 
 func field13() {

@@ -25,9 +25,6 @@ func f1() {
 		sum *= i
 		sum /= i/3 + 1
 		sum -= i / 4
-		/*if i % 100 == 0 {
-			time.Sleep(time.Nanosecond)
-		}*/
 	}
 
 	fmt.Println(sum)
@@ -42,9 +39,6 @@ func f2() {
 		sum *= i
 		sum /= i/3 + 1
 		sum -= i / 4
-		/*if i % 100 == 0 {
-			time.Sleep(time.Nanosecond)
-		}*/
 	}
 
 	fmt.Println(sum)
@@ -59,9 +53,6 @@ func f3() {
 		sum *= i
 		sum /= i/3 + 1
 		sum -= i / 4
-		/*if i % 100 == 0 {
-			time.Sleep(time.Nanosecond)
-		}*/
 	}
 
 	fmt.Println(sum)
@@ -76,9 +67,6 @@ func f4() {
 		sum *= i
 		sum /= i/3 + 1
 		sum -= i / 4
-		/*if i % 100 == 0 {
-			time.Sleep(time.Nanosecond)
-		}*/
 	}
 
 	fmt.Println(sum)

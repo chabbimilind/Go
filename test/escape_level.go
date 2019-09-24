@@ -27,15 +27,15 @@ func level1() {
 }
 
 func level2() {
-	i := 0     // ERROR "moved to heap: i"
-	p0 := &i   // ERROR "moved to heap: p0"
+	i := 0   // ERROR "moved to heap: i"
+	p0 := &i // ERROR "moved to heap: p0"
 	p1 := &p0
 	p2 := &p1
 	sink = *p2 // ERROR "\*p2 escapes to heap"
 }
 
 func level3() {
-	i := 0      // ERROR "moved to heap: i"
+	i := 0 // ERROR "moved to heap: i"
 	p0 := &i
 	p1 := &p0
 	p2 := &p1
@@ -43,23 +43,23 @@ func level3() {
 }
 
 func level4() {
-	i := 0     // ERROR "moved to heap: i"
-	p0 := &i   // ERROR "moved to heap: p0"
+	i := 0   // ERROR "moved to heap: i"
+	p0 := &i // ERROR "moved to heap: p0"
 	p1 := &p0
 	p2 := p1   // ERROR "moved to heap: p2"
 	sink = &p2 // ERROR "&p2 escapes to heap"
 }
 
 func level5() {
-	i := 0    // ERROR "moved to heap: i"
-	p0 := &i  // ERROR "moved to heap: p0"
+	i := 0   // ERROR "moved to heap: i"
+	p0 := &i // ERROR "moved to heap: p0"
 	p1 := &p0
 	p2 := p1
 	sink = p2 // ERROR "p2 escapes to heap"
 }
 
 func level6() {
-	i := 0    // ERROR "moved to heap: i"
+	i := 0 // ERROR "moved to heap: i"
 	p0 := &i
 	p1 := &p0
 	p2 := p1
@@ -67,7 +67,7 @@ func level6() {
 }
 
 func level7() {
-	i := 0    // ERROR "moved to heap: i"
+	i := 0 // ERROR "moved to heap: i"
 	p0 := &i
 	p1 := &p0
 	// note *p1 == &i
@@ -76,7 +76,7 @@ func level7() {
 }
 
 func level8() {
-	i := 0    // ERROR "moved to heap: i"
+	i := 0 // ERROR "moved to heap: i"
 	p0 := &i
 	p1 := &p0
 	p2 := *p1

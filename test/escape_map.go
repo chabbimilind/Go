@@ -15,7 +15,7 @@ func map0() {
 	// BAD: i should not escape
 	i := 0 // ERROR "moved to heap: i"
 	// BAD: j should not escape
-	j := 0     // ERROR "moved to heap: j"
+	j := 0 // ERROR "moved to heap: j"
 	m[&i] = &j
 	_ = m
 }
@@ -23,8 +23,8 @@ func map0() {
 func map1() *int {
 	m := make(map[*int]*int) // ERROR "make\(map\[\*int\]\*int\) does not escape"
 	// BAD: i should not escape
-	i := 0       // ERROR "moved to heap: i"
-	j := 0       // ERROR "moved to heap: j"
+	i := 0 // ERROR "moved to heap: i"
+	j := 0 // ERROR "moved to heap: j"
 	m[&i] = &j
 	return m[&i]
 }
@@ -41,7 +41,7 @@ func map3() []*int {
 	m := make(map[*int]*int) // ERROR "make\(map\[\*int\]\*int\) does not escape"
 	i := 0                   // ERROR "moved to heap: i"
 	// BAD: j should not escape
-	j := 0     // ERROR "moved to heap: j"
+	j := 0 // ERROR "moved to heap: j"
 	m[&i] = &j
 	var r []*int
 	for k := range m {
@@ -53,8 +53,8 @@ func map3() []*int {
 func map4() []*int {
 	m := make(map[*int]*int) // ERROR "make\(map\[\*int\]\*int\) does not escape"
 	// BAD: i should not escape
-	i := 0     // ERROR "moved to heap: i"
-	j := 0     // ERROR "moved to heap: j"
+	i := 0 // ERROR "moved to heap: i"
+	j := 0 // ERROR "moved to heap: j"
 	m[&i] = &j
 	var r []*int
 	for k, v := range m {
@@ -68,8 +68,8 @@ func map4() []*int {
 }
 
 func map5(m map[*int]*int) { // ERROR "m does not escape"
-	i := 0     // ERROR "moved to heap: i"
-	j := 0     // ERROR "moved to heap: j"
+	i := 0 // ERROR "moved to heap: i"
+	j := 0 // ERROR "moved to heap: j"
 	m[&i] = &j
 }
 
@@ -77,8 +77,8 @@ func map6(m map[*int]*int) { // ERROR "m does not escape"
 	if m != nil {
 		m = make(map[*int]*int) // ERROR "make\(map\[\*int\]\*int\) does not escape"
 	}
-	i := 0     // ERROR "moved to heap: i"
-	j := 0     // ERROR "moved to heap: j"
+	i := 0 // ERROR "moved to heap: i"
+	j := 0 // ERROR "moved to heap: j"
 	m[&i] = &j
 }
 
@@ -95,7 +95,7 @@ func map8() {
 	i := 0                     // ERROR "moved to heap: i"
 	j := 0                     // ERROR "moved to heap: j"
 	m := map[*int]*int{&i: &j} // ERROR "literal escapes to heap"
-	sink = m // ERROR "m escapes to heap"
+	sink = m                   // ERROR "m escapes to heap"
 }
 
 func map9() *int {

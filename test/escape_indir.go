@@ -54,14 +54,14 @@ func constptr1() {
 	i := 0           // ERROR "moved to heap: i"
 	x := &ConstPtr{} // ERROR "&ConstPtr literal escapes to heap"
 	x.p = &i
-	sink = x         // ERROR "x escapes to heap"
+	sink = x // ERROR "x escapes to heap"
 }
 
 func constptr2() {
 	i := 0           // ERROR "moved to heap: i"
 	x := &ConstPtr{} // ERROR "&ConstPtr literal does not escape"
 	x.p = &i
-	sink = *x        // ERROR "\*x escapes to heap"
+	sink = *x // ERROR "\*x escapes to heap"
 }
 
 func constptr4() *ConstPtr {
@@ -102,7 +102,7 @@ func constptr8() *ConstPtr {
 func constptr9() ConstPtr {
 	p := new(ConstPtr) // ERROR "new\(ConstPtr\) does not escape"
 	var p1 ConstPtr2
-	i := 0    // ERROR "moved to heap: i"
+	i := 0 // ERROR "moved to heap: i"
 	p1.p = &i
 	p.c = p1
 	return *p
@@ -134,7 +134,7 @@ func foo(p **int) { // ERROR "foo p does not escape"
 }
 
 func foo1(p *int) { // ERROR "p does not escape"
-	i := 0  // ERROR "moved to heap: i"
+	i := 0 // ERROR "moved to heap: i"
 	y := &p
 	*y = &i
 }
@@ -148,13 +148,13 @@ func foo2() {
 	var z Z
 	z.f = &x
 	p := z.f
-	i := 0  // ERROR "moved to heap: i"
+	i := 0 // ERROR "moved to heap: i"
 	*p = &i
 }
 
 var global *byte
 
 func f() {
-	var x byte    // ERROR "moved to heap: x"
+	var x byte // ERROR "moved to heap: x"
 	global = &*&x
 }
