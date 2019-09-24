@@ -98,36 +98,40 @@ func perfUnsetMmap(mmapBuf *perfEventMmapPage) {
 	munmap(unsafe.Pointer(mmapBuf), size)
 }
 
-func perfSkipNBytes(mmapBuf *perfEventMmapPage, n uint64 ) {
-	head := mmapBuf.data_head
+func perfSkipNBytes(head uint64, mmapBuf *perfEventMmapPage, n uint64 ) {
 	tail := mmapBuf.data_tail
-	if tail + n > head {
-		n = head - tail
+
+	remains := head - tail
+	if n > remains {
+		n = remains
 	}
 	mmapBuf.data_tail += n
 }
 
-func perfSkipRecord(mmapBuf *perfEventMmapPage, hdr *perfEventHeader) {
+func perfSkipRecord(head uint64, mmapBuf *perfEventMmapPage, hdr *perfEventHeader) {
 	if mmapBuf == nil {
 		return
 	}
 	remains := uint64(hdr.size) - uint64(unsafe.Sizeof(*hdr))
 	if remains > 0 {
-		perfSkipNBytes(mmapBuf, remains)
+		perfSkipNBytes(head, mmapBuf, remains)
 	}
 }
 
-func perfSkipAll(mmapBuf *perfEventMmapPage) {
+func perfSkipAll(head uint64, mmapBuf *perfEventMmapPage) {
 	if mmapBuf == nil {
 		return
 	}
-	remains := mmapBuf.data_head - mmapBuf.data_tail
+
+	tail := mmapBuf.data_tail
+
+	remains := head - tail
 	if remains > 0 {
-		perfSkipNBytes(mmapBuf, remains)
+		perfSkipNBytes(head, mmapBuf, remains)
 	}
 }
 
-func perfReadNbytes(mmapBuf *perfEventMmapPage, buf unsafe.Pointer, n uint64) bool {
+func perfReadNbytes(head uint64, mmapBuf *perfEventMmapPage, buf unsafe.Pointer, n uint64) bool {
 	if mmapBuf == nil {
 		return false
 	}
@@ -136,7 +140,6 @@ func perfReadNbytes(mmapBuf *perfEventMmapPage, buf unsafe.Pointer, n uint64) bo
 	data := unsafe.Pointer(uintptr(unsafe.Pointer(mmapBuf)) + uintptr(perfPageSize))
 
 	tail := mmapBuf.data_tail
-	head := mmapBuf.data_head
 
 	// compute bytes available in the circular buffer
 	byteAvailable := head - tail
@@ -172,21 +175,21 @@ func perfReadNbytes(mmapBuf *perfEventMmapPage, buf unsafe.Pointer, n uint64) bo
 	return true
 }
 
-func perfReadHeader(mmapBuf *perfEventMmapPage, hdr *perfEventHeader) bool {
-	return perfReadNbytes(mmapBuf, unsafe.Pointer(hdr), uint64(unsafe.Sizeof(*hdr)))
+func perfReadHeader(head uint64, mmapBuf *perfEventMmapPage, hdr *perfEventHeader) bool {
+	return perfReadNbytes(head, mmapBuf, unsafe.Pointer(hdr), uint64(unsafe.Sizeof(*hdr)))
 }
 
 // The order where values are read has to match the mmap ring buffer layout
-func perfRecordSample(mmapBuf *perfEventMmapPage, eventAttr *PMUEventAttr, sampleData *perfSampleData) {
+func perfRecordSample(head uint64, mmapBuf *perfEventMmapPage, eventAttr *PMUEventAttr, sampleData *perfSampleData) {
 	if eventAttr.IsSampleIPIncluded {
-		perfReadNbytes(mmapBuf, unsafe.Pointer(&(sampleData.ip)), uint64(unsafe.Sizeof(sampleData.ip)))
+		perfReadNbytes(head, mmapBuf, unsafe.Pointer(&(sampleData.ip)), uint64(unsafe.Sizeof(sampleData.ip)))
 	}
 	if eventAttr.IsSampleThreadIDIncluded {
-		perfReadNbytes(mmapBuf, unsafe.Pointer(&(sampleData.pid)), uint64(unsafe.Sizeof(sampleData.pid)))
-		perfReadNbytes(mmapBuf, unsafe.Pointer(&(sampleData.tid)), uint64(unsafe.Sizeof(sampleData.tid)))
+		perfReadNbytes(head, mmapBuf, unsafe.Pointer(&(sampleData.pid)), uint64(unsafe.Sizeof(sampleData.pid)))
+		perfReadNbytes(head, mmapBuf, unsafe.Pointer(&(sampleData.tid)), uint64(unsafe.Sizeof(sampleData.tid)))
 	}
 	if eventAttr.IsSampleAddrIncluded {
-		perfReadNbytes(mmapBuf, unsafe.Pointer(&(sampleData.addr)), uint64(unsafe.Sizeof(sampleData.addr)))
+		perfReadNbytes(head, mmapBuf, unsafe.Pointer(&(sampleData.addr)), uint64(unsafe.Sizeof(sampleData.addr)))
 	}
 }
 

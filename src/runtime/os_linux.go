@@ -587,16 +587,28 @@ func sigprofPMUHandler(info *siginfo, c *sigctxt, gp *g, _g_ *g) {
 	}
 	if eventId != -1 {
 		mmapBuf := _g_.m.eventMmapBufs[eventId]
-		remains := mmapBuf.data_head - mmapBuf.data_tail
-		for remains > 0 {
+		head := mmapBuf.data_head
+
+		rmb() // on SMP-capable platforms, after reading the data_head value, user space should issue a memory barrier
+
+		for {
+			tail := mmapBuf.data_tail
+			remains := head - tail
+			if remains <= 0 {
+				break;
+			}
+
 			var hdr perfEventHeader
 
+			// the causes of passing 'mmapBuf.data_head' by value to functions perfSkipAll, perfReadHeader, perfRecordSample, perfSkipAll and perfSkipRecord:
+			// 1. it remains unchanged across these function calls
+			// 2. more importantly, avoid frequenly reading it from the mmap ring buffer => avoid frequenly calling rmb()
 			if remains < uint64(unsafe.Sizeof(hdr)) {
-				perfSkipAll(mmapBuf)
+				perfSkipAll(head, mmapBuf)
 				break
 			}
 
-			if !perfReadHeader(mmapBuf, &hdr) {
+			if !perfReadHeader(head, mmapBuf, &hdr) {
 				println("Failed to read the mmap header")
 				break
 			}
@@ -606,16 +618,14 @@ func sigprofPMUHandler(info *siginfo, c *sigctxt, gp *g, _g_ *g) {
 
 				sampleData.isPreciseIP = (hdr.misc & _PERF_RECORD_MISC_EXACT_IP) != 0
 
-				perfRecordSample(mmapBuf, _g_.m.eventAttrs[eventId], &sampleData)
+				perfRecordSample(head, mmapBuf, _g_.m.eventAttrs[eventId], &sampleData)
 
 				sigprofPMU(c.sigpc(), c.sigsp(), c.siglr(), gp, _g_.m, eventId, &sampleData)
 			} else if hdr.size == 0 {
-				perfSkipAll(mmapBuf)
+				perfSkipAll(head, mmapBuf)
 			} else {
-				perfSkipRecord(mmapBuf, &hdr)
+				perfSkipRecord(head, mmapBuf, &hdr)
 			}
-
-			remains = mmapBuf.data_head - mmapBuf.data_tail
 		}
 	} else { // should never be taken
 		println("File descriptor ", fd, " not found in _g_.m.eventFds")
