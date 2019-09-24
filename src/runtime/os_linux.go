@@ -587,12 +587,13 @@ func sigprofPMUHandler(info *siginfo, c *sigctxt, gp *g, _g_ *g) {
 	}
 	if eventId != -1 {
 		mmapBuf := _g_.m.eventMmapBufs[eventId]
-		head := mmapBuf.data_head
 
+		head := mmapBuf.data_head
 		rmb() // on SMP-capable platforms, after reading the data_head value, user space should issue a memory barrier
 
 		for {
 			tail := mmapBuf.data_tail
+
 			remains := head - tail
 			if remains <= 0 {
 				break;
@@ -600,7 +601,8 @@ func sigprofPMUHandler(info *siginfo, c *sigctxt, gp *g, _g_ *g) {
 
 			var hdr perfEventHeader
 
-			// the causes of passing 'mmapBuf.data_head' by value to functions perfSkipAll, perfReadHeader, perfRecordSample, perfSkipAll and perfSkipRecord:
+			// the causes of passing 'mmapBuf.data_head' by value to functions 
+			// perfSkipAll, perfReadHeader, perfRecordSample, perfSkipAll and perfSkipRecord:
 			// 1. it remains unchanged across these function calls
 			// 2. more importantly, avoid frequenly reading it from the mmap ring buffer => avoid frequenly calling rmb()
 			if remains < uint64(unsafe.Sizeof(hdr)) {
