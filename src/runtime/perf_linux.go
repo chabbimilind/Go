@@ -71,7 +71,7 @@ func perfMmapSize() uintptr {
 	if perfPageSize == 0 {
 		println("The perf page size has been unknown!")
 	}
-	return uintptr(perfPageSize * (perfDataPages + /* metadata page */ 1))
+	return uintptr(perfPageSize * (perfDataPages + 1 /* metadata page */))
 }
 
 func perfSetMmap(fd int32) *perfEventMmapPage {
@@ -80,7 +80,7 @@ func perfSetMmap(fd int32) *perfEventMmapPage {
 	}
 
 	size := perfMmapSize()
-	r, err := mmap(nil, size, _PROT_WRITE|_PROT_READ, _MAP_SHARED, fd /* page offset */, 0)
+	r, err := mmap(nil, size, _PROT_WRITE|_PROT_READ, _MAP_SHARED, fd, 0 /* page offset */)
 	if err != 0 {
 		return nil
 	}

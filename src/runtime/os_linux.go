@@ -510,7 +510,7 @@ func setThreadPMUProfiler(eventId int32, eventAttr *PMUEventAttr) {
 		var perfAttr perfEventAttr
 		perfAttrInit(eventId, eventAttr, &perfAttr)
 
-		fd, _, err := perfEventOpen(&perfAttr, 0, -1, -1, 0 /* dummy */, 0)
+		fd, _, err := perfEventOpen(&perfAttr, 0, -1, -1, 0, 0 /* dummy */)
 		if err != 0 {
 			println("Linux perf event open failed")
 			return
@@ -524,8 +524,8 @@ func setThreadPMUProfiler(eventId int32, eventAttr *PMUEventAttr) {
 			return
 		}
 
-		flag, _ := fcntl(fd /* F_GETFL */, 0x3, 0)
-		_, err = fcntl(fd /* F_SETFL */, 0x4, flag| /* O_ASYNC */ 0x2000)
+		flag, _ := fcntl(fd, 0x3 /* F_GETFL */, 0)
+		_, err = fcntl(fd, 0x4 /* F_SETFL */, flag|0x2000 /* O_ASYNC */)
 		if err != 0 {
 			println("Failed to set notification for the PMU event")
 			perfUnsetMmap(perfMmap)
@@ -533,7 +533,7 @@ func setThreadPMUProfiler(eventId int32, eventAttr *PMUEventAttr) {
 			return
 		}
 
-		_, err = fcntl(fd /* F_SETSIG */, 0xa, _SIGPROF)
+		_, err = fcntl(fd, 0xa /* F_SETSIG */, _SIGPROF)
 		if err != 0 {
 			println("Failed to set signal for the PMU event")
 			perfUnsetMmap(perfMmap)
@@ -541,8 +541,8 @@ func setThreadPMUProfiler(eventId int32, eventAttr *PMUEventAttr) {
 			return
 		}
 
-		fOwnEx := fOwnerEx{ /* F_OWNER_TID */ 0, int32(gettid())}
-		_, err = fcntl2(fd /* F_SETOWN_EX */, 0xf, &fOwnEx)
+		fOwnEx := fOwnerEx{0 /* F_OWNER_TID */, int32(gettid())}
+		_, err = fcntl2(fd, 0xf /* F_SETOWN_EX */, &fOwnEx)
 		if err != 0 {
 			println("Failed to set the owner of the perf event file")
 			perfUnsetMmap(perfMmap)
