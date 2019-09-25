@@ -3820,7 +3820,7 @@ var lostPMUAtomic64Count [GO_COUNT_PMU_EVENTS_MAX]uint64
 // Called if we receive a SIGPROF signal and PMU is enabled.
 // Called by the signal handler, may run during STW.
 //go:nowritebarrierrec
-func sigprofPMU(pc, sp, lr uintptr, gp *g, mp *m, eventId int, sampleData *perfSampleData) {
+func sigprofPMU(pc, sp, lr uintptr, gp *g, mp *m, eventId int) {
 	if pmuEvent[eventId].eventAttr == nil {
 		return
 	}

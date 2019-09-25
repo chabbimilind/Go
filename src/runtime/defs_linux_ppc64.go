@@ -13,9 +13,11 @@ const (
 	_PROT_WRITE = 0x2
 	_PROT_EXEC  = 0x4
 
-	_MAP_ANON    = 0x20
-	_MAP_PRIVATE = 0x2
-	_MAP_FIXED   = 0x10
+	_MAP_SHARED          = 0x1
+	_MAP_PRIVATE         = 0x2
+	_MAP_SHARED_VALIDATE = 0x3
+	_MAP_FIXED           = 0x10
+	_MAP_ANON            = 0x20
 
 	_MADV_DONTNEED   = 0x4
 	_MADV_FREE       = 0x8

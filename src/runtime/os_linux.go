@@ -517,8 +517,8 @@ func setThreadPMUProfiler(eventId int32, eventAttr *PMUEventAttr) {
 		}
 
 		// create mmap buffer for this file
-		perfMmap := perfSetMmap(fd)
-		if perfMmap == nil {
+		mmapBuf := perfSetMmap(fd)
+		if mmapBuf == nil {
 			println("Fail to set perf mmap")
 			closefd(fd)
 			return
@@ -528,7 +528,7 @@ func setThreadPMUProfiler(eventId int32, eventAttr *PMUEventAttr) {
 		_, err = fcntl(fd, 0x4 /* F_SETFL */, flag|0x2000 /* O_ASYNC */)
 		if err != 0 {
 			println("Failed to set notification for the PMU event")
-			perfUnsetMmap(perfMmap)
+			perfUnsetMmap(mmapBuf)
 			closefd(fd)
 			return
 		}
@@ -536,7 +536,7 @@ func setThreadPMUProfiler(eventId int32, eventAttr *PMUEventAttr) {
 		_, err = fcntl(fd, 0xa /* F_SETSIG */, _SIGPROF)
 		if err != 0 {
 			println("Failed to set signal for the PMU event")
-			perfUnsetMmap(perfMmap)
+			perfUnsetMmap(mmapBuf)
 			closefd(fd)
 			return
 		}
@@ -545,25 +545,25 @@ func setThreadPMUProfiler(eventId int32, eventAttr *PMUEventAttr) {
 		_, err = fcntl2(fd, 0xf /* F_SETOWN_EX */, &fOwnEx)
 		if err != 0 {
 			println("Failed to set the owner of the perf event file")
-			perfUnsetMmap(perfMmap)
+			perfUnsetMmap(mmapBuf)
 			closefd(fd)
 			return
 		}
 
 		_g_.m.eventAttrs[eventId] = eventAttr
-		_g_.m.eventMmapBufs[eventId] = perfMmap
+		_g_.m.eventMmapBufs[eventId] = mmapBuf
 		_g_.m.eventFds[eventId] = fd
 
 		if !perfResetCounter(fd) {
 			_g_.m.eventAttrs[eventId] = nil
-			perfUnsetMmap(perfMmap)
+			perfUnsetMmap(mmapBuf)
 			_g_.m.eventMmapBufs[eventId] = nil
 			closefd(fd)
 			return
 		}
 		if !perfStartCounter(fd) {
 			_g_.m.eventAttrs[eventId] = nil
-			perfUnsetMmap(perfMmap)
+			perfUnsetMmap(mmapBuf)
 			_g_.m.eventMmapBufs[eventId] = nil
 			closefd(fd)
 			return
@@ -586,8 +586,9 @@ func sigprofPMUHandler(info *siginfo, c *sigctxt, gp *g, _g_ *g) {
 			break
 		}
 	}
+
 	if eventId != -1 {
-		mmapBuf := _g_.m.eventMmapBufs[eventId]
+		mmapBuf := (*perfEventMmapPage)(_g_.m.eventMmapBufs[eventId])
 
 		head := mmapBuf.data_head
 		rmb() // on SMP-capable platforms, after reading the data_head value, user space should issue a memory barrier
@@ -623,7 +624,7 @@ func sigprofPMUHandler(info *siginfo, c *sigctxt, gp *g, _g_ *g) {
 
 				perfRecordSample(head, mmapBuf, _g_.m.eventAttrs[eventId], &sampleData)
 
-				sigprofPMU(c.sigpc(), c.sigsp(), c.siglr(), gp, _g_.m, eventId, &sampleData)
+				sigprofPMU(c.sigpc(), c.sigsp(), c.siglr(), gp, _g_.m, eventId /* &sampleData */)
 			} else if hdr.size == 0 {
 				perfSkipAll(head, mmapBuf)
 			} else {

@@ -74,29 +74,28 @@ func perfMmapSize() uintptr {
 	return uintptr(perfPageSize * (perfDataPages + 1 /* metadata page */))
 }
 
-func perfSetMmap(fd int32) *perfEventMmapPage {
+func perfSetMmap(fd int32) unsafe.Pointer {
 	if perfPageSize == 0 {
 		perfMmapInit()
 	}
 
 	size := perfMmapSize()
-	r, err := mmap(nil, size, _PROT_WRITE|_PROT_READ, _MAP_SHARED, fd, 0 /* page offset */)
+	mmapBuf, err := mmap(nil, size, _PROT_WRITE|_PROT_READ, _MAP_SHARED, fd, 0 /* page offset */)
 	if err != 0 {
 		return nil
 	}
 
-	perfMmap := (*perfEventMmapPage)(r)
 	// There is no memset available in Go runime
-	// We instead employ the following approach to initialize all bytes in perfMmap to zeros
+	// We instead employ the following approach to initialize all bytes in mmapBuf to zeros
 	var temp perfEventMmapPage
-	memmove(unsafe.Pointer(perfMmap), unsafe.Pointer(&temp), unsafe.Sizeof(temp))
+	memmove(mmapBuf, unsafe.Pointer(&temp), unsafe.Sizeof(temp))
 
-	return perfMmap
+	return mmapBuf
 }
 
-func perfUnsetMmap(mmapBuf *perfEventMmapPage) {
+func perfUnsetMmap(mmapBuf unsafe.Pointer) {
 	size := perfMmapSize()
-	munmap(unsafe.Pointer(mmapBuf), size)
+	munmap(mmapBuf, size)
 }
 
 func perfSkipNBytes(head uint64, mmapBuf *perfEventMmapPage, n uint64) {
@@ -113,6 +112,7 @@ func perfSkipRecord(head uint64, mmapBuf *perfEventMmapPage, hdr *perfEventHeade
 	if mmapBuf == nil {
 		return
 	}
+
 	remains := uint64(hdr.size) - uint64(unsafe.Sizeof(*hdr))
 	if remains > 0 {
 		perfSkipNBytes(head, mmapBuf, remains)
@@ -128,7 +128,7 @@ func perfSkipAll(head uint64, mmapBuf *perfEventMmapPage) {
 
 	remains := head - tail
 	if remains > 0 {
-		perfSkipNBytes(head, mmapBuf, remains)
+		mmapBuf.data_tail += remains
 	}
 }
 
