@@ -2,7 +2,7 @@ package runtime
 
 // Convert platform-agnostic pmu events to Linux perf events
 var perfEventOpt = map[int32]struct {
-	// The lower-case "type" is the key word in Go
+	// The lower-case "type" is the keyword in Go
 	Type   uint32 // type of event
 	config uint64 // event
 }{
@@ -17,7 +17,7 @@ var perfEventOpt = map[int32]struct {
 }
 
 type perfEventAttr struct {
-	// The lower-case "type" is the key word in Go
+	// The lower-case "type" is the keyword in Go
 	Type               uint32
 	size               uint32
 	config             uint64
@@ -66,7 +66,7 @@ type perfEventMmapPage struct {
 }
 
 type perfEventHeader struct {
-	// The lower-case "type" is the key word in Go
+	// The lower-case "type" is the keyword in Go
 	Type uint32
 	misc uint16
 	size uint16

@@ -624,7 +624,7 @@ func sigprofPMUHandler(info *siginfo, c *sigctxt, gp *g, _g_ *g) {
 
 				perfRecordSample(head, mmapBuf, _g_.m.eventAttrs[eventId], &sampleData)
 
-				sigprofPMU(c.sigpc(), c.sigsp(), c.siglr(), gp, _g_.m, eventId /* &sampleData */)
+				sigprofPMU(c.sigpc(), c.sigsp(), c.siglr(), gp, _g_.m, eventId /* , &sampleData */)
 			} else if hdr.size == 0 {
 				perfSkipAll(head, mmapBuf)
 			} else {
