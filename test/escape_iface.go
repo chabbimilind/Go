@@ -37,7 +37,7 @@ func efaceEscape0() {
 		_ = x
 	}
 	{
-		i := 0 // ERROR "moved to heap: i"
+		i := 0      // ERROR "moved to heap: i"
 		v := M0{&i}
 		var x M = v // ERROR "v escapes to heap"
 		sink = x    // ERROR "x escapes to heap"
@@ -50,7 +50,7 @@ func efaceEscape0() {
 		_ = v1
 	}
 	{
-		i := 0 // ERROR "moved to heap: i"
+		i := 0      // ERROR "moved to heap: i"
 		v := M0{&i}
 		// BAD: v does not escape to heap here
 		var x M = v // ERROR "v escapes to heap"
@@ -58,14 +58,14 @@ func efaceEscape0() {
 		sink = v1 // ERROR "v1 escapes to heap"
 	}
 	{
-		i := 0 // ERROR "moved to heap: i"
+		i := 0      // ERROR "moved to heap: i"
 		v := M0{&i}
 		// BAD: v does not escape to heap here
 		var x M = v // ERROR "v escapes to heap"
 		x.M()
 	}
 	{
-		i := 0 // ERROR "moved to heap: i"
+		i := 0      // ERROR "moved to heap: i"
 		v := M0{&i}
 		var x M = v // ERROR "v escapes to heap"
 		mescapes(x)
@@ -91,46 +91,46 @@ func efaceEscape1() {
 	{
 		i := 0
 		v := M1{&i, 0}
-		var x M = v // ERROR "v does not escape"
+		var x M = v    // ERROR "v does not escape"
 		_ = x
 	}
 	{
-		i := 0 // ERROR "moved to heap: i"
+		i := 0         // ERROR "moved to heap: i"
 		v := M1{&i, 0}
-		var x M = v // ERROR "v escapes to heap"
-		sink = x    // ERROR "x escapes to heap"
+		var x M = v    // ERROR "v escapes to heap"
+		sink = x       // ERROR "x escapes to heap"
 	}
 	{
 		i := 0
 		v := M1{&i, 0}
-		var x M = v // ERROR "v does not escape"
+		var x M = v    // ERROR "v does not escape"
 		v1 := x.(M1)
 		_ = v1
 	}
 	{
-		i := 0 // ERROR "moved to heap: i"
+		i := 0         // ERROR "moved to heap: i"
 		v := M1{&i, 0}
 		var x M = v // ERROR "efaceEscape1 v does not escape"
 		v1 := x.(M1)
 		sink = v1 // ERROR "v1 escapes to heap"
 	}
 	{
-		i := 0 // ERROR "moved to heap: i"
+		i := 0         // ERROR "moved to heap: i"
 		v := M1{&i, 0}
 		// BAD: v does not escape to heap here
 		var x M = v // ERROR "v escapes to heap"
 		x.M()
 	}
 	{
-		i := 0 // ERROR "moved to heap: i"
+		i := 0         // ERROR "moved to heap: i"
 		v := M1{&i, 0}
-		var x M = v // ERROR "v escapes to heap"
+		var x M = v    // ERROR "v escapes to heap"
 		mescapes(x)
 	}
 	{
 		i := 0
 		v := M1{&i, 0}
-		var x M = v // ERROR "v does not escape"
+		var x M = v    // ERROR "v does not escape"
 		mdoesnotescape(x)
 	}
 }
@@ -244,7 +244,7 @@ func dotTypeEscape2() { // #13805, #15796
 		var x interface{} = i // ERROR "i does not escape"
 		var y interface{} = j // ERROR "j does not escape"
 
-		sink = x.(int) // ERROR "x.\(int\) escapes to heap"
+		sink = x.(int)        // ERROR "x.\(int\) escapes to heap"
 		sink, *(&ok) = y.(int)
 	}
 	{
@@ -254,7 +254,7 @@ func dotTypeEscape2() { // #13805, #15796
 		var x interface{} = &i // ERROR "&i escapes to heap"
 		var y interface{} = &j // ERROR "&j escapes to heap"
 
-		sink = x.(*int) // ERROR "x.\(\*int\) escapes to heap"
+		sink = x.(*int)        // ERROR "x.\(\*int\) escapes to heap"
 		sink, *(&ok) = y.(*int)
 	}
 }
