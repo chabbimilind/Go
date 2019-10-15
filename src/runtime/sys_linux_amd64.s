@@ -39,7 +39,7 @@
 #define SYS_gettid		186
 #define SYS_futex		202
 #define SYS_sched_getaffinity	204
-#define SYS_epoll_create        213
+#define SYS_epoll_create	213
 #define SYS_exit_group		231
 #define SYS_epoll_ctl		233
 #define SYS_tgkill		234
