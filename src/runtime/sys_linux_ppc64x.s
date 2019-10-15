@@ -645,18 +645,18 @@ TEXT runtime·perfEventOpen(SB),NOSPLIT,$0-72
 	MOVD	groupFd+24(FP), R6
 	MOVD	flags+32(FP), R7
 	MOVD	dummy+40(FP), R8
-	MOVD	$SYS_perf_event_open, R9	
+	MOVD	$SYS_perf_event_open, R9
 	SYSCALL R9
 	BVC	ok
 	MOVD	$-1, R4
-	MOVW	R4, r+48(FP)	
-	MOVD	R0, r2+56(FP)	
-	MOVD	R3, err+64(FP)	
+	MOVW	R4, r+48(FP)
+	MOVD	R0, r2+56(FP)
+	MOVD	R3, err+64(FP)
 	RET
 ok:
-	MOVW	R3, r+48(FP)	
-	MOVD	R4, r2+56(FP)	
-	MOVD	R0, err+64(FP)	
+	MOVW	R3, r+48(FP)
+	MOVD	R4, r2+56(FP)
+	MOVD	R0, err+64(FP)
 	RET
 
 // psu: not tested
@@ -667,16 +667,16 @@ TEXT runtime·ioctl(SB),NOSPLIT,$0-40
 	MOVD	R0, R6
 	MOVD	R0, R7
 	MOVD	R0, R8
-	MOVD	$SYS_ioctl, R9	
+	MOVD	$SYS_ioctl, R9
 	SYSCALL R9
 	BVC	ok
 	MOVD	$-1, R4
-	MOVD	R4, r+24(FP)	
-	MOVD	R3, err+32(FP)	
+	MOVD	R4, r+24(FP)
+	MOVD	R3, err+32(FP)
 	RET
 ok:
-	MOVD	R3, r+24(FP)	
-	MOVD	R0, err+32(FP)	
+	MOVD	R3, r+24(FP)
+	MOVD	R0, err+32(FP)
 	RET
 
 // psu: not tested
@@ -687,16 +687,16 @@ TEXT runtime·fcntl(SB),NOSPLIT,$0-40
 	MOVD	R0, R6
 	MOVD	R0, R7
 	MOVD	R0, R8
-	MOVD	$SYS_fcntl, R9	
+	MOVD	$SYS_fcntl, R9
 	SYSCALL R9
 	BVC	ok
 	MOVD	$-1, R4
-	MOVD	R4, r+24(FP)	
-	MOVD	R3, err+32(FP)	
+	MOVD	R4, r+24(FP)
+	MOVD	R3, err+32(FP)
 	RET
 ok:
-	MOVD	R3, r+24(FP)	
-	MOVD	R0, err+32(FP)	
+	MOVD	R3, r+24(FP)
+	MOVD	R0, err+32(FP)
 	RET
 
 // psu: not tested
@@ -707,14 +707,14 @@ TEXT runtime·fcntl2(SB),NOSPLIT,$0-40
 	MOVD	R0, R6
 	MOVD	R0, R7
 	MOVD	R0, R8
-	MOVD	$SYS_fcntl, R9	
+	MOVD	$SYS_fcntl, R9
 	SYSCALL R9
 	BVC	ok
 	MOVD	$-1, R4
-	MOVD	R4, r+24(FP)	
-	MOVD	R3, err+32(FP)	
+	MOVD	R4, r+24(FP)
+	MOVD	R3, err+32(FP)
 	RET
 ok:
-	MOVD	R3, r+24(FP)	
-	MOVD	R0, err+32(FP)	
+	MOVD	R3, r+24(FP)
+	MOVD	R0, err+32(FP)
 	RET

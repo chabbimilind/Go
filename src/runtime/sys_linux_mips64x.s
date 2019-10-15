@@ -516,7 +516,7 @@ TEXT runtime·ioctl,NOSPLIT,$0-40
 	BEQ	R7, ok
 	MOVV	$-1, R1
 	MOVV	R1, r+24(FP)
-	MOVV	R2, err+32(FP)	
+	MOVV	R2, err+32(FP)
 	RET
 ok:
 	MOVV	R2, r+24(FP)
@@ -535,12 +535,12 @@ TEXT runtime·fcntl,NOSPLIT,$0-40
 	SYSCALL
 	BEQ	R7, ok
 	MOVV	$-1, R1
-	MOVV	R1, r+24(FP)	
-	MOVV	R2, err+32(FP)	
+	MOVV	R1, r+24(FP)
+	MOVV	R2, err+32(FP)
 	RET
 ok:
-	MOVV	R2, r+24(FP)	
-	MOVV	R0, err+32(FP)	
+	MOVV	R2, r+24(FP)
+	MOVV	R0, err+32(FP)
 	RET
 
 // psu: not tested
@@ -555,10 +555,10 @@ TEXT runtime·fcntl2,NOSPLIT,$0-40
 	SYSCALL
 	BEQ	R7, ok
 	MOVV	$-1, R1
-	MOVV	R1, r+24(FP)	
-	MOVV	R2, err+32(FP)	
+	MOVV	R1, r+24(FP)
+	MOVV	R2, err+32(FP)
 	RET
 ok:
-	MOVV	R2, r+24(FP)	
-	MOVV	R0, err+32(FP)	
+	MOVV	R2, r+24(FP)
+	MOVV	R0, err+32(FP)
 	RET

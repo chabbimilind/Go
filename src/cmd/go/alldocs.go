@@ -2962,7 +2962,7 @@
 // 	    Write a PMU profile to the specified file before exiting.
 // 	    Writes test binary as -c would.
 //
-//     	-pmuevent event
+// 	-pmuevent event
 // 	    Specify which pmu event to sample.
 // 	    To sample PMU cycles, use -test.pmuevent=cycles.
 // 	    To sample PMU instructions, use -test.pmuevent=instructions.

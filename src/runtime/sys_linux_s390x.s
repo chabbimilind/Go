@@ -16,8 +16,8 @@
 #define SYS_close                 6
 #define SYS_getpid               20
 #define SYS_kill                 37
-#define SYS_brk			 45
-#define SYS_ioctl		 54
+#define SYS_brk                  45
+#define SYS_ioctl                54
 #define SYS_fcntl                55
 #define SYS_mmap                 90
 #define SYS_munmap               91
@@ -41,7 +41,7 @@
 #define SYS_epoll_wait          251
 #define SYS_clock_gettime       260
 #define SYS_epoll_create1       327
-#define SYS_perf_event_open	331
+#define SYS_perf_event_open     331
 
 TEXT runtime·exit(SB),NOSPLIT|NOFRAME,$0-4
 	MOVW	code+0(FP), R2
@@ -475,7 +475,7 @@ TEXT runtime·perfEventOpen(SB),NOSPLIT,$0-72
 	MOVD	groupFd+24(FP), R5
 	MOVD	flags+32(FP), R6
 	MOVD	dummy+40(FP), R7
-	MOVD	SYS_perf_event_open, R1	
+	MOVD	SYS_perf_event_open, R1
 	SYSCALL
 	MOVD	$0xfffffffffffff001, R8
 	CMPUBLT	R2, R8, ok
