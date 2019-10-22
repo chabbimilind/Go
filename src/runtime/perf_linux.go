@@ -85,11 +85,6 @@ func perfSetMmap(fd int32) unsafe.Pointer {
 		return nil
 	}
 
-	// There is no memset available in Go runime
-	// We instead employ the following approach to initialize all bytes in mmapBuf to zeros
-	var temp perfEventMmapPage
-	memmove(mmapBuf, unsafe.Pointer(&temp), unsafe.Sizeof(temp))
-
 	return mmapBuf
 }
 
