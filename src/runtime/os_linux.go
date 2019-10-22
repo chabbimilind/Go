@@ -491,6 +491,7 @@ func setThreadPMUProfiler(eventId int32, eventAttr *PMUEventAttr) {
 	if eventAttr == nil {
 		if _g_.m.eventAttrs[eventId] != nil {
 			closefd(_g_.m.eventFds[eventId])
+			_g_.m.eventFds[eventId] = 0
 			_g_.m.eventAttrs[eventId] = nil
 		}
 		if _g_.m.eventMmapBufs[eventId] != nil {
@@ -500,6 +501,7 @@ func setThreadPMUProfiler(eventId int32, eventAttr *PMUEventAttr) {
 	} else {
 		if _g_.m.eventAttrs[eventId] != nil {
 			closefd(_g_.m.eventFds[eventId])
+			_g_.m.eventFds[eventId] = 0
 			_g_.m.eventAttrs[eventId] = nil
 		}
 		if _g_.m.eventMmapBufs[eventId] != nil {
