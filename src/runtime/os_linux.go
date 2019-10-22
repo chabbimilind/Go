@@ -490,8 +490,9 @@ func setThreadPMUProfiler(eventId int32, eventAttr *PMUEventAttr) {
 
 	if eventAttr == nil {
 		if _g_.m.eventAttrs[eventId] != nil {
+			// We need to disable the counter prior to closing the file descriptor
+			perfStopCounter(_g_.m.eventFds[eventId])
 			closefd(_g_.m.eventFds[eventId])
-			_g_.m.eventFds[eventId] = 0
 			_g_.m.eventAttrs[eventId] = nil
 		}
 		if _g_.m.eventMmapBufs[eventId] != nil {
@@ -500,8 +501,9 @@ func setThreadPMUProfiler(eventId int32, eventAttr *PMUEventAttr) {
 		}
 	} else {
 		if _g_.m.eventAttrs[eventId] != nil {
+			// We need to disable the counter prior to closing the file descriptor
+			perfStopCounter(_g_.m.eventFds[eventId])
 			closefd(_g_.m.eventFds[eventId])
-			_g_.m.eventFds[eventId] = 0
 			_g_.m.eventAttrs[eventId] = nil
 		}
 		if _g_.m.eventMmapBufs[eventId] != nil {
@@ -521,34 +523,34 @@ func setThreadPMUProfiler(eventId int32, eventAttr *PMUEventAttr) {
 		// create mmap buffer for this file
 		mmapBuf := perfSetMmap(fd)
 		if mmapBuf == nil {
-			println("Fail to set perf mmap")
 			closefd(fd)
+			println("Fail to set perf mmap")
 			return
 		}
 
 		flag, _ := fcntl(fd, 0x3 /* F_GETFL */, 0)
 		_, err = fcntl(fd, 0x4 /* F_SETFL */, flag|0x2000 /* O_ASYNC */)
 		if err != 0 {
-			println("Failed to set notification for the PMU event")
-			perfUnsetMmap(mmapBuf)
 			closefd(fd)
+			perfUnsetMmap(mmapBuf)
+			println("Failed to set notification for the PMU event")
 			return
 		}
 
 		_, err = fcntl(fd, 0xa /* F_SETSIG */, _SIGPROF)
 		if err != 0 {
-			println("Failed to set signal for the PMU event")
-			perfUnsetMmap(mmapBuf)
 			closefd(fd)
+			perfUnsetMmap(mmapBuf)
+			println("Failed to set signal for the PMU event")
 			return
 		}
 
 		fOwnEx := fOwnerEx{0 /* F_OWNER_TID */, int32(gettid())}
 		_, err = fcntl2(fd, 0xf /* F_SETOWN_EX */, &fOwnEx)
 		if err != 0 {
-			println("Failed to set the owner of the perf event file")
-			perfUnsetMmap(mmapBuf)
 			closefd(fd)
+			perfUnsetMmap(mmapBuf)
+			println("Failed to set the owner of the perf event file")
 			return
 		}
 
@@ -557,17 +559,17 @@ func setThreadPMUProfiler(eventId int32, eventAttr *PMUEventAttr) {
 		_g_.m.eventFds[eventId] = fd
 
 		if !perfResetCounter(fd) {
-			_g_.m.eventAttrs[eventId] = nil
-			perfUnsetMmap(mmapBuf)
-			_g_.m.eventMmapBufs[eventId] = nil
 			closefd(fd)
+			perfUnsetMmap(mmapBuf)
+			_g_.m.eventAttrs[eventId] = nil
+			_g_.m.eventMmapBufs[eventId] = nil
 			return
 		}
 		if !perfStartCounter(fd) {
-			_g_.m.eventAttrs[eventId] = nil
-			perfUnsetMmap(mmapBuf)
-			_g_.m.eventMmapBufs[eventId] = nil
 			closefd(fd)
+			perfUnsetMmap(mmapBuf)
+			_g_.m.eventAttrs[eventId] = nil
+			_g_.m.eventMmapBufs[eventId] = nil
 			return
 		}
 	}
@@ -583,7 +585,7 @@ func sigprofPMUHandler(info *siginfo, c *sigctxt, gp *g, _g_ *g) {
 
 	var eventId int = -1
 	for i := 0; i < GO_COUNT_PMU_EVENTS_MAX; i++ {
-		if _g_.m.eventFds[i] == fd {
+		if _g_.m.eventFds[i] == fd && _g_.m.eventAttrs[i] != nil {
 			eventId = i
 			break
 		}
