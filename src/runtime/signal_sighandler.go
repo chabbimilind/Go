@@ -7,6 +7,7 @@
 package runtime
 
 import (
+	"runtime/internal/atomic"
 	"unsafe"
 )
 
@@ -18,6 +19,8 @@ var crashing int32
 // on SIGTRAP. If it returns true, the normal behavior on SIGTRAP is
 // suppressed.
 var testSigtrap func(info *siginfo, ctxt *sigctxt, gp *g) bool
+
+var sigprofPMUHandlerFptr func(info *siginfo, c *sigctxt, gp *g, _g_ *g)
 
 // sighandler is invoked when a signal occurs. The global g will be
 // set to a gsignal goroutine and we will be running on the alternate
@@ -35,7 +38,12 @@ func sighandler(sig uint32, info *siginfo, ctxt unsafe.Pointer, gp *g) {
 	c := &sigctxt{info, ctxt}
 
 	if sig == _SIGPROF {
-		sigprof(c.sigpc(), c.sigsp(), c.siglr(), gp, _g_.m)
+		state := atomic.Load(&cpuorpmuprofiler)
+		if state == _ITIMER_INSTALLED {
+			sigprof(c.sigpc(), c.sigsp(), c.siglr(), gp, _g_.m)
+		} else if state == _PMU_INSTALLED {
+			sigprofPMUHandlerFptr(info, (*sigctxt)(noescape(unsafe.Pointer(c))), gp, _g_)
+		}
 		return
 	}
 
