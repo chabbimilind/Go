@@ -2958,6 +2958,30 @@
 // 	    Write a CPU profile to the specified file before exiting.
 // 	    Writes test binary as -c would.
 //
+// 	-pmuprofile pmu.out
+// 	    Write a PMU profile to the specified file before exiting.
+// 	    Writes test binary as -c would.
+//
+// 	-pmuevent event
+// 	    Specify which pmu event to sample.
+// 	    To sample PMU cycles, use -test.pmuevent=cycles.
+// 	    To sample PMU instructions, use -test.pmuevent=instructions.
+// 	    To sample PMU cache misses, use -test.pmuevent=cacheMisses.
+// 	    To sample PMU last-level cache read accesses, use -test.pmuevent=cacheLLReadAccesses.
+// 	    To sample PMU last-level cache read misses, use -test.pmuevent=cacheLLReadMisses.
+//
+// 	-pmuperiod n
+// 	    Set the sampling period for the pmu event specified by -pmuevent.
+//
+// 	-pmupreciseip n
+// 	    Set the precise ip level for the pmu event specified by -pmuevent.
+//
+// 	-pmukernelincl
+// 	    Count the kernel or not.
+//
+// 	-pmuhvincl
+// 	    Count the hypervisor or not.
+//
 // 	-memprofile mem.out
 // 	    Write an allocation profile to the file after all tests have passed.
 // 	    Writes test binary as -c would.

@@ -38,6 +38,12 @@ const (
 	_SIG_IGN uintptr = 1
 )
 
+const (
+	_UNINSTALLED      = 0
+	_ITIMER_INSTALLED = 1
+	_PMU_INSTALLED    = 2
+)
+
 // Stores the signal handlers registered before Go installed its own.
 // These signal handlers will be invoked in cases where Go doesn't want to
 // handle a particular signal (e.g., signal occurred on a non-Go thread).
@@ -229,22 +235,26 @@ func clearSignalHandlers() {
 	}
 }
 
+var cpuorpmuprofiler uint32
+
 // setProcessCPUProfiler is called when the profiling timer changes.
 // It is called with prof.lock held. hz is the new timer, and is 0 if
 // profiling is being disabled. Enable or disable the signal as
 // required for -buildmode=c-archive.
 func setProcessCPUProfiler(hz int32) {
 	if hz != 0 {
+		atomic.Cas(&cpuorpmuprofiler, _UNINSTALLED, _ITIMER_INSTALLED)
 		// Enable the Go signal handler if not enabled.
-		if atomic.Cas(&handlingSig[_SIGPROF], 0, 1) {
+		if atomic.Cas(&handlingSig[_SIGPROF], _UNINSTALLED, _ITIMER_INSTALLED) {
 			atomic.Storeuintptr(&fwdSig[_SIGPROF], getsig(_SIGPROF))
 			setsig(_SIGPROF, funcPC(sighandler))
 		}
 	} else {
+		atomic.Cas(&cpuorpmuprofiler, _ITIMER_INSTALLED, _UNINSTALLED)
 		// If the Go signal handler should be disabled by default,
 		// disable it if it is enabled.
 		if !sigInstallGoHandler(_SIGPROF) {
-			if atomic.Cas(&handlingSig[_SIGPROF], 1, 0) {
+			if atomic.Cas(&handlingSig[_SIGPROF], _ITIMER_INSTALLED, _UNINSTALLED) {
 				setsig(_SIGPROF, atomic.Loaduintptr(&fwdSig[_SIGPROF]))
 			}
 		}

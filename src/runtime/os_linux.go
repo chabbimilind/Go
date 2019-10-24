@@ -5,6 +5,7 @@
 package runtime
 
 import (
+	"runtime/internal/atomic"
 	"runtime/internal/sys"
 	"unsafe"
 )
@@ -289,6 +290,12 @@ func getHugePageSize() uintptr {
 func osinit() {
 	ncpu = getproccount()
 	physHugePageSize = getHugePageSize()
+
+	// following the same convention as other write once variables in this function and
+	// assuming that there exists a memory fence before anybody reads these values
+	setProcessPMUProfilerFptr = setProcessPMUProfiler
+	setThreadPMUProfilerFptr = setThreadPMUProfiler
+	sigprofPMUHandlerFptr = sigprofPMUHandler
 }
 
 var urandom_dev = []byte("/dev/urandom\x00")
@@ -452,3 +459,187 @@ func sysSigaction(sig uint32, new, old *sigactiont) {
 // rt_sigaction is implemented in assembly.
 //go:noescape
 func rt_sigaction(sig uintptr, new, old *sigactiont, size uintptr) int32
+
+func setProcessPMUProfiler(eventAttr *PMUEventAttr) {
+	if eventAttr != nil {
+		atomic.Cas(&cpuorpmuprofiler, _UNINSTALLED, _PMU_INSTALLED)
+		// Enable the Go signal handler if not enabled.
+		if atomic.Cas(&handlingSig[_SIGPROF], _UNINSTALLED, _PMU_INSTALLED) {
+			atomic.Storeuintptr(&fwdSig[_SIGPROF], getsig(_SIGPROF))
+			setsig(_SIGPROF, funcPC(sighandler))
+		}
+	} else {
+		atomic.Cas(&cpuorpmuprofiler, _PMU_INSTALLED, _UNINSTALLED)
+		// If the Go signal handler should be disabled by default,
+		// disable it if it is enabled.
+		if !sigInstallGoHandler(_SIGPROF) {
+			if atomic.Cas(&handlingSig[_SIGPROF], _PMU_INSTALLED, _UNINSTALLED) {
+				setsig(_SIGPROF, atomic.Loaduintptr(&fwdSig[_SIGPROF]))
+			}
+		}
+	}
+}
+
+func fcntl(fd int32, cmd, arg int) (r, err int)
+
+//go:noescape
+func fcntl2(fd int32, cmd int, arg *fOwnerEx) (r, err int)
+
+func setThreadPMUProfiler(eventId int32, eventAttr *PMUEventAttr) {
+	_g_ := getg()
+
+	if eventAttr == nil {
+		if _g_.m.eventAttrs[eventId] != nil {
+			// We need to disable the counter prior to closing the file descriptor
+			perfStopCounter(_g_.m.eventFds[eventId])
+			closefd(_g_.m.eventFds[eventId])
+			_g_.m.eventAttrs[eventId] = nil
+		}
+		if _g_.m.eventMmapBufs[eventId] != nil {
+			perfUnsetMmap(_g_.m.eventMmapBufs[eventId])
+			_g_.m.eventMmapBufs[eventId] = nil
+		}
+	} else {
+		if _g_.m.eventAttrs[eventId] != nil {
+			// We need to disable the counter prior to closing the file descriptor
+			perfStopCounter(_g_.m.eventFds[eventId])
+			closefd(_g_.m.eventFds[eventId])
+			_g_.m.eventAttrs[eventId] = nil
+		}
+		if _g_.m.eventMmapBufs[eventId] != nil {
+			perfUnsetMmap(_g_.m.eventMmapBufs[eventId])
+			_g_.m.eventMmapBufs[eventId] = nil
+		}
+
+		var perfAttr perfEventAttr
+		perfAttrInit(eventId, eventAttr, &perfAttr)
+
+		fd, _, err := perfEventOpen(&perfAttr, 0, -1, -1, 0, 0 /* dummy */)
+		if err != 0 {
+			println("Linux perf event open failed")
+			return
+		}
+
+		// create mmap buffer for this file
+		mmapBuf := perfSetMmap(fd)
+		if mmapBuf == nil {
+			closefd(fd)
+			println("Fail to set perf mmap")
+			return
+		}
+
+		flag, _ := fcntl(fd, 0x3 /* F_GETFL */, 0)
+		_, err = fcntl(fd, 0x4 /* F_SETFL */, flag|0x2000 /* O_ASYNC */)
+		if err != 0 {
+			closefd(fd)
+			perfUnsetMmap(mmapBuf)
+			println("Failed to set notification for the PMU event")
+			return
+		}
+
+		_, err = fcntl(fd, 0xa /* F_SETSIG */, _SIGPROF)
+		if err != 0 {
+			closefd(fd)
+			perfUnsetMmap(mmapBuf)
+			println("Failed to set signal for the PMU event")
+			return
+		}
+
+		fOwnEx := fOwnerEx{0 /* F_OWNER_TID */, int32(gettid())}
+		_, err = fcntl2(fd, 0xf /* F_SETOWN_EX */, &fOwnEx)
+		if err != 0 {
+			closefd(fd)
+			perfUnsetMmap(mmapBuf)
+			println("Failed to set the owner of the perf event file")
+			return
+		}
+
+		_g_.m.eventAttrs[eventId] = eventAttr
+		_g_.m.eventMmapBufs[eventId] = mmapBuf
+		_g_.m.eventFds[eventId] = fd
+
+		if !perfResetCounter(fd) {
+			closefd(fd)
+			perfUnsetMmap(mmapBuf)
+			_g_.m.eventAttrs[eventId] = nil
+			_g_.m.eventMmapBufs[eventId] = nil
+			return
+		}
+		if !perfStartCounter(fd) {
+			closefd(fd)
+			perfUnsetMmap(mmapBuf)
+			_g_.m.eventAttrs[eventId] = nil
+			_g_.m.eventMmapBufs[eventId] = nil
+			return
+		}
+	}
+}
+
+//go:nowritebarrierrec
+func sigprofPMUHandler(info *siginfo, c *sigctxt, gp *g, _g_ *g) {
+	fd := info.si_fd
+
+	if !perfStopCounter(fd) {
+		return
+	}
+
+	var eventId int = -1
+	for i := 0; i < GO_COUNT_PMU_EVENTS_MAX; i++ {
+		if _g_.m.eventFds[i] == fd && _g_.m.eventAttrs[i] != nil {
+			eventId = i
+			break
+		}
+	}
+
+	if eventId != -1 {
+		mmapBuf := (*perfEventMmapPage)(_g_.m.eventMmapBufs[eventId])
+
+		head := mmapBuf.data_head
+		rmb() // on SMP-capable platforms, after reading the data_head value, user space should issue a memory barrier
+
+		for {
+			tail := mmapBuf.data_tail
+
+			remains := head - tail
+			if remains <= 0 {
+				break
+			}
+
+			var hdr perfEventHeader
+
+			// the causes of passing 'mmapBuf.data_head' by value to functions
+			// perfSkipAll, perfReadHeader, perfRecordSample, perfSkipAll and perfSkipRecord:
+			// 1. it remains unchanged across these function calls
+			// 2. more importantly, avoid frequenly reading it from the mmap ring buffer => avoid frequenly calling rmb()
+			if remains < uint64(unsafe.Sizeof(hdr)) {
+				perfSkipAll(head, mmapBuf)
+				break
+			}
+
+			if !perfReadHeader(head, mmapBuf, &hdr) {
+				println("Failed to read the mmap header")
+				break
+			}
+
+			if hdr.Type == _PERF_RECORD_SAMPLE {
+				var sampleData perfSampleData
+
+				sampleData.isPreciseIP = (hdr.misc & _PERF_RECORD_MISC_EXACT_IP) != 0
+
+				perfRecordSample(head, mmapBuf, _g_.m.eventAttrs[eventId], &sampleData)
+
+				sigprofPMU(c.sigpc(), c.sigsp(), c.siglr(), gp, _g_.m, eventId /* , &sampleData */)
+			} else if hdr.size == 0 {
+				perfSkipAll(head, mmapBuf)
+			} else {
+				perfSkipRecord(head, mmapBuf, &hdr)
+			}
+		}
+	} else { // should never be taken
+		println("File descriptor ", fd, " not found in _g_.m.eventFds")
+	}
+
+	if !perfStartCounter(fd) {
+		return
+	}
+}
