@@ -643,7 +643,7 @@ func atof64(s string) (f float64, err error) {
 // ParseFloat returns the nearest floating-point number rounded
 // using IEEE754 unbiased rounding.
 // (Parsing a hexadecimal floating-point value only rounds when
-// there are more bits in the hexadecimal representatiton than
+// there are more bits in the hexadecimal representation than
 // will fit in the mantissa.)
 //
 // The errors that ParseFloat returns have concrete type *NumError
@@ -654,6 +654,9 @@ func atof64(s string) (f float64, err error) {
 // If s is syntactically well-formed but is more than 1/2 ULP
 // away from the largest floating point number of the given size,
 // ParseFloat returns f = ±Inf, err.Err = ErrRange.
+//
+// ParseFloat recognizes the strings "NaN", "+Inf", and "-Inf" as their
+// respective special floating point values. It ignores case when matching.
 func ParseFloat(s string, bitSize int) (float64, error) {
 	if !underscoreOK(s) {
 		return 0, syntaxError(fnParseFloat, s)

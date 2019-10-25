@@ -2054,6 +2054,7 @@ const (
 	OpS390XFlagLT
 	OpS390XFlagGT
 	OpS390XFlagOV
+	OpS390XSYNC
 	OpS390XMOVBZatomicload
 	OpS390XMOVWZatomicload
 	OpS390XMOVDatomicload
@@ -18667,9 +18668,9 @@ var opcodeTable = [...]opInfo{
 		faultOnNilArg0: true,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, 65536}, // R16
+				{0, 1048576}, // R20
 			},
-			clobbers: 536936448, // R16 R30
+			clobbers: 537919488, // R20 R30
 		},
 	},
 	{
@@ -18693,10 +18694,10 @@ var opcodeTable = [...]opInfo{
 		faultOnNilArg1: true,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, 131072}, // R17
-				{1, 65536},  // R16
+				{0, 2097152}, // R21
+				{1, 1048576}, // R20
 			},
-			clobbers: 604176384, // R16 R17 R26 R30
+			clobbers: 607125504, // R20 R21 R26 R30
 		},
 	},
 	{
@@ -27612,6 +27613,12 @@ var opcodeTable = [...]opInfo{
 	{
 		name:   "FlagOV",
 		argLen: 0,
+		reg:    regInfo{},
+	},
+	{
+		name:   "SYNC",
+		argLen: 1,
+		asm:    s390x.ASYNC,
 		reg:    regInfo{},
 	},
 	{

@@ -216,16 +216,21 @@ func gcenable() {
 
 //go:linkname setGCPercent runtime/debug.setGCPercent
 func setGCPercent(in int32) (out int32) {
-	lock(&mheap_.lock)
-	out = gcpercent
-	if in < 0 {
-		in = -1
-	}
-	gcpercent = in
-	heapminimum = defaultHeapMinimum * uint64(gcpercent) / 100
-	// Update pacing in response to gcpercent change.
-	gcSetTriggerRatio(memstats.triggerRatio)
-	unlock(&mheap_.lock)
+	// Run on the system stack since we grab the heap lock.
+	systemstack(func() {
+		lock(&mheap_.lock)
+		out = gcpercent
+		if in < 0 {
+			in = -1
+		}
+		gcpercent = in
+		heapminimum = defaultHeapMinimum * uint64(gcpercent) / 100
+		// Update pacing in response to gcpercent change.
+		gcSetTriggerRatio(memstats.triggerRatio)
+		unlock(&mheap_.lock)
+	})
+	// Pacing changed, so the scavenger should be awoken.
+	wakeScavenger()
 
 	// If we just disabled GC, wait for any concurrent GC mark to
 	// finish so we always return with no GC running.
@@ -1261,7 +1266,7 @@ func gcStart(trigger gcTrigger) {
 
 	gcBgMarkStartWorkers()
 
-	gcResetMarkState()
+	systemstack(gcResetMarkState)
 
 	work.stwprocs, work.maxprocs = gomaxprocs, gomaxprocs
 	if work.stwprocs > ncpu {
@@ -1646,8 +1651,15 @@ func gcMarkTermination(nextTriggerRatio float64) {
 		throw("gc done but gcphase != _GCoff")
 	}
 
+	// Record next_gc and heap_inuse for scavenger.
+	memstats.last_next_gc = memstats.next_gc
+	memstats.last_heap_inuse = memstats.heap_inuse
+
 	// Update GC trigger and pacing for the next cycle.
 	gcSetTriggerRatio(nextTriggerRatio)
+
+	// Pacing changed, so the scavenger should be awoken.
+	wakeScavenger()
 
 	// Update timing memstats
 	now := nanotime()
@@ -2078,6 +2090,9 @@ func gcMark(start_time int64) {
 	}
 }
 
+// gcSweep must be called on the system stack because it acquires the heap
+// lock. See mheap for details.
+//go:systemstack
 func gcSweep(mode gcMode) {
 	if gcphase != _GCoff {
 		throw("gcSweep being done but phase is not GCoff")
@@ -2134,6 +2149,11 @@ func gcSweep(mode gcMode) {
 //
 // This is safe to do without the world stopped because any Gs created
 // during or after this will start out in the reset state.
+//
+// gcResetMarkState must be called on the system stack because it acquires
+// the heap lock. See mheap for details.
+//
+//go:systemstack
 func gcResetMarkState() {
 	// This may be called during a concurrent phase, so make sure
 	// allgs doesn't change.

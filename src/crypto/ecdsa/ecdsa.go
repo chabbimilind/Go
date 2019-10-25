@@ -21,13 +21,12 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/elliptic"
+	"crypto/internal/randutil"
 	"crypto/sha512"
 	"encoding/asn1"
 	"errors"
 	"io"
 	"math/big"
-
-	"crypto/internal/randutil"
 )
 
 // A invertible implements fast inverse mod Curve.Params().N

@@ -849,10 +849,11 @@ static int f29748(S29748 *p) { return 0; }
 static void issue29781F(char **p, int n) {}
 #define ISSUE29781C 0
 
-// issue 29878
-uint64_t issue29878exported(int8_t);  // prototype must match
-int16_t issue29878function(uint32_t arg) { return issue29878exported(arg); }
+// issue 31093
+static uint16_t issue31093F(uint16_t v) { return v; }
 
+// issue 32579
+typedef struct S32579 { unsigned char data[1]; } S32579;
 */
 import "C"
 
@@ -2054,14 +2055,6 @@ func issue29781G() {
 		X))
 }
 
-func test29878(t *testing.T) {
-	const arg uint32 = 123                    // fits into all integer types
-	var ret int16 = C.issue29878function(arg) // no conversions needed
-	if int64(ret) != int64(arg) {
-		t.Errorf("return value unexpected: got %d, want %d", ret, arg)
-	}
-}
-
 // issue 30065
 
 func test30065(t *testing.T) {
@@ -2083,5 +2076,22 @@ func test30065(t *testing.T) {
 	C.memcpy(unsafe.Pointer(&d[0]), unsafe.Pointer(&b[0]), 1)
 	if d[0] != 'c' {
 		t.Errorf("&d[0] failed: got %c, want %c", d[0], 'c')
+	}
+}
+
+// issue 31093
+// No runtime test; just make sure it compiles.
+
+func Issue31093() {
+	C.issue31093F(C.ushort(0))
+}
+
+// issue 32579
+
+func test32579(t *testing.T) {
+	var s [1]C.struct_S32579
+	C.memset(unsafe.Pointer(&s[0].data[0]), 1, 1)
+	if s[0].data[0] != 1 {
+		t.Errorf("&s[0].data[0] failed: got %d, want %d", s[0].data[0], 1)
 	}
 }

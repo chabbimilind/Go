@@ -36,9 +36,10 @@ type profile struct {
 	// 300 words per second.
 	// Hopefully a normal Go thread will get the profiling
 	// signal at least once every few seconds.
-	extra     [1000]uintptr
-	numExtra  int
-	lostExtra uint64 // count of frames lost because extra is full
+	extra      [1000]uintptr
+	numExtra   int
+	lostExtra  uint64 // count of frames lost because extra is full
+	lostAtomic uint64 // count of frames lost because of being in atomic64 on mips/arm; updated racily
 }
 
 var cpuprof profile
@@ -100,7 +101,7 @@ func SetPMUProfile(eventId int, eventAttr *PMUEventAttr) {
 	} else if pmuprof[eventId].on {
 		setpmuprofile(int32(eventId), nil)
 		pmuprof[eventId].on = false
-		pmuprof[eventId].addExtra(eventId)
+		pmuprof[eventId].addExtra()
 		pmuprof[eventId].log.close()
 	}
 }
@@ -130,7 +131,9 @@ func (p *profile) add(gp *g, stk []uintptr, eventIds ...int) {
 			osyield()
 		}
 		if prof.hz != 0 { // implies cpuprof.log != nil
+		    if p.numExtra > 0 || p.lostExtra > 0 || p.lostAtomic > 0 {
 			p.addImpl(gp, stk, &cpuprof)
+		    }
 		}
 		atomic.Store(&prof.signalLock, 0)
 	} else {
@@ -139,7 +142,9 @@ func (p *profile) add(gp *g, stk []uintptr, eventIds ...int) {
 			osyield()
 		}
 		if pmuEvent[eventId].eventAttr != nil { // implies pmuprof[eventId].log != nil
+		    if p.numExtra > 0 || p.lostExtra > 0 || p.lostAtomic > 0 {
 			p.addImpl(gp, stk, &pmuprof[eventId])
+		    }
 		}
 		atomic.Store(&pmuEvent[eventId].signalLock, 0)
 	}
@@ -194,7 +199,7 @@ func (p *profile) addNonGo(stk []uintptr, eventIds ...int) {
 // addExtra is called either from a signal handler on a Go thread
 // or from an ordinary goroutine; either way it can use stack
 // and has a g. The world may be stopped, though.
-func (p *profile) addExtra(eventIds ...int) {
+func (p *profile) addExtra() {
 	// Copy accumulated non-Go profile events.
 	hdr := [1]uint64{1}
 	for i := 0; i < p.numExtra; {
@@ -210,28 +215,20 @@ func (p *profile) addExtra(eventIds ...int) {
 			funcPC(_LostExternalCode) + sys.PCQuantum,
 			funcPC(_ExternalCode) + sys.PCQuantum,
 		}
-		if len(eventIds) == 0 {
-			cpuprof.log.write(nil, 0, hdr[:], lostStk[:])
-		} else {
-			eventId := eventIds[0]
-			pmuprof[eventId].log.write(nil, 0, hdr[:], lostStk[:])
-		}
+		p.log.write(nil, 0, hdr[:], lostStk[:])
 		p.lostExtra = 0
 	}
-}
 
-func (p *profile) addLostAtomic64(count uint64, eventIds ...int) {
-	hdr := [1]uint64{count}
-	lostStk := [2]uintptr{
-		funcPC(_LostSIGPROFDuringAtomic64) + sys.PCQuantum,
-		funcPC(_System) + sys.PCQuantum,
+	if p.lostAtomic > 0 {
+		hdr := [1]uint64{p.lostAtomic}
+		lostStk := [2]uintptr{
+			funcPC(_LostSIGPROFDuringAtomic64) + sys.PCQuantum,
+			funcPC(_System) + sys.PCQuantum,
+		}
+		p.log.write(nil, 0, hdr[:], lostStk[:])
+		p.lostAtomic = 0
 	}
-	if len(eventIds) == 0 {
-		cpuprof.log.write(nil, 0, hdr[:], lostStk[:])
-	} else {
-		eventId := eventIds[0]
-		pmuprof[eventId].log.write(nil, 0, hdr[:], lostStk[:])
-	}
+
 }
 
 // CPUProfile panics.

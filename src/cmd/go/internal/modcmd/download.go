@@ -5,6 +5,7 @@
 package modcmd
 
 import (
+	"cmd/go/internal/cfg"
 	"encoding/json"
 	"os"
 
@@ -67,6 +68,13 @@ type moduleJSON struct {
 }
 
 func runDownload(cmd *base.Command, args []string) {
+	// Check whether modules are enabled and whether we're in a module.
+	if cfg.Getenv("GO111MODULE") == "off" {
+		base.Fatalf("go: modules disabled by GO111MODULE=off; see 'go help modules'")
+	}
+	if !modload.HasModRoot() && len(args) == 0 {
+		base.Fatalf("go mod download: no modules specified (see 'go help mod download')")
+	}
 	if len(args) == 0 {
 		args = []string{"all"}
 	}
@@ -79,7 +87,8 @@ func runDownload(cmd *base.Command, args []string) {
 		if info.Replace != nil {
 			info = info.Replace
 		}
-		if info.Version == "" {
+		if info.Version == "" && info.Error == nil {
+			// main module
 			continue
 		}
 		m := &moduleJSON{
@@ -87,6 +96,10 @@ func runDownload(cmd *base.Command, args []string) {
 			Version: info.Version,
 		}
 		mods = append(mods, m)
+		if info.Error != nil {
+			m.Error = info.Error.Err
+			continue
+		}
 		work.Add(m)
 	}
 
@@ -136,7 +149,7 @@ func runDownload(cmd *base.Command, args []string) {
 	} else {
 		for _, m := range mods {
 			if m.Error != "" {
-				base.Errorf("%s@%s: %s\n", m.Path, m.Version, m.Error)
+				base.Errorf("%s", m.Error)
 			}
 		}
 		base.ExitIfErrors()

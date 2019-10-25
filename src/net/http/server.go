@@ -231,13 +231,13 @@ type CloseNotifier interface {
 
 var (
 	// ServerContextKey is a context key. It can be used in HTTP
-	// handlers with context.WithValue to access the server that
+	// handlers with Context.Value to access the server that
 	// started the handler. The associated value will be of
 	// type *Server.
 	ServerContextKey = &contextKey{"http-server"}
 
 	// LocalAddrContextKey is a context key. It can be used in
-	// HTTP handlers with context.WithValue to access the local
+	// HTTP handlers with Context.Value to access the local
 	// address the connection arrived on.
 	// The associated value will be of type net.Addr.
 	LocalAddrContextKey = &contextKey{"local-addr"}
@@ -1796,7 +1796,7 @@ func (c *conn) serve(ctx context.Context) {
 		*c.tlsState = tlsConn.ConnectionState()
 		if proto := c.tlsState.NegotiatedProtocol; validNPN(proto) {
 			if fn := c.server.TLSNextProto[proto]; fn != nil {
-				h := initNPNRequest{tlsConn, serverHandler{c.server}}
+				h := initNPNRequest{ctx, tlsConn, serverHandler{c.server}}
 				fn(c.server, tlsConn, h)
 			}
 			return
@@ -2042,7 +2042,7 @@ func StripPrefix(prefix string, h Handler) Handler {
 			*r2 = *r
 			r2.URL = new(url.URL)
 			*r2.URL = *r.URL
-			r2.URL.Path = cleanPath(p)
+			r2.URL.Path = p
 			h.ServeHTTP(w, r2)
 		} else {
 			NotFound(w, r)
@@ -2512,7 +2512,9 @@ type Server struct {
 	// ReadHeaderTimeout is the amount of time allowed to read
 	// request headers. The connection's read deadline is reset
 	// after reading the headers and the Handler can decide what
-	// is considered too slow for the body.
+	// is considered too slow for the body. If ReadHeaderTimeout
+	// is zero, the value of ReadTimeout is used. If both are
+	// zero, there is no timeout.
 	ReadHeaderTimeout time.Duration
 
 	// WriteTimeout is the maximum duration before timing out
@@ -2524,7 +2526,7 @@ type Server struct {
 	// IdleTimeout is the maximum amount of time to wait for the
 	// next request when keep-alives are enabled. If IdleTimeout
 	// is zero, the value of ReadTimeout is used. If both are
-	// zero, ReadHeaderTimeout is used.
+	// zero, there is no timeout.
 	IdleTimeout time.Duration
 
 	// MaxHeaderBytes controls the maximum number of bytes the
@@ -2565,7 +2567,7 @@ type Server struct {
 	BaseContext func(net.Listener) context.Context
 
 	// ConnContext optionally specifies a function that modifies
-	// the context used for a newly connection c. The provided ctx
+	// the context used for a new connection c. The provided ctx
 	// is derived from the base context and has a ServerContextKey
 	// value.
 	ConnContext func(ctx context.Context, c net.Conn) context.Context
@@ -3175,8 +3177,8 @@ func (srv *Server) onceSetNextProtoDefaults() {
 // After such a timeout, writes by h to its ResponseWriter will return
 // ErrHandlerTimeout.
 //
-// TimeoutHandler buffers all Handler writes to memory and does not
-// support the Hijacker or Flusher interfaces.
+// TimeoutHandler supports the Flusher and Pusher interfaces but does not
+// support the Hijacker interface.
 func TimeoutHandler(h Handler, dt time.Duration, msg string) Handler {
 	return &timeoutHandler{
 		handler: h,
@@ -3265,7 +3267,6 @@ type timeoutWriter struct {
 }
 
 var _ Pusher = (*timeoutWriter)(nil)
-var _ Flusher = (*timeoutWriter)(nil)
 
 // Push implements the Pusher interface.
 func (tw *timeoutWriter) Push(target string, opts *PushOptions) error {
@@ -3273,14 +3274,6 @@ func (tw *timeoutWriter) Push(target string, opts *PushOptions) error {
 		return pusher.Push(target, opts)
 	}
 	return ErrNotSupported
-}
-
-// Flush implements the Flusher interface.
-func (tw *timeoutWriter) Flush() {
-	f, ok := tw.w.(Flusher)
-	if ok {
-		f.Flush()
-	}
 }
 
 func (tw *timeoutWriter) Header() Header { return tw.h }
@@ -3347,9 +3340,16 @@ func (globalOptionsHandler) ServeHTTP(w ResponseWriter, r *Request) {
 // uninitialized fields in its *Request. Such partially-initialized
 // Requests come from NPN protocol handlers.
 type initNPNRequest struct {
-	c *tls.Conn
-	h serverHandler
+	ctx context.Context
+	c   *tls.Conn
+	h   serverHandler
 }
+
+// BaseContext is an exported but unadvertised http.Handler method
+// recognized by x/net/http2 to pass down a context; the TLSNextProto
+// API predates context support so we shoehorn through the only
+// interface we have available.
+func (h initNPNRequest) BaseContext() context.Context { return h.ctx }
 
 func (h initNPNRequest) ServeHTTP(rw ResponseWriter, req *Request) {
 	if req.TLS == nil {

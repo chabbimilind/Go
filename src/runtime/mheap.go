@@ -29,6 +29,8 @@ const minPhysPageSize = 4096
 //
 //go:notinheap
 type mheap struct {
+	// lock must only be acquired on the system stack, otherwise a g
+	// could self-deadlock if its stack grows with the lock held.
 	lock      mutex
 	free      mTreap // free spans
 	sweepgen  uint32 // sweep generation, see comment in mspan
@@ -105,6 +107,7 @@ type mheap struct {
 	scavengeRetainedBasis uint64
 	scavengeBytesPerNS    float64
 	scavengeRetainedGoal  uint64
+	scavengeGen           uint64 // incremented on each pacing update
 
 	// Page reclaimer state
 
@@ -182,6 +185,12 @@ type mheap struct {
 	// beginning of the sweep cycle. This can be read safely by
 	// simply blocking GC (by disabling preemption).
 	sweepArenas []arenaIdx
+
+	// curArena is the arena that the heap is currently growing
+	// into. This should always be physPageSize-aligned.
+	curArena struct {
+		base, end uintptr
+	}
 
 	_ uint32 // ensure 64-bit alignment of central
 
@@ -512,11 +521,13 @@ func (h *mheap) coalesce(s *mspan) {
 		h.free.insert(other)
 	}
 
-	hpBefore := s.hugePages()
+	hpMiddle := s.hugePages()
 
 	// Coalesce with earlier, later spans.
+	var hpBefore uintptr
 	if before := spanOf(s.base() - 1); before != nil && before.state == mSpanFree {
 		if s.scavenged == before.scavenged {
+			hpBefore = before.hugePages()
 			merge(before, s, before)
 		} else {
 			realign(before, s, before)
@@ -524,23 +535,29 @@ func (h *mheap) coalesce(s *mspan) {
 	}
 
 	// Now check to see if next (greater addresses) span is free and can be coalesced.
+	var hpAfter uintptr
 	if after := spanOf(s.base() + s.npages*pageSize); after != nil && after.state == mSpanFree {
 		if s.scavenged == after.scavenged {
+			hpAfter = after.hugePages()
 			merge(s, after, after)
 		} else {
 			realign(s, after, after)
 		}
 	}
-
-	if !s.scavenged && s.hugePages() > hpBefore {
+	if !s.scavenged && s.hugePages() > hpBefore+hpMiddle+hpAfter {
 		// If s has grown such that it now may contain more huge pages than it
-		// did before, then mark the whole region as huge-page-backable.
+		// and its now-coalesced neighbors did before, then mark the whole region
+		// as huge-page-backable.
 		//
 		// Otherwise, on systems where we break up huge pages (like Linux)
 		// s may not be backed by huge pages because it could be made up of
 		// pieces which are broken up in the underlying VMA. The primary issue
 		// with this is that it can lead to a poor estimate of the amount of
 		// free memory backed by huge pages for determining the scavenging rate.
+		//
+		// TODO(mknyszek): Measure the performance characteristics of sysHugePage
+		// and determine whether it makes sense to only sysHugePage on the pages
+		// that matter, or if it's better to just mark the whole region.
 		sysHugePage(unsafe.Pointer(s.base()), s.npages*pageSize)
 	}
 }
@@ -559,7 +576,7 @@ func (s *mspan) hugePages() uintptr {
 		end &^= physHugePageSize - 1
 	}
 	if start < end {
-		return (end - start) / physHugePageSize
+		return (end - start) >> physHugePageShift
 	}
 	return 0
 }
@@ -1095,9 +1112,8 @@ func (h *mheap) alloc(npage uintptr, spanclass spanClass, large bool, needzero b
 // The memory backing the returned span may not be zeroed if
 // span.needzero is set.
 //
-// allocManual must be called on the system stack to prevent stack
-// growth. Since this is used by the stack allocator, stack growth
-// during allocManual would self-deadlock.
+// allocManual must be called on the system stack because it acquires
+// the heap lock. See mheap for details.
 //
 //go:systemstack
 func (h *mheap) allocManual(npage uintptr, stat *uint64) *mspan {
@@ -1211,16 +1227,6 @@ HaveSpan:
 		// heap_released since we already did so earlier.
 		sysUsed(unsafe.Pointer(s.base()), s.npages<<_PageShift)
 		s.scavenged = false
-
-		// Since we allocated out of a scavenged span, we just
-		// grew the RSS. Mitigate this by scavenging enough free
-		// space to make up for it but only if we need to.
-		//
-		// scavengeLocked may cause coalescing, so prevent
-		// coalescing with s by temporarily changing its state.
-		s.state = mSpanManual
-		h.scavengeIfNeededLocked(s.npages * pageSize)
-		s.state = mSpanFree
 	}
 
 	h.setSpans(s.base(), npage, s)
@@ -1240,29 +1246,78 @@ HaveSpan:
 // h must be locked.
 func (h *mheap) grow(npage uintptr) bool {
 	ask := npage << _PageShift
-	v, size := h.sysAlloc(ask)
-	if v == nil {
-		print("runtime: out of memory: cannot allocate ", ask, "-byte block (", memstats.heap_sys, " in use)\n")
-		return false
+
+	nBase := round(h.curArena.base+ask, physPageSize)
+	if nBase > h.curArena.end {
+		// Not enough room in the current arena. Allocate more
+		// arena space. This may not be contiguous with the
+		// current arena, so we have to request the full ask.
+		av, asize := h.sysAlloc(ask)
+		if av == nil {
+			print("runtime: out of memory: cannot allocate ", ask, "-byte block (", memstats.heap_sys, " in use)\n")
+			return false
+		}
+
+		if uintptr(av) == h.curArena.end {
+			// The new space is contiguous with the old
+			// space, so just extend the current space.
+			h.curArena.end = uintptr(av) + asize
+		} else {
+			// The new space is discontiguous. Track what
+			// remains of the current space and switch to
+			// the new space. This should be rare.
+			if size := h.curArena.end - h.curArena.base; size != 0 {
+				h.growAddSpan(unsafe.Pointer(h.curArena.base), size)
+			}
+			// Switch to the new space.
+			h.curArena.base = uintptr(av)
+			h.curArena.end = uintptr(av) + asize
+		}
+
+		// The memory just allocated counts as both released
+		// and idle, even though it's not yet backed by spans.
+		//
+		// The allocation is always aligned to the heap arena
+		// size which is always > physPageSize, so its safe to
+		// just add directly to heap_released. Coalescing, if
+		// possible, will also always be correct in terms of
+		// accounting, because s.base() must be a physical
+		// page boundary.
+		memstats.heap_released += uint64(asize)
+		memstats.heap_idle += uint64(asize)
+
+		// Recalculate nBase
+		nBase = round(h.curArena.base+ask, physPageSize)
 	}
 
-	// Create a fake "in use" span and free it, so that the
-	// right accounting and coalescing happens.
+	// Grow into the current arena.
+	v := h.curArena.base
+	h.curArena.base = nBase
+	h.growAddSpan(unsafe.Pointer(v), nBase-v)
+	return true
+}
+
+// growAddSpan adds a free span when the heap grows into [v, v+size).
+// This memory must be in the Prepared state (not Ready).
+//
+// h must be locked.
+func (h *mheap) growAddSpan(v unsafe.Pointer, size uintptr) {
+	// Scavenge some pages to make up for the virtual memory space
+	// we just allocated, but only if we need to.
+	h.scavengeIfNeededLocked(size)
+
 	s := (*mspan)(h.spanalloc.alloc())
 	s.init(uintptr(v), size/pageSize)
 	h.setSpans(s.base(), s.npages, s)
 	s.state = mSpanFree
-	memstats.heap_idle += uint64(size)
-	// (*mheap).sysAlloc returns untouched/uncommitted memory.
+	// [v, v+size) is always in the Prepared state. The new span
+	// must be marked scavenged so the allocator transitions it to
+	// Ready when allocating from it.
 	s.scavenged = true
-	// s is always aligned to the heap arena size which is always > physPageSize,
-	// so its totally safe to just add directly to heap_released. Coalescing,
-	// if possible, will also always be correct in terms of accounting, because
-	// s.base() must be a physical page boundary.
-	memstats.heap_released += uint64(size)
+	// This span is both released and idle, but grow already
+	// updated both memstats.
 	h.coalesce(s)
 	h.free.insert(s)
-	return true
 }
 
 // Free the span back into the heap.
@@ -1303,8 +1358,8 @@ func (h *mheap) freeSpan(s *mspan, large bool) {
 // This must only be called when gcphase == _GCoff. See mSpanState for
 // an explanation.
 //
-// freeManual must be called on the system stack to prevent stack
-// growth, just like allocManual.
+// freeManual must be called on the system stack because it acquires
+// the heap lock. See mheap for details.
 //
 //go:systemstack
 func (h *mheap) freeManual(s *mspan, stat *uint64) {
