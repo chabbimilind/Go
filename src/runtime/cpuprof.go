@@ -108,7 +108,7 @@ func SetPMUProfile(eventId int, eventAttr *PMUEventAttr) {
 
 //go:nowritebarrierrec
 func (p *profile) addImpl(gp *g, stk []uintptr, cpuorpmuprof *profile) {
-	if p.numExtra > 0 || p.lostExtra > 0 {
+	if p.numExtra > 0 || p.lostExtra > 0 || p.lostAtomic > 0 {
 		p.addExtra()
 	}
 	hdr := [1]uint64{1}
@@ -131,9 +131,7 @@ func (p *profile) add(gp *g, stk []uintptr, eventIds ...int) {
 			osyield()
 		}
 		if prof.hz != 0 { // implies cpuprof.log != nil
-		    if p.numExtra > 0 || p.lostExtra > 0 || p.lostAtomic > 0 {
-			p.addImpl(gp, stk, &cpuprof)
-		    }
+		    p.addImpl(gp, stk, &cpuprof)
 		}
 		atomic.Store(&prof.signalLock, 0)
 	} else {
@@ -142,9 +140,7 @@ func (p *profile) add(gp *g, stk []uintptr, eventIds ...int) {
 			osyield()
 		}
 		if pmuEvent[eventId].eventAttr != nil { // implies pmuprof[eventId].log != nil
-		    if p.numExtra > 0 || p.lostExtra > 0 || p.lostAtomic > 0 {
-			p.addImpl(gp, stk, &pmuprof[eventId])
-		    }
+		    p.addImpl(gp, stk, &pmuprof[eventId])
 		}
 		atomic.Store(&pmuEvent[eventId].signalLock, 0)
 	}
