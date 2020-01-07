@@ -22,6 +22,7 @@
 #define SYS_close		57
 #define SYS_pipe2		59
 #define SYS_fcntl		25
+#define SYS_ioctl       	29
 #define SYS_nanosleep		101
 #define SYS_mmap		222
 #define SYS_munmap		215
@@ -49,6 +50,7 @@
 #define SYS_socket		198
 #define SYS_connect		203
 #define SYS_brk			214
+#define SYS_perf_event_open	241
 
 TEXT runtime·exit(SB),NOSPLIT|NOFRAME,$0-4
 	MOVW	code+0(FP), R0
@@ -735,4 +737,90 @@ TEXT runtime·sbrk0(SB),NOSPLIT,$0-8
 	RET
 
 TEXT runtime·sigreturn(SB),NOSPLIT,$0-0
+	RET
+
+TEXT runtime·perfEventOpen(SB),NOSPLIT,$0-72
+	MOVD	attr+0(FP), R0
+	MOVD	pid+8(FP), R1
+	MOVD	cpu+16(FP), R2
+	MOVD	groupFd+24(FP), R3
+	MOVD	flags+32(FP), R4
+	MOVD	dummy+40(FP), R5
+	MOVD	$SYS_perf_event_open, R8
+	SVC
+	CMN	$4095, R0
+	BCC	ok
+	MOVD	$-1, R4
+	MOVW	R4, r+48(FP)
+	MOVD	ZR, r2+56(FP)
+	NEG	R0, R0
+	MOVD	R0, err+64(FP)
+	RET
+ok:
+	MOVW	R0, r+48(FP)
+	MOVD	R1, r2+56(FP)
+	MOVD	ZR, err+64(FP)
+	RET
+
+TEXT runtime·ioctl(SB),NOSPLIT,$0-40
+	MOVW	fd+0(FP), R0
+	MOVD	req+8(FP), R1
+	MOVD	arg+16(FP), R2
+	MOVD	$0, R3
+	MOVD	$0, R4
+	MOVD	$0, R5
+	MOVD	$SYS_ioctl, R8
+	SVC
+	CMN	$4095, R0
+	BCC	ok
+	MOVD	$-1, R4
+	MOVD	R4, r+24(FP)
+	NEG	R0, R0
+	MOVD	R0, err+32(FP)
+	RET
+ok:
+	MOVD	R0, r+24(FP)
+	MOVD	ZR, err+32(FP)
+	RET
+
+TEXT runtime·fcntl(SB),NOSPLIT,$0-40
+	MOVW	fd+0(FP), R0
+	MOVD	cmd+8(FP), R1
+	MOVD	arg+16(FP), R2
+	MOVD	$0, R3
+	MOVD	$0, R4
+	MOVD	$0, R5
+	MOVD	$SYS_fcntl, R8
+	SVC
+	CMN	$4095, R0
+	BCC	ok
+	MOVD	$-1, R4
+	MOVD	R4, r+24(FP)
+	NEG	R0, R0
+	MOVD	R0, err+32(FP)
+	RET
+ok:
+	MOVD	R0, r+24(FP)
+	MOVD	ZR, err+32(FP)
+	RET
+
+TEXT runtime·fcntl2(SB),NOSPLIT,$0-40
+	MOVW	fd+0(FP), R0
+	MOVD	cmd+8(FP), R1
+	MOVD	arg+16(FP), R2
+	MOVD	$0, R3
+	MOVD	$0, R4
+	MOVD	$0, R5
+	MOVD	$SYS_fcntl, R8
+	SVC
+	CMN	$4095, R0
+	BCC	ok
+	MOVD	$-1, R4
+	MOVD	R4, r+24(FP)
+	NEG	R0, R0
+	MOVD	R0, err+32(FP)
+	RET
+ok:
+	MOVD	R0, r+24(FP)
+	MOVD	ZR, err+32(FP)
 	RET

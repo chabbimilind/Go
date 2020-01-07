@@ -42,7 +42,8 @@ type cpuProfile struct {
 	lostAtomic uint64 // count of frames lost because of being in atomic64 on mips/arm; updated racily
 }
 
-var cpuprof cpuProfile
+var timerProf cpuProfile
+var pmuprof [GO_COUNT_PMU_EVENTS_MAX]cpuProfile
 
 // SetCPUProfileRate sets the CPU profiling rate to hz samples per second.
 // If hz <= 0, SetCPUProfileRate turns off profiling.
@@ -60,26 +61,62 @@ func SetCPUProfileRate(hz int) {
 		hz = 1000000
 	}
 
-	lock(&cpuprof.lock)
+	lock(&timerProf.lock)
+	defer unlock(&timerProf.lock)
 	if hz > 0 {
-		if cpuprof.on || cpuprof.log != nil {
+		if timerProf.on || timerProf.log != nil {
 			print("runtime: cannot set cpu profile rate until previous profile has finished.\n")
-			unlock(&cpuprof.lock)
 			return
 		}
 
-		cpuprof.on = true
-		cpuprof.log = newProfBuf(1, 1<<17, 1<<14)
+		timerProf.on = true
+		// Enlarging the buffer words and tags reduces the number of samples lost at the cost of larger amounts of memory
+		timerProf.log = newProfBuf( /* header size */ 1 /* buffer words */, 1<<17 /* tags */, 1<<14)
 		hdr := [1]uint64{uint64(hz)}
-		cpuprof.log.write(nil, nanotime(), hdr[:], nil)
+		timerProf.log.write(nil, nanotime(), hdr[:], nil)
 		setcpuprofilerate(int32(hz))
-	} else if cpuprof.on {
+	} else if timerProf.on {
 		setcpuprofilerate(0)
-		cpuprof.on = false
-		cpuprof.addExtra()
-		cpuprof.log.close()
+		timerProf.on = false
+		timerProf.addExtra()
+		timerProf.log.close()
 	}
-	unlock(&cpuprof.lock)
+}
+
+func SetPMUProfile(eventId int, eventAttr *PMUEventAttr) {
+	lock(&pmuprof[eventId].lock)
+	defer unlock(&pmuprof[eventId].lock)
+	if eventAttr != nil {
+		if pmuprof[eventId].on || pmuprof[eventId].log != nil {
+			print("runtime: cannot set pmu profile rate until previous profile has finished.\n")
+			return
+		}
+
+		pmuprof[eventId].on = true
+		// Enlarging the buffer words and tags reduces the number of samples lost at the cost of larger amounts of memory
+		pmuprof[eventId].log = newProfBuf( /* header size */ 1 /* buffer words */, 1<<17 /* tags */, 1<<14)
+		hdr := [1]uint64{eventAttr.Period}
+		pmuprof[eventId].log.write(nil, nanotime(), hdr[:], nil)
+		setpmuprofile(int32(eventId), eventAttr)
+	} else if pmuprof[eventId].on {
+		setpmuprofile(int32(eventId), nil)
+		pmuprof[eventId].on = false
+		pmuprof[eventId].addExtra()
+		pmuprof[eventId].log.close()
+	}
+}
+
+//go:nowritebarrierrec
+func (p *cpuProfile) addImpl(gp *g, stk []uintptr, prof *cpuProfile) {
+	if p.numExtra > 0 || p.lostExtra > 0 || p.lostAtomic > 0 {
+		p.addExtra()
+	}
+	hdr := [1]uint64{1}
+	// Note: write "knows" that the argument is &gp.labels,
+	// because otherwise its write barrier behavior may not
+	// be correct. See the long comment there before
+	// changing the argument here.
+	prof.log.write(&gp.labels, nanotime(), hdr[:], stk)
 }
 
 // add adds the stack trace to the profile.
@@ -88,55 +125,69 @@ func SetCPUProfileRate(hz int) {
 // held at the time of the signal, nor can it use substantial amounts
 // of stack.
 //go:nowritebarrierrec
-func (p *cpuProfile) add(gp *g, stk []uintptr) {
-	// Simple cas-lock to coordinate with setcpuprofilerate.
-	for !atomic.Cas(&prof.signalLock, 0, 1) {
-		osyield()
-	}
-
-	if prof.hz != 0 { // implies cpuprof.log != nil
-		if p.numExtra > 0 || p.lostExtra > 0 || p.lostAtomic > 0 {
-			p.addExtra()
+func (p *cpuProfile) add(gp *g, stk []uintptr, eventIds ...int) {
+	if len(eventIds) == 0 {
+		for !atomic.Cas(&prof.signalLock, 0, 1) {
+			osyield()
 		}
-		hdr := [1]uint64{1}
-		// Note: write "knows" that the argument is &gp.labels,
-		// because otherwise its write barrier behavior may not
-		// be correct. See the long comment there before
-		// changing the argument here.
-		cpuprof.log.write(&gp.labels, nanotime(), hdr[:], stk)
+		if prof.hz != 0 { // implies timerProf.log != nil
+			p.addImpl(gp, stk, &timerProf)
+		}
+		atomic.Store(&prof.signalLock, 0)
+	} else {
+		eventId := eventIds[0]
+		for !atomic.Cas(&pmuEvent[eventId].signalLock, 0, 1) {
+			osyield()
+		}
+		if pmuEvent[eventId].eventAttr != nil { // implies pmuprof[eventId].log != nil
+			p.addImpl(gp, stk, &pmuprof[eventId])
+		}
+		atomic.Store(&pmuEvent[eventId].signalLock, 0)
 	}
+}
 
-	atomic.Store(&prof.signalLock, 0)
+//go:nosplit
+//go:nowritebarrierrec
+func (p *cpuProfile) addNonGoImpl(stk []uintptr, prof *cpuProfile) {
+	if prof.numExtra+1+len(stk) < len(prof.extra) {
+		i := prof.numExtra
+		prof.extra[i] = uintptr(1 + len(stk))
+		copy(prof.extra[i+1:], stk)
+		prof.numExtra += 1 + len(stk)
+	} else {
+		prof.lostExtra++
+	}
 }
 
 // addNonGo adds the non-Go stack trace to the profile.
 // It is called from a non-Go thread, so we cannot use much stack at all,
 // nor do anything that needs a g or an m.
-// In particular, we can't call cpuprof.log.write.
-// Instead, we copy the stack into cpuprof.extra,
+// In particular, we can't call timerProf.log.write.
+// Instead, we copy the stack into timerProf.extra,
 // which will be drained the next time a Go thread
 // gets the signal handling event.
 //go:nosplit
 //go:nowritebarrierrec
-func (p *cpuProfile) addNonGo(stk []uintptr) {
-	// Simple cas-lock to coordinate with SetCPUProfileRate.
-	// (Other calls to add or addNonGo should be blocked out
-	// by the fact that only one SIGPROF can be handled by the
-	// process at a time. If not, this lock will serialize those too.)
-	for !atomic.Cas(&prof.signalLock, 0, 1) {
-		osyield()
-	}
-
-	if cpuprof.numExtra+1+len(stk) < len(cpuprof.extra) {
-		i := cpuprof.numExtra
-		cpuprof.extra[i] = uintptr(1 + len(stk))
-		copy(cpuprof.extra[i+1:], stk)
-		cpuprof.numExtra += 1 + len(stk)
+func (p *cpuProfile) addNonGo(stk []uintptr, eventIds ...int) {
+	if len(eventIds) == 0 {
+		// Simple cas-lock to coordinate with SetCPUProfileRate.
+		// (Other calls to add or addNonGo should be blocked out
+		// by the fact that only one SIGPROF can be handled by the
+		// process at a time. If not, this lock will serialize those too.)
+		for !atomic.Cas(&prof.signalLock, 0, 1) {
+			osyield()
+		}
+		p.addNonGoImpl(stk, &timerProf)
+		atomic.Store(&prof.signalLock, 0)
 	} else {
-		cpuprof.lostExtra++
+		eventId := eventIds[0]
+		// Only one SIGPROF for each PMU event can be handled by the process at a time.
+		for !atomic.Cas(&pmuEvent[eventId].signalLock, 0, 1) {
+			osyield()
+		}
+		p.addNonGoImpl(stk, &pmuprof[eventId])
+		atomic.Store(&pmuEvent[eventId].signalLock, 0)
 	}
-
-	atomic.Store(&prof.signalLock, 0)
 }
 
 // addExtra adds the "extra" profiling events,
@@ -194,6 +245,19 @@ func runtime_pprof_runtime_cyclesPerSecond() int64 {
 	return tickspersecond()
 }
 
+func readProfileImpl(prof *cpuProfile) ([]uint64, []unsafe.Pointer, bool) {
+	lock(&prof.lock)
+	log := prof.log
+	unlock(&prof.lock)
+	data, tags, eof := log.read(profBufBlocking)
+	if len(data) == 0 && eof {
+		lock(&prof.lock)
+		prof.log = nil
+		unlock(&prof.lock)
+	}
+	return data, tags, eof
+}
+
 // readProfile, provided to runtime/pprof, returns the next chunk of
 // binary CPU profiling stack trace data, blocking until data is available.
 // If profiling is turned off and all the profile data accumulated while it was
@@ -201,15 +265,11 @@ func runtime_pprof_runtime_cyclesPerSecond() int64 {
 // The caller must save the returned data and tags before calling readProfile again.
 //
 //go:linkname runtime_pprof_readProfile runtime/pprof.readProfile
-func runtime_pprof_readProfile() ([]uint64, []unsafe.Pointer, bool) {
-	lock(&cpuprof.lock)
-	log := cpuprof.log
-	unlock(&cpuprof.lock)
-	data, tags, eof := log.read(profBufBlocking)
-	if len(data) == 0 && eof {
-		lock(&cpuprof.lock)
-		cpuprof.log = nil
-		unlock(&cpuprof.lock)
+func runtime_pprof_readProfile(eventIds ...int) ([]uint64, []unsafe.Pointer, bool) {
+	if len(eventIds) == 0 {
+		return readProfileImpl(&timerProf)
+	} else {
+		eventId := eventIds[0]
+		return readProfileImpl(&pmuprof[eventId])
 	}
-	return data, tags, eof
 }

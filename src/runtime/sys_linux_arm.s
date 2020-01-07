@@ -47,11 +47,13 @@
 #define SYS_epoll_wait (SYS_BASE + 252)
 #define SYS_epoll_create1 (SYS_BASE + 357)
 #define SYS_pipe2 (SYS_BASE + 359)
+#define SYS_ioctl (SYS_BASE + 54)
 #define SYS_fcntl (SYS_BASE + 55)
 #define SYS_access (SYS_BASE + 33)
 #define SYS_connect (SYS_BASE + 283)
 #define SYS_socket (SYS_BASE + 281)
 #define SYS_brk (SYS_BASE + 45)
+#define SYS_perf_event_open (SYS_BASE + 364)
 
 #define ARM_BASE (SYS_BASE + 0x0f0000)
 
@@ -712,4 +714,103 @@ TEXT runtime·sbrk0(SB),NOSPLIT,$0-4
 	RET
 
 TEXT runtime·sigreturn(SB),NOSPLIT,$0-0
+	RET
+
+// psu: not tested
+TEXT runtime·perfEventOpen(SB),NOSPLIT,$0-36
+	MOVW	attr+0(FP), R0
+	MOVW	pid+4(FP), R1
+	MOVW	cpu+8(FP), R2
+	MOVW	groupFd+12(FP), R3
+	MOVW	flags+16(FP), R4
+	MOVW	dummy+20(FP), R5
+	MOVW	$SYS_perf_event_open, R7
+	SWI     $0
+	MOVW    $0xfffff001, R6
+	CMP     R6, R0
+	BLS     ok
+	MOVW	$-1, R1
+	MOVW	R1, r+24(FP)
+	MOVW    $0, R2
+	MOVW	R2, r2+28(FP)
+	RSB     $0, R0, R0
+	MOVW    R0, err+32(FP)
+	RET
+ok:
+	MOVW	R0, r+24(FP)
+	MOVW	R1, r2+28(FP)
+	MOVW    $0, R0
+	MOVW	R0, err+32(FP)
+	RET
+
+// psu: not tested
+TEXT runtime·ioctl(SB),NOSPLIT,$0-20
+	MOVW	fd+0(FP), R0
+	MOVW	req+4(FP), R1
+	MOVW	arg+8(FP), R2
+	MOVW	$0, R3
+	MOVW	$0, R4
+	MOVW	$0, R5
+	MOVW	$SYS_ioctl, R7
+	SWI     $0
+	MOVW    $0xfffff001, R1
+	CMP     R1, R0
+	BLS     ok
+	MOVW	$-1, R1
+	MOVW	R1, r+12(FP)
+	RSB     $0, R0, R0
+	MOVW    R0, err+16(FP)
+	RET
+ok:
+	MOVW	R0, r+12(FP)
+	MOVW    $0, R0
+	MOVW	R0, err+16(FP)
+	RET
+
+// psu: not tested
+TEXT runtime·fcntl(SB),NOSPLIT,$0-20
+	MOVW	fd+0(FP), R0
+	MOVW	cmd+4(FP), R1
+	MOVW	arg+8(FP), R2
+	MOVW	$0, R3
+	MOVW	$0, R4
+	MOVW	$0, R5
+	MOVW	$SYS_fcntl, R7
+	SWI     $0
+	MOVW    $0xfffff001, R1
+	CMP     R1, R0
+	BLS     ok
+	MOVW	$-1, R1
+	MOVW	R1, r+12(FP)
+	RSB     $0, R0, R0
+	MOVW    R0, err+16(FP)
+	RET
+ok:
+	MOVW	R0, r+12(FP)
+	MOVW    $0, R0
+	MOVW	R0, err+16(FP)
+	RET
+
+// psu: not tested
+TEXT runtime·fcntl2(SB),NOSPLIT,$0-20
+	MOVW	fd+0(FP), R0
+	MOVW	cmd+4(FP), R1
+	MOVW	arg+8(FP), R2
+	MOVW	$0, R3
+	MOVW	$0, R4
+	MOVW	$0, R5
+	MOVW	$SYS_fcntl, R7
+	SWI     $0
+	MOVW    $0xfffff001, R1
+	CMP     R1, R0
+	BLS     ok
+	MOVW	$-1, R1
+	MOVW	R1, r+12(FP)
+	RSB     $0, R0, R0
+	MOVW    R0, err+16(FP)
+	RET
+ok:
+	MOVW	R0, r+12(FP)
+	MOVW    $0, R0
+	MOVW	R0, err+16(FP)
 	RET

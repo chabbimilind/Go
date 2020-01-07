@@ -21,6 +21,8 @@ type sigTabT struct {
 	name  string
 }
 
+var sigprofPMUHandlerFptr func(info *siginfo, c *sigctxt, gp *g, _g_ *g)
+
 //go:linkname os_sigpipe os.sigpipe
 func os_sigpipe() {
 	systemstack(sigpipe)
@@ -69,6 +71,11 @@ const (
 // spurious SIGURG. SIGIO wouldn't be a bad choice either, but is more
 // likely to be used for real.
 const sigPreempt = _SIGURG
+const (
+	_UNINSTALLED      = 0
+	_ITIMER_INSTALLED = 1
+	_PMU_INSTALLED    = 2
+)
 
 // Stores the signal handlers registered before Go installed its own.
 // These signal handlers will be invoked in cases where Go doesn't want to
@@ -261,18 +268,22 @@ func clearSignalHandlers() {
 	}
 }
 
+var cpuorpmuprofiler uint32
+
 // setProcessCPUProfiler is called when the profiling timer changes.
 // It is called with prof.lock held. hz is the new timer, and is 0 if
 // profiling is being disabled. Enable or disable the signal as
 // required for -buildmode=c-archive.
 func setProcessCPUProfiler(hz int32) {
 	if hz != 0 {
+		atomic.Cas(&cpuorpmuprofiler, _UNINSTALLED, _ITIMER_INSTALLED)
 		// Enable the Go signal handler if not enabled.
-		if atomic.Cas(&handlingSig[_SIGPROF], 0, 1) {
+		if atomic.Cas(&handlingSig[_SIGPROF], _UNINSTALLED, _ITIMER_INSTALLED) {
 			atomic.Storeuintptr(&fwdSig[_SIGPROF], getsig(_SIGPROF))
 			setsig(_SIGPROF, funcPC(sighandler))
 		}
 	} else {
+		atomic.Cas(&cpuorpmuprofiler, _ITIMER_INSTALLED, _UNINSTALLED)
 		// If the Go signal handler should be disabled by default,
 		// switch back to the signal handler that was installed
 		// when we enabled profiling. We don't try to handle the case
@@ -288,12 +299,12 @@ func setProcessCPUProfiler(hz int32) {
 		// that use profiling don't want to crash on a stray SIGPROF.
 		// See issue 19320.
 		if !sigInstallGoHandler(_SIGPROF) {
-			if atomic.Cas(&handlingSig[_SIGPROF], 1, 0) {
+			if atomic.Cas(&handlingSig[_SIGPROF], _ITIMER_INSTALLED, _UNINSTALLED) {
 				h := atomic.Loaduintptr(&fwdSig[_SIGPROF])
 				if h == _SIG_DFL {
 					h = _SIG_IGN
 				}
-				setsig(_SIGPROF, h)
+				setsig(_SIGPROF, atomic.Loaduintptr(&fwdSig[_SIGPROF]))
 			}
 		}
 	}
@@ -509,7 +520,12 @@ func sighandler(sig uint32, info *siginfo, ctxt unsafe.Pointer, gp *g) {
 	c := &sigctxt{info, ctxt}
 
 	if sig == _SIGPROF {
-		sigprof(c.sigpc(), c.sigsp(), c.siglr(), gp, _g_.m)
+                state := atomic.Load(&cpuorpmuprofiler)
+                if state == _ITIMER_INSTALLED {
+                        sigprof(c.sigpc(), c.sigsp(), c.siglr(), gp, _g_.m)
+                } else if state == _PMU_INSTALLED {
+                        sigprofPMUHandlerFptr(info, (*sigctxt)(noescape(unsafe.Pointer(c))), gp, _g_)
+                }
 		return
 	}
 

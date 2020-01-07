@@ -22,6 +22,7 @@
 #define SYS_rt_sigprocmask	14
 #define SYS_rt_sigreturn	15
 #define SYS_pipe		22
+#define SYS_ioctl       	16
 #define SYS_sched_yield 	24
 #define SYS_mincore		27
 #define SYS_madvise		28
@@ -50,6 +51,7 @@
 #define SYS_epoll_pwait		281
 #define SYS_epoll_create1	291
 #define SYS_pipe2		293
+#define SYS_perf_event_open 	298
 
 TEXT runtime·exit(SB),NOSPLIT,$0-4
 	MOVL	code+0(FP), DI
@@ -785,4 +787,85 @@ TEXT ·mlock(SB),NOSPLIT,$0-24
 	MOVL    $SYS_mlock, AX
 	SYSCALL
 	MOVQ	AX, ret+16(FP)
+
+TEXT runtime·perfEventOpen(SB),NOSPLIT,$0-72
+	MOVQ	attr+0(FP), DI
+	MOVQ	pid+8(FP), SI
+	MOVQ	cpu+16(FP), DX
+	MOVQ	groupFd+24(FP), R10
+	MOVQ	flags+32(FP), R8
+	MOVQ	dummy+40(FP), R9
+	MOVQ	$SYS_perf_event_open, AX
+	SYSCALL
+	CMPQ	AX, $0xfffffffffffff001
+	JLS	ok
+	MOVL	$-1, r+48(FP)
+	MOVQ	$0, r2+56(FP)
+	NEGQ	AX
+	MOVQ	AX, err+64(FP)
+	RET
+ok:
+	MOVL	AX, r+48(FP)
+	MOVQ	DX, r2+56(FP)
+	MOVQ	$0, err+64(FP)
+	RET
+
+TEXT runtime·ioctl(SB),NOSPLIT,$0-40
+	MOVL	fd+0(FP), DI
+	MOVQ	req+8(FP), SI
+	MOVQ	arg+16(FP), DX
+	MOVQ    $0, R10
+	MOVQ    $0, R8
+	MOVQ    $0, R9
+	MOVQ	$SYS_ioctl, AX
+	SYSCALL
+	CMPQ    AX, $0xfffffffffffff001
+	JLS	ok
+	MOVQ	$-1, r+24(FP)
+	NEGQ	AX
+	MOVQ	AX, err+32(FP)
+	RET
+ok:
+	MOVQ	AX, r+24(FP)
+	MOVQ	$0, err+32(FP)
+	RET
+
+TEXT runtime·fcntl(SB),NOSPLIT,$0-40
+	MOVL	fd+0(FP), DI
+	MOVQ	cmd+8(FP), SI
+	MOVQ	arg+16(FP), DX
+	MOVQ    $0, R10
+	MOVQ    $0, R8
+	MOVQ    $0, R9
+	MOVQ	$SYS_fcntl, AX
+	SYSCALL
+	CMPQ	AX, $0xfffffffffffff001
+	JLS	ok
+	MOVQ	$-1, r+24(FP)
+	NEGQ	AX
+	MOVQ	AX, err+32(FP)
+	RET
+ok:
+	MOVQ	AX, r+24(FP)
+	MOVQ	$0, err+32(FP)
+	RET
+
+TEXT runtime·fcntl2(SB),NOSPLIT,$0-40
+	MOVL	fd+0(FP), DI
+	MOVQ	cmd+8(FP), SI
+	MOVQ	arg+16(FP), DX
+	MOVQ    $0, R10
+	MOVQ    $0, R8
+	MOVQ    $0, R9
+	MOVQ	$SYS_fcntl, AX
+	SYSCALL
+	CMPQ	AX, $0xfffffffffffff001
+	JLS	ok
+	MOVQ	$-1, r+24(FP)
+	NEGQ	AX
+	MOVQ	AX, err+32(FP)
+	RET
+ok:
+	MOVQ	AX, r+24(FP)
+	MOVQ	$0, err+32(FP)
 	RET

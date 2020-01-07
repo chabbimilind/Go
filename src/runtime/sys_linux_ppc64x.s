@@ -23,6 +23,7 @@
 #define SYS_kill		 37
 #define SYS_pipe		 42
 #define SYS_brk			 45
+#define SYS_ioctl		 54
 #define SYS_fcntl		 55
 #define SYS_mmap		 90
 #define SYS_munmap		 91
@@ -47,6 +48,7 @@
 #define SYS_tgkill		250
 #define SYS_epoll_create1	315
 #define SYS_pipe2		317
+#define SYS_perf_event_open	319
 
 TEXT runtime·exit(SB),NOSPLIT|NOFRAME,$0-4
 	MOVW	code+0(FP), R3
@@ -674,4 +676,82 @@ TEXT runtime·connect(SB),$0-28
 TEXT runtime·socket(SB),$0-20
 	MOVD	R0, 0(R0) // unimplemented, only needed for android; declared in stubs_linux.go
 	MOVW	R0, ret+16(FP) // for vet
+	RET
+
+TEXT runtime·perfEventOpen(SB),NOSPLIT,$0-72
+	MOVD	attr+0(FP), R3
+	MOVD	pid+8(FP), R4
+	MOVD	cpu+16(FP), R5
+	MOVD	groupFd+24(FP), R6
+	MOVD	flags+32(FP), R7
+	MOVD	dummy+40(FP), R8
+	MOVD	$SYS_perf_event_open, R9
+	SYSCALL R9
+	BVC	ok
+	MOVD	$-1, R4
+	MOVW	R4, r+48(FP)
+	MOVD	R0, r2+56(FP)
+	MOVD	R3, err+64(FP)
+	RET
+ok:
+	MOVW	R3, r+48(FP)
+	MOVD	R4, r2+56(FP)
+	MOVD	R0, err+64(FP)
+	RET
+
+TEXT runtime·ioctl(SB),NOSPLIT,$0-40
+	MOVW	fd+0(FP), R3
+	MOVD	req+8(FP), R4
+	MOVD	arg+16(FP), R5
+	MOVD	R0, R6
+	MOVD	R0, R7
+	MOVD	R0, R8
+	MOVD	$SYS_ioctl, R9
+	SYSCALL R9
+	BVC	ok
+	MOVD	$-1, R4
+	MOVD	R4, r+24(FP)
+	MOVD	R3, err+32(FP)
+	RET
+ok:
+	MOVD	R3, r+24(FP)
+	MOVD	R0, err+32(FP)
+	RET
+
+TEXT runtime·fcntl(SB),NOSPLIT,$0-40
+	MOVW	fd+0(FP), R3
+	MOVD	cmd+8(FP), R4
+	MOVD	arg+16(FP), R5
+	MOVD	R0, R6
+	MOVD	R0, R7
+	MOVD	R0, R8
+	MOVD	$SYS_fcntl, R9
+	SYSCALL R9
+	BVC	ok
+	MOVD	$-1, R4
+	MOVD	R4, r+24(FP)
+	MOVD	R3, err+32(FP)
+	RET
+ok:
+	MOVD	R3, r+24(FP)
+	MOVD	R0, err+32(FP)
+	RET
+
+TEXT runtime·fcntl2(SB),NOSPLIT,$0-40
+	MOVW	fd+0(FP), R3
+	MOVD	cmd+8(FP), R4
+	MOVD	arg+16(FP), R5
+	MOVD	R0, R6
+	MOVD	R0, R7
+	MOVD	R0, R8
+	MOVD	$SYS_fcntl, R9
+	SYSCALL R9
+	BVC	ok
+	MOVD	$-1, R4
+	MOVD	R4, r+24(FP)
+	MOVD	R3, err+32(FP)
+	RET
+ok:
+	MOVD	R3, r+24(FP)
+	MOVD	R0, err+32(FP)
 	RET
