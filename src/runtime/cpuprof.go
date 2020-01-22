@@ -20,6 +20,67 @@ import (
 
 const maxCPUProfStack = 64
 
+//go:linkname cpuEvent runtime/pprof.cpuEvent
+type cpuEvent int32
+
+const (
+	CPUPROF_OS_TIMER, CPUPROF_FIRST_EVENT          cpuEvent = iota, iota
+	CPUPROF_HW_CPU_CYCLES, CPUPROF_FIRST_PMU_EVENT cpuEvent = iota, iota
+	CPUPROF_HW_INSTRUCTIONS                        cpuEvent = iota
+	CPUPROF_HW_CACHE_REFERENCES                    cpuEvent = iota
+	CPUPROF_HW_CACHE_MISSES                        cpuEvent = iota
+	CPUPROF_HW_BRANCH_INSTRUCTIONS                 cpuEvent = iota
+	CPUPROF_HW_BRANCH_MISSES                       cpuEvent = iota
+	CPUPROF_HW_RAW, CPUPROF_LAST_EVENT             cpuEvent = iota, iota
+	CPUPROF_EVENTS_MAX                                      = iota
+)
+
+const (
+	CPUPROF_IP_ARBITRARY_SKID  = 0x0
+	CPUPROF_IP_CONSTANT_SKID   = 0x1
+	CPUPROF_IP_SUGGEST_NO_SKID = 0x2
+	CPUPROF_IP_NO_SKID         = 0x3
+)
+
+// cpuProfileConfig holds different settings under which CPU samples can be produced.
+// Not all fields are in use yet.
+// hz defines the rate of sampling (used only for OS timer-based sampling).
+// period is complementory to hz. The period defines the interval (the number of events that elase) between generating two sampling interrupts.
+// rawEvent is an opaque number that is passed down to CPU to specify what event to sample.
+// The raw event is CPU vendor and version specific.
+// preciseIP is one of the following value:
+//    CPUPROF_IP_ARBITRARY_SKID: no skid constaint from when the sample occurs to when the interrupt is generated,
+//    CPUPROF_IP_CONSTANT_SKID: a constant skid between a sample and the corresponding interrupt,
+//    CPUPROF_IP_SUGGEST_NO_SKID: request zero skid between a sample and the corresponding interrupt, but no guarantee,
+//    CPUPROF_IP_NO_SKID: demand no skid between a sample and the corresponding interrupt.
+// isSampleIPIncluded: include the instuction pointer that caused the sample to occur.
+// isSampleThreadIDIncluded: include the thread id in the sample.
+// isSampleAddrIncluded: include the memory address accessed at the time of generating the sample.
+// isKernelIncluded: count the events in the kernel mode.
+// isHvIncluded: count the events in the hypervisor mode.
+// isHvIncluded: include the kernel call chain at the time of the sample.
+// isIdleIncluded: count when the CPU is running the idle task.
+// isSampleCallchainIncluded: include the entire call chain seen at the time of the sample.
+// isCallchainKernelIncluded: include the kernel call chain seen at the time of the sample.
+// isCallchainUserIncluded: include the user call chain seen at the time of the sample.
+//
+//go:linkname cpuProfileConfig runtime/pprof.cpuProfileConfig
+type cpuProfileConfig struct {
+	hz                        uint64
+	period                    uint64
+	rawEvent                  uint64
+	preciseIP                 uint8
+	isSampleIPIncluded        bool
+	isSampleThreadIDIncluded  bool
+	isSampleAddrIncluded      bool
+	isKernelIncluded          bool
+	isHvIncluded              bool
+	isIdleIncluded            bool
+	isSampleCallchainIncluded bool
+	isCallchainKernelIncluded bool
+	isCallchainUserIncluded   bool
+}
+
 type cpuProfile struct {
 	lock mutex
 	on   bool     // profiling is on
@@ -42,7 +103,7 @@ type cpuProfile struct {
 	lostAtomic uint64 // count of frames lost because of being in atomic64 on mips/arm; updated racily
 }
 
-var cpuprof cpuProfile
+var cpuprof [CPUPROF_EVENTS_MAX]cpuProfile
 
 // SetCPUProfileRate sets the CPU profiling rate to hz samples per second.
 // If hz <= 0, SetCPUProfileRate turns off profiling.
@@ -60,26 +121,81 @@ func SetCPUProfileRate(hz int) {
 		hz = 1000000
 	}
 
-	lock(&cpuprof.lock)
 	if hz > 0 {
-		if cpuprof.on || cpuprof.log != nil {
-			print("runtime: cannot set cpu profile rate until previous profile has finished.\n")
-			unlock(&cpuprof.lock)
+		var profConfig cpuProfileConfig
+		profConfig.hz = uint64(hz)
+		runtime_pprof_setCPUProfileConfig(CPUPROF_OS_TIMER, &profConfig)
+	} else {
+		runtime_pprof_setCPUProfileConfig(CPUPROF_OS_TIMER, nil)
+	}
+}
+
+func sanitizeCPUProfileConfig(profConfig *cpuProfileConfig) {
+	if profConfig == nil {
+		return
+	}
+	profConfig.preciseIP = CPUPROF_IP_ARBITRARY_SKID
+	profConfig.isSampleIPIncluded = false
+	profConfig.isSampleThreadIDIncluded = false
+	profConfig.isSampleAddrIncluded = false
+	profConfig.isSampleCallchainIncluded = false
+	profConfig.isKernelIncluded = false
+	profConfig.isHvIncluded = false
+	profConfig.isIdleIncluded = false
+	profConfig.isCallchainKernelIncluded = false
+	profConfig.isCallchainUserIncluded = false
+}
+
+// setCPUProfileConfig, provided to runtime/pprof, enables/disables CPU profiling for a specified CPU event.
+// Profiling cannot be enabled if it is already enabled.
+// eventId: specifies the event to enable/disable. eventId can be one of the following values:
+//      CPUPROF_OS_TIMER, CPUPROF_HW_CPU_CYCLES, CPUPROF_HW_INSTRUCTIONS, CPUPROF_HW_CACHE_REFERENCES,
+//      CPUPROF_HW_CACHE_MISSES, CPUPROF_HW_CACHE_LL_READ_ACCESSES, CPUPROF_HW_CACHE_LL_READ_MISSES, CPUPROF_HW_RAW
+// profConfig: provides additional configurations when enabling the specified event.
+//             A nil profConfig results in disabling the said event.
+// TODO: should we make this function return an error?
+//
+//go:linkname runtime_pprof_setCPUProfileConfig runtime/pprof.setCPUProfileConfig
+func runtime_pprof_setCPUProfileConfig(eventId cpuEvent, profConfig *cpuProfileConfig) {
+	if eventId >= CPUPROF_EVENTS_MAX {
+		return
+	}
+
+	lock(&cpuprof[eventId].lock)
+	defer unlock(&cpuprof[eventId].lock)
+	if profConfig != nil {
+		if cpuprof[eventId].on || cpuprof[eventId].log != nil {
+			print("runtime: cannot set cpu profile config until previous profile has finished.\n")
 			return
 		}
 
-		cpuprof.on = true
-		cpuprof.log = newProfBuf(1, 1<<17, 1<<14)
-		hdr := [1]uint64{uint64(hz)}
-		cpuprof.log.write(nil, nanotime(), hdr[:], nil)
-		setcpuprofilerate(int32(hz))
-	} else if cpuprof.on {
-		setcpuprofilerate(0)
-		cpuprof.on = false
-		cpuprof.addExtra()
-		cpuprof.log.close()
+		cpuprof[eventId].on = true
+		// Enlarging the buffer words and tags reduces the number of samples lost at the cost of larger amounts of memory
+		cpuprof[eventId].log = newProfBuf( /* header size */ 1 /* buffer words */, 1<<17 /* tags */, 1<<14)
+		// OS timer profiling provides the sampling rate (sample/sec), whereas the other PMU-based events provide
+		// sampling interval (aka period), which is the the number of events to elapse before a sample is triggered.
+		// The latter is called as "event-based sampling". In event-based sampling, the overhead is proportional to the
+		// number of events; no events imples no overhead.
+		// On Linux-based systems perf_event_open() allows configuring PMU-events in a "Hz" mode; but that is for later.
+		if eventId == CPUPROF_OS_TIMER {
+			hdr := [1]uint64{profConfig.hz}
+			cpuprof[eventId].log.write(nil, nanotime(), hdr[:], nil)
+		} else {
+			hdr := [1]uint64{profConfig.period}
+			cpuprof[eventId].log.write(nil, nanotime(), hdr[:], nil)
+		}
+		// Take a copy of the profConfig passed by the user, so that the runtime functions are not affected
+		// if the user code changes the attributes.
+		cfg := make([]cpuProfileConfig, 1, 1)
+		cfg[0] = *profConfig
+		sanitizeCPUProfileConfig(&cfg[0])
+		setcpuprofileconfig(eventId, &cfg[0])
+	} else if cpuprof[eventId].on {
+		setcpuprofileconfig(eventId, nil)
+		cpuprof[eventId].on = false
+		cpuprof[eventId].addExtra()
+		cpuprof[eventId].log.close()
 	}
-	unlock(&cpuprof.lock)
 }
 
 // add adds the stack trace to the profile.
@@ -88,13 +204,12 @@ func SetCPUProfileRate(hz int) {
 // held at the time of the signal, nor can it use substantial amounts
 // of stack.
 //go:nowritebarrierrec
-func (p *cpuProfile) add(gp *g, stk []uintptr) {
-	// Simple cas-lock to coordinate with setcpuprofilerate.
-	for !atomic.Cas(&prof.signalLock, 0, 1) {
+func (p *cpuProfile) add(gp *g, stk []uintptr, eventId cpuEvent) {
+	profCfg := &prof[eventId]
+	for !atomic.Cas(&signalLock, 0, 1) {
 		osyield()
 	}
-
-	if prof.hz != 0 { // implies cpuprof.log != nil
+	if profCfg.config != nil { // implies cpuprof[eventId].log != nil
 		if p.numExtra > 0 || p.lostExtra > 0 || p.lostAtomic > 0 {
 			p.addExtra()
 		}
@@ -103,40 +218,38 @@ func (p *cpuProfile) add(gp *g, stk []uintptr) {
 		// because otherwise its write barrier behavior may not
 		// be correct. See the long comment there before
 		// changing the argument here.
-		cpuprof.log.write(&gp.labels, nanotime(), hdr[:], stk)
+		cpuprof[eventId].log.write(&gp.labels, nanotime(), hdr[:], stk)
 	}
-
-	atomic.Store(&prof.signalLock, 0)
+	atomic.Store(&signalLock, 0)
 }
 
 // addNonGo adds the non-Go stack trace to the profile.
 // It is called from a non-Go thread, so we cannot use much stack at all,
 // nor do anything that needs a g or an m.
-// In particular, we can't call cpuprof.log.write.
-// Instead, we copy the stack into cpuprof.extra,
+// In particular, we can't call cpuprof[id].log.write.
+// Instead, we copy the stack into cpuprof[id].extra,
 // which will be drained the next time a Go thread
 // gets the signal handling event.
 //go:nosplit
 //go:nowritebarrierrec
-func (p *cpuProfile) addNonGo(stk []uintptr) {
+func (p *cpuProfile) addNonGo(stk []uintptr, eventId cpuEvent) {
 	// Simple cas-lock to coordinate with SetCPUProfileRate.
 	// (Other calls to add or addNonGo should be blocked out
 	// by the fact that only one SIGPROF can be handled by the
 	// process at a time. If not, this lock will serialize those too.)
-	for !atomic.Cas(&prof.signalLock, 0, 1) {
+	for !atomic.Cas(&signalLock, 0, 1) {
 		osyield()
 	}
-
-	if cpuprof.numExtra+1+len(stk) < len(cpuprof.extra) {
-		i := cpuprof.numExtra
-		cpuprof.extra[i] = uintptr(1 + len(stk))
-		copy(cpuprof.extra[i+1:], stk)
-		cpuprof.numExtra += 1 + len(stk)
+	prof := &cpuprof[eventId]
+	if prof.numExtra+1+len(stk) < len(prof.extra) {
+		i := prof.numExtra
+		prof.extra[i] = uintptr(1 + len(stk))
+		copy(prof.extra[i+1:], stk)
+		prof.numExtra += 1 + len(stk)
 	} else {
-		cpuprof.lostExtra++
+		prof.lostExtra++
 	}
-
-	atomic.Store(&prof.signalLock, 0)
+	atomic.Store(&signalLock, 0)
 }
 
 // addExtra adds the "extra" profiling events,
@@ -201,15 +314,16 @@ func runtime_pprof_runtime_cyclesPerSecond() int64 {
 // The caller must save the returned data and tags before calling readProfile again.
 //
 //go:linkname runtime_pprof_readProfile runtime/pprof.readProfile
-func runtime_pprof_readProfile() ([]uint64, []unsafe.Pointer, bool) {
-	lock(&cpuprof.lock)
-	log := cpuprof.log
-	unlock(&cpuprof.lock)
+func runtime_pprof_readProfile(eventId cpuEvent) ([]uint64, []unsafe.Pointer, bool) {
+	prof := &cpuprof[eventId]
+	lock(&prof.lock)
+	log := prof.log
+	unlock(&prof.lock)
 	data, tags, eof := log.read(profBufBlocking)
 	if len(data) == 0 && eof {
-		lock(&cpuprof.lock)
-		cpuprof.log = nil
-		unlock(&cpuprof.lock)
+		lock(&prof.lock)
+		prof.log = nil
+		unlock(&prof.lock)
 	}
 	return data, tags, eof
 }

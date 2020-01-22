@@ -77,8 +77,10 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"os"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"text/tabwriter"
@@ -709,8 +711,28 @@ func (p runtimeProfile) Stack(i int) []uintptr { return p[i].Stack() }
 
 var cpu struct {
 	sync.Mutex
-	profiling bool
-	done      chan bool
+	profiling    bool
+	eventEnabled [runtime.CPUPROF_EVENTS_MAX]bool
+	activeWriter [runtime.CPUPROF_EVENTS_MAX]io.Writer
+	eventName    [runtime.CPUPROF_EVENTS_MAX]string
+	done         chan bool
+}
+
+// CPUProfilingAttribute holds additional attributes for CPU profiling.
+// Writer is the io.Writer to serialize the profiles in protobuf format.
+// Hz is meaningful for OS timer-based profiling, which selects the rate of sampling.
+// A higher Hz value means more fine-grained sampling. OS-timers ignore Period and RawEvent.
+// Period is the number of events that should elapse between two sampling interrupts.
+// The Period is meaningful for all other kinds of CPU profiling such as CPU cycles or other hardware events.
+// A lower period value means more fine-grained sampling. Hardware events ignore Hz.
+// RawEvent is an opaque, architecture specific value passed down to CPU's performance monitoring unit.
+// A RawEvent value is interpreted differently by different CPU vendors and versions.
+// For simplicity, we follow the same convention used by the Linux perf tool by concatenating <event mask><event id>.
+// UseHz tells the profiler to use the Hz value instead of the Period value.
+type CPUProfilingAttribute struct {
+	Hz       int64
+	Period   int64
+	RawEvent int64
 }
 
 // StartCPUProfile enables CPU profiling for the current process.
@@ -724,7 +746,10 @@ var cpu struct {
 // not to the one used by Go. To make it work, call os/signal.Notify
 // for syscall.SIGPROF, but note that doing so may break any profiling
 // being done by the main program.
-func StartCPUProfile(w io.Writer) error {
+func StartCPUProfile(w io.Writer, opts ...ProfilingOption) error {
+	if (len(opts) > 1) && os.Getenv("GO_PPROF_ENABLE_MULTIPLE_CPU_PROFILES") != "true" {
+		return fmt.Errorf("StartCPUProfile with more than one ProfilingOption is not allowed. Enable it with GO_PPROF_ENABLE_MULTIPLE_CPU_PROFILES=true")
+	}
 	// The runtime routines allow a variable profiling rate,
 	// but in practice operating systems cannot trigger signals
 	// at more than about 500 Hz, and our processing of the
@@ -734,49 +759,256 @@ func StartCPUProfile(w io.Writer) error {
 	// system, and a nice round number to make it easy to
 	// convert sample counts to seconds. Instead of requiring
 	// each client to specify the frequency, we hard code it.
-	const hz = 100
+	var hz = 100
+	if len(opts) == 0 {
+		evConfig := CPUProfilingAttribute{
+			Hz: int64(hz),
+		}
+		return startCPUProfile(WithProfilingOSTimer(w, &evConfig))
+	}
+	if runtime.GOOS != "linux" || (runtime.GOARCH != "amd64" && runtime.GOARCH != "arm64" && runtime.GOARCH != "386") { // enabling only on Linux AMD64/i386/ARM64
+		return fmt.Errorf("StartCPUProfile with ProfilingOption is not available on %s/%s", runtime.GOOS, runtime.GOARCH)
+	}
+	// if len(opts) > 0, w will be ignored.
+	return startCPUProfile(opts...)
+}
 
+func startCPUProfile(opts ...ProfilingOption) error {
 	cpu.Lock()
 	defer cpu.Unlock()
+
 	if cpu.done == nil {
 		cpu.done = make(chan bool)
 	}
-	// Double-check.
+
 	if cpu.profiling {
-		return fmt.Errorf("cpu profiling already in use")
+		return fmt.Errorf("Cannot start a profiling session when one profiling session is already running.")
 	}
+
 	cpu.profiling = true
-	runtime.SetCPUProfileRate(hz)
-	go profileWriter(w)
+	for _, opt := range opts {
+		if err := opt.apply(); err != nil {
+			return err
+		}
+	}
+	go profileWriter()
 	return nil
 }
+
+// cpuProfileConfig holds different settings under which CPU samples can be produced.
+// Not all fields are in use yet.
+// hz defines the rate of sampling (used only for OS timer-based sampling).
+// period is complementory to hz. The period defines the interval (the number of events that elase) between generating two sampling interrupts.
+// rawEvent is an opaque number that is passed down to CPU to specify what event to sample.
+// The raw event is CPU vendor and version specific.
+// preciseIP is one of the following value:
+//    CPUPROF_IP_ARBITRARY_SKID: no skid constaint from when the sample occurs to when the interrupt is generated,
+//    CPUPROF_IP_CONSTANT_SKID: a constant skid between a sample and the corresponding interrupt,
+//    CPUPROF_IP_SUGGEST_NO_SKID: request zero skid between a sample and the corresponding interrupt, but no guarantee,
+//    CPUPROF_IP_NO_SKID: demand no skid between a sample and the corresponding interrupt.
+// isSampleIPIncluded: include the instuction pointer that caused the sample to occur.
+// isSampleThreadIDIncluded: include the thread id in the sample.
+// isSampleAddrIncluded: include the memory address accessed at the time of generating the sample.
+// isKernelIncluded: count the events in the kernel mode.
+// isHvIncluded: count the events in the hypervisor mode.
+// isHvIncluded: include the kernel call chain at the time of the sample.
+// isIdleIncluded: count when the CPU is running the idle task.
+// isSampleCallchainIncluded: include the entire call chain seen at the time of the sample.
+// isCallchainKernelIncluded: include the kernel call chain seen at the time of the sample.
+// isCallchainUserIncluded: include the user call chain seen at the time of the sample.
+type cpuProfileConfig struct {
+	hz                        uint64
+	period                    uint64
+	rawEvent                  uint64
+	preciseIP                 uint8
+	isSampleIPIncluded        bool
+	isSampleThreadIDIncluded  bool
+	isSampleAddrIncluded      bool
+	isKernelIncluded          bool
+	isHvIncluded              bool
+	isIdleIncluded            bool
+	isSampleCallchainIncluded bool
+	isCallchainKernelIncluded bool
+	isCallchainUserIncluded   bool
+}
+
+type cpuEvent int32
+
+const (
+	CPUPROF_OS_TIMER, CPUPROF_FIRST_EVENT          cpuEvent = iota, iota
+	CPUPROF_HW_CPU_CYCLES, CPUPROF_FIRST_PMU_EVENT cpuEvent = iota, iota
+	CPUPROF_HW_INSTRUCTIONS                        cpuEvent = iota
+	CPUPROF_HW_CACHE_REFERENCES                    cpuEvent = iota
+	CPUPROF_HW_CACHE_MISSES                        cpuEvent = iota
+	CPUPROF_HW_BRANCH_INSTRUCTIONS                 cpuEvent = iota
+	CPUPROF_HW_BRANCH_MISSES                       cpuEvent = iota
+	CPUPROF_HW_RAW, CPUPROF_LAST_EVENT             cpuEvent = iota, iota
+	CPUPROF_EVENTS_MAX                                      = iota
+)
+
+func startCPUProfilingWithConfig(w io.Writer, attr *CPUProfilingAttribute, eventId cpuEvent, eventName string) {
+	cpu.eventEnabled[eventId] = true
+	profConfig := cpuProfileConfig{
+		hz:       uint64(attr.Hz),
+		period:   uint64(attr.Period),
+		rawEvent: uint64(attr.RawEvent),
+	}
+	setCPUProfileConfig(eventId, &profConfig)
+	cpu.activeWriter[eventId] = w
+	cpu.eventName[eventId] = eventName
+}
+
+func WithProfilingOSTimer(w io.Writer, attr *CPUProfilingAttribute) ProfilingOption {
+	return profilingOptionFunc(func() error {
+		if attr.Hz <= 0 {
+			return fmt.Errorf("Hz should be > 0")
+		}
+		// TODO: create a table of standard clamp values
+		// Clamp period to something reasonable
+		if attr.Hz < 1000 {
+			attr.Hz = 1000
+		}
+		startCPUProfilingWithConfig(w, attr, CPUPROF_OS_TIMER, "timer")
+		return nil
+	})
+}
+
+func WithProfilingCPUCycles(w io.Writer, attr *CPUProfilingAttribute) ProfilingOption {
+	return profilingOptionFunc(func() error {
+		if attr.Period <= 0 {
+			return fmt.Errorf("Period should be > 0")
+		}
+		// TODO: create a table of standard clamp values
+		// Clamp period to something reasonable
+		if attr.Period < 1000 {
+			attr.Period = 1000
+		}
+		startCPUProfilingWithConfig(w, attr, CPUPROF_HW_CPU_CYCLES, "cycles")
+		return nil
+	})
+}
+
+func WithProfilingCPUInstructions(w io.Writer, attr *CPUProfilingAttribute) ProfilingOption {
+	return profilingOptionFunc(func() error {
+		if attr.Period <= 0 {
+			return fmt.Errorf("Period should be > 0")
+		}
+		// TODO: create a table of standard clamp values
+		// Clamp period to something reasonable
+		if attr.Period < 1000 {
+			attr.Period = 1000
+		}
+		startCPUProfilingWithConfig(w, attr, CPUPROF_HW_INSTRUCTIONS, "instructions")
+		return nil
+	})
+}
+
+func WithProfilingCPUCacheReferences(w io.Writer, attr *CPUProfilingAttribute) ProfilingOption {
+	return profilingOptionFunc(func() error {
+		if attr.Period <= 0 {
+			return fmt.Errorf("Period should be > 0")
+		}
+		// TODO: create a table of standard clamp values
+		// TODO: clamp period to something reasonable
+		startCPUProfilingWithConfig(w, attr, CPUPROF_HW_CACHE_REFERENCES, "cache references")
+		return nil
+	})
+}
+
+func WithProfilingCPUCacheMisses(w io.Writer, attr *CPUProfilingAttribute) ProfilingOption {
+	return profilingOptionFunc(func() error {
+		if attr.Period <= 0 {
+			return fmt.Errorf("Period should be > 0")
+		}
+		// TODO: create a table of standard clamp values
+		// TODO: clamp period to something reasonable
+		startCPUProfilingWithConfig(w, attr, CPUPROF_HW_CACHE_MISSES, "cache misses")
+		return nil
+	})
+}
+
+func WithProfilingPMURaw(w io.Writer, attr *CPUProfilingAttribute) ProfilingOption {
+	return profilingOptionFunc(func() error {
+		if attr.Period <= 0 {
+			return fmt.Errorf("Period should be > 0")
+		}
+		// TODO: create a table of standard clamp values
+		// TODO: clamp period to something reasonable
+		if attr.RawEvent < 0 {
+			return fmt.Errorf("RawEvent should be >= 0")
+		}
+		startCPUProfilingWithConfig(w, attr, CPUPROF_HW_RAW, "r"+strconv.FormatInt(attr.RawEvent, 16))
+		return nil
+	})
+}
+
+type ProfilingOption interface {
+	apply() error
+}
+
+type profilingOptionFunc func() error
+
+func (pof profilingOptionFunc) apply() error { return pof() }
 
 // readProfile, provided by the runtime, returns the next chunk of
 // binary CPU profiling stack trace data, blocking until data is available.
 // If profiling is turned off and all the profile data accumulated while it was
 // on has been returned, readProfile returns eof=true.
 // The caller must save the returned data and tags before calling readProfile again.
-func readProfile() (data []uint64, tags []unsafe.Pointer, eof bool)
+func readProfile(eventId cpuEvent) (data []uint64, tags []unsafe.Pointer, eof bool)
 
-func profileWriter(w io.Writer) {
-	b := newProfileBuilder(w)
+// setCPUProfileConfig, provided to runtime/pprof, enables/disables CPU profiling for a specified CPU event.
+// Profiling cannot be enabled if it is already enabled.
+// eventId: specifies the event to enable/disable. eventId can be one of the following values:
+//      CPUPROF_OS_TIMER, CPUPROF_HW_CPU_CYCLES, CPUPROF_HW_INSTRUCTIONS, CPUPROF_HW_CACHE_REFERENCES,
+//      CPUPROF_HW_CACHE_MISSES, CPUPROF_HW_CACHE_LL_READ_ACCESSES, CPUPROF_HW_CACHE_LL_READ_MISSES, CPUPROF_HW_RAW
+// profConfig: provides additional configurations when enabling the specified event.
+//             A nil profConfig results in disabling the said event.
+func setCPUProfileConfig(eventId cpuEvent, profConfig *cpuProfileConfig)
+
+func profileWriter() {
+	var b [CPUPROF_EVENTS_MAX]*profileBuilder
+	for i := 0; i < CPUPROF_EVENTS_MAX; i++ {
+		if cpu.activeWriter[i] != nil {
+			b[i] = newProfileBuilder(cpu.activeWriter[i])
+		}
+	}
 	var err error
 	for {
+		active := false
 		time.Sleep(100 * time.Millisecond)
-		data, tags, eof := readProfile()
-		if e := b.addCPUData(data, tags); e != nil && err == nil {
-			err = e
+		for eventId := CPUPROF_FIRST_EVENT; eventId < CPUPROF_EVENTS_MAX; eventId++ {
+			if cpu.activeWriter[eventId] == nil {
+				continue
+			}
+			active = true
+			data, tags, eof := readProfile(eventId)
+			if eventId == CPUPROF_OS_TIMER {
+				if e := b[eventId].addTimerData(data, tags); e != nil && err == nil {
+					err = e
+				}
+			} else {
+				if e := b[eventId].addCPUData(data, tags); e != nil && err == nil {
+					err = e
+				}
+			}
+			if eof {
+				cpu.activeWriter[eventId] = nil
+			}
 		}
-		if eof {
+		if active == false {
 			break
 		}
 	}
 	if err != nil {
-		// The runtime should never produce an invalid or truncated profile.
-		// It drops records that can't fit into its log buffers.
 		panic("runtime/pprof: converting profile: " + err.Error())
 	}
-	b.build()
+
+	for eventId := CPUPROF_FIRST_EVENT; eventId < CPUPROF_EVENTS_MAX; eventId++ {
+		if b[eventId] != nil {
+			b[eventId].buildCPUProfile(eventId, cpu.eventName[eventId])
+		}
+	}
 	cpu.done <- true
 }
 
@@ -791,7 +1023,12 @@ func StopCPUProfile() {
 		return
 	}
 	cpu.profiling = false
-	runtime.SetCPUProfileRate(0)
+	for i := CPUPROF_FIRST_EVENT; i < CPUPROF_EVENTS_MAX; i++ {
+		if cpu.eventEnabled[i] {
+			setCPUProfileConfig(i, nil)
+			cpu.eventEnabled[i] = false
+		}
+	}
 	<-cpu.done
 }
 

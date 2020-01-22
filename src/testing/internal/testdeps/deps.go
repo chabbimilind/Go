@@ -12,10 +12,12 @@ package testdeps
 
 import (
 	"bufio"
+	"fmt"
 	"internal/testlog"
 	"io"
 	"regexp"
 	"runtime/pprof"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -38,14 +40,38 @@ func (TestDeps) MatchString(pat, str string) (result bool, err error) {
 	return matchRe.MatchString(str), nil
 }
 
-func (TestDeps) StartCPUProfile(w io.Writer) error {
-	return pprof.StartCPUProfile(w)
+func (TestDeps) StartCPUProfile(w io.Writer, event string, period int64) error {
+	var attr pprof.CPUProfilingAttribute
+	attr.Period = period
+	switch event {
+	case "timer":
+		attr.Hz = 100 // always forces 100Hz sampling for OS timer
+		return pprof.StartCPUProfile(w, pprof.WithProfilingOSTimer(w, &attr))
+	case "cycles":
+		return pprof.StartCPUProfile(w, pprof.WithProfilingCPUCycles(w, &attr))
+	case "instructions":
+		return pprof.StartCPUProfile(w, pprof.WithProfilingCPUInstructions(w, &attr))
+	case "cacheReferences":
+		return pprof.StartCPUProfile(w, pprof.WithProfilingCPUCacheReferences(w, &attr))
+	case "cacheMisses":
+		return pprof.StartCPUProfile(w, pprof.WithProfilingCPUCacheMisses(w, &attr))
+	default:
+		// Is this a raw event?
+		if strings.HasPrefix(event, "r") {
+			if rawHexEvent, err := strconv.ParseInt(event[1:], 16, 64); err == nil {
+				attr.RawEvent = rawHexEvent
+				return pprof.StartCPUProfile(w, pprof.WithProfilingPMURaw(w, &attr))
+			}
+			return fmt.Errorf("Incorrect hex format for raw event")
+		} else {
+			return fmt.Errorf("Unknown or not yet implemented event")
+		}
+	}
 }
 
 func (TestDeps) StopCPUProfile() {
 	pprof.StopCPUProfile()
 }
-
 func (TestDeps) WriteProfileTo(name string, w io.Writer, debug int) error {
 	return pprof.Lookup(name).WriteTo(w, debug)
 }
